@@ -34,3 +34,11 @@ Thumbs.db
 
 # CLI draft outputs (work-in-progress scripts)
 scripts/
+
+# Local Piper voice models (large; downloaded on demand)
+voices/
+*.onnx
+*.onnx.json
+
+# One-off demo driver
+_demo_render.py

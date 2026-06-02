@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+from . import pil_compat  # noqa: F401  (restores PIL.Image.ANTIALIAS for MoviePy 1.x)
 from moviepy.editor import ImageClip
 
 

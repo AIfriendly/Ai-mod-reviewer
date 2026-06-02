@@ -93,12 +93,23 @@ cp .env.example .env      # then fill in ANTHROPIC_API_KEY, NEXUS_API_KEY, voice
 cd remotion && npm install && cd ..
 ```
 
-### Your cloned voice
+### Voice
 
-Edit `config/voice.yaml` → `provider: elevenlabs`, and set your cloned voice's
-`voice_id` (or `ELEVENLABS_VOICE_ID` in `.env`). Other providers: `openai`,
-`piper` (local/free), or `prerecorded` (drop `work/narration/<segment_id>.wav`
-files you rendered yourself).
+Edit `config/voice.yaml` → `provider:` and fill the matching section. Options:
+`elevenlabs` (your cloned voice — set `voice_id` or `ELEVENLABS_VOICE_ID`),
+`openai`, `prerecorded` (drop `work/narration/<segment_id>.wav` files), or
+**`piper`** for a fully local, free, offline voice (no keys):
+
+```bash
+# Local Piper voice (the channel's default for zero-cost rendering)
+pip install piper-tts
+python -m piper.download_voices en_US-ryan-high --download-dir voices
+# config/voice.yaml -> provider: piper  (model_path: voices/en_US-ryan-high.onnx)
+```
+
+> MoviePy 1.x + Pillow ≥10: the `ANTIALIAS` constant was removed in Pillow 10;
+> `skyrim_reviewer/edit/pil_compat.py` restores it automatically, so renders work
+> on modern Pillow with no pin.
 
 ### Permissions ledger
 

@@ -20,26 +20,30 @@ mods:
     name: "Heavy Armory - New Weapons"
     author: "PrivateEye"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/6308"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/21120-1-1343308058.jpg"
     summary: "Adds lore-friendly new weapon types — halberds, mauls, spears, tridents — to every tier."
-    media_ok: false
+    media_ok: true
   - mod_id: 13776
     name: "Awesome Artifacts"
     author: "Argonil"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/13776"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/88102-37-1511766066.jpg"
     summary: "Rebalances and upgrades the game's unique artifacts so legendary weapons actually feel legendary."
-    media_ok: false
+    media_ok: true
   - mod_id: 28264
     name: "Elven Blades"
     author: "Vilidran"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/28264"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565887700-1825696022.png"
     summary: "High-quality remodels of the elven sword and greatsword."
-    media_ok: false
+    media_ok: true
   - mod_id: 27572
     name: "Glass Blades"
     author: "Vilidran"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/27572"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669469575-833663610.jpeg"
     summary: "High-quality remodels of the glass sword and greatsword."
-    media_ok: false
+    media_ok: true
 
 segments:
   - kind: hook

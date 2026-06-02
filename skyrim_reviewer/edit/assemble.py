@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from . import pil_compat  # noqa: F401  (restores PIL.Image.ANTIALIAS for MoviePy 1.x)
 from ..models import Mod, Project, Script
 from ..utils.ffmpeg import configure_moviepy
 from .captions import segment_durations, write_srt, youtube_chapters

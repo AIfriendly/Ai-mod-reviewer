@@ -20,7 +20,10 @@ class PiperProvider(TTSProvider):
 
             voice = PiperVoice.load(self.model_path)
             with wave.open(str(wav_path), "wb") as wf:
-                voice.synthesize(text, wf)
+                if hasattr(voice, "synthesize_wav"):
+                    voice.synthesize_wav(text, wf)        # piper >= 1.3
+                else:
+                    voice.synthesize(text, wf)            # legacy API
         except ImportError:
             # Fall back to the piper CLI if the python package isn't installed.
             subprocess.run(

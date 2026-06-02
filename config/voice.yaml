@@ -3,7 +3,7 @@
 # section. Your CLONED VOICE plugs in here.
 
 # provider: elevenlabs | openai | piper | prerecorded
-provider: elevenlabs
+provider: piper
 
 elevenlabs:
   # voice_id of YOUR cloned voice. Either set it here or via ELEVENLABS_VOICE_ID env.
