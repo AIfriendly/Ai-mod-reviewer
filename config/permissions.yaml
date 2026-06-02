@@ -1,0 +1,28 @@
+# Media-reuse permission ledger (footage policy).
+#
+# NexusMods' API does NOT expose a reliable "media reuse allowed" flag, and mod
+# authors retain full ownership of their uploads. So we DO NOT auto-scrape media.
+# Instead, you record here which mods/authors have granted permission to feature
+# their media (DM, comment, public "free to use in videos w/ credit" note, etc.).
+#
+# When channel.yaml ranking.require_reuse_permission is true, ONLY mods listed as
+# approved here are eligible to have their media downloaded and shown.
+#
+# Always credit the author on screen + in the description regardless.
+
+# Authors who have blanket-approved media reuse with credit:
+approved_authors: []
+  # - "SomeModAuthor"
+
+# Specific approved mods (by NexusMods mod_id):
+approved_mod_ids: []
+  # - 266      # "Static Mesh Improvement Mod" — author approved via comment 2026-01
+
+# Authors/mods explicitly denied (never feature these):
+denied_authors: []
+denied_mod_ids: []
+
+# If you set this true, the research stage will still RANK and script unapproved
+# mods, but the asset stage will use placeholder slates (no downloaded media) until
+# you add them above. Lets you test the pipeline end-to-end before chasing permissions.
+allow_placeholder_for_unapproved: true

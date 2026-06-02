@@ -1,0 +1,32 @@
+# Text-to-speech configuration.
+# The narration stage is provider-pluggable. Set `provider` and fill the matching
+# section. Your CLONED VOICE plugs in here.
+
+# provider: elevenlabs | openai | piper | prerecorded
+provider: elevenlabs
+
+elevenlabs:
+  # voice_id of YOUR cloned voice. Either set it here or via ELEVENLABS_VOICE_ID env.
+  voice_id: "${ELEVENLABS_VOICE_ID}"
+  model: "eleven_multilingual_v2"
+  stability: 0.45
+  similarity_boost: 0.8
+  style: 0.0
+  output_format: "mp3_44100_128"
+
+openai:
+  model: "gpt-4o-mini-tts"
+  voice: "onyx"
+
+piper:
+  # Local, offline, free. Point to a downloaded Piper voice model.
+  model_path: "voices/en_US-ryan-high.onnx"
+
+prerecorded:
+  # Use audio you (or your cloned voice) rendered yourself.
+  # Drop one wav/mp3 per segment named <segment_id>.wav in this dir.
+  audio_dir: "work/narration"
+
+# Pacing
+words_per_minute: 155
+pause_between_segments_ms: 450

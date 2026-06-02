@@ -1,0 +1,85 @@
+# Channel strategy & video structure.
+# Defaults encode the research findings (see README "Research-backed strategy").
+
+channel:
+  name: "Your Skyrim Mod Channel"
+  game_domain: "skyrimspecialedition"   # NexusMods domain slug (game)
+  # Hybrid strategy: evergreen category lists are the backbone, thematic specials
+  # are the viral spikes. The pipeline tags each project with its format.
+  default_format: "category_list"        # category_list | transformation | weekly_roundup
+
+# Evergreen category "buckets" you rotate through for the backbone videos.
+# Each maps to NexusMods category ids / search terms used by the research stage.
+categories:
+  - id: weapons
+    title: "Best Skyrim Weapon Mods"
+    nexus_category_ids: [41, 60]         # Weapons, Weapons (Misc) — verify per domain
+    search_terms: ["weapon", "sword", "bow"]
+  - id: armor
+    title: "Best Skyrim Armor & Clothing Mods"
+    nexus_category_ids: [42, 43]
+    search_terms: ["armor", "armour", "clothing", "outfit"]
+  - id: new_lands
+    title: "Best Skyrim New Lands & Quest Mods"
+    nexus_category_ids: [22, 24]
+    search_terms: ["new lands", "worldspace", "quest", "expansion"]
+  - id: graphics
+    title: "Best Skyrim Graphics & Visual Mods"
+    nexus_category_ids: [97, 29]
+    search_terms: ["enb", "texture", "graphics", "lighting"]
+  - id: gameplay
+    title: "Best Skyrim Gameplay Overhaul Mods"
+    nexus_category_ids: [28, 51]
+    search_terms: ["combat", "overhaul", "survival", "ai"]
+
+# Target video shape. Two profiles: start with `test` (5 min) to validate quality,
+# then switch to `full` (20 min, ad-friendly = 2-3 mid-rolls) once it looks good.
+# Select at runtime:  skyrim-reviewer make --profile test   (default)
+#                     skyrim-reviewer make --profile full
+video:
+  active_profile: "test"      # test | full   <- first runs use the short test profile
+  resolution: [1920, 1080]
+  fps: 30
+  profiles:
+    test:
+      target_minutes: 5
+      mods_per_video: 4         # short proof-of-concept
+      seconds_per_mod: 60
+      hook_seconds: 8
+      intro_seconds: 18
+      outro_seconds: 30
+    full:
+      target_minutes: 20
+      mods_per_video: 10        # 8-12 recommended
+      seconds_per_mod: 100      # ~85-125s; deep-dive mods can run longer
+      hook_seconds: 10          # cold open, best visual mod first, NO logo intro
+      intro_seconds: 25         # promise + pattern interrupt
+      outro_seconds: 60         # CTA tied to next week's topic
+
+# Ranking weights for the research stage (how it picks "best" mods).
+ranking:
+  weight_endorsements: 0.45
+  weight_downloads_recent: 0.30
+  weight_recency: 0.15
+  weight_has_media: 0.10
+  require_media: true         # only feature mods that have showable media
+  require_reuse_permission: true   # footage policy: only mods whose author permits media reuse
+
+# Branding for titles/thumbnails (Remotion + thumbnail generator read these).
+branding:
+  accent_color: "#d4af37"     # Skyrim gold
+  secondary_color: "#1b2a3a"
+  font_family: "Cinzel"
+  watermark: "@YourChannel"
+
+# Title templates (research-backed). {n}, {category}, {year} are filled in.
+title_templates:
+  category_list:
+    - "{n} Skyrim {category} Mods You NEED in {year}"
+    - "The Only Skyrim {category} Mods You'll Ever Need ({year})"
+    - "{n} {category} Mods That Make Skyrim Feel Like a New Game"
+  transformation:
+    - "I Made Skyrim Look Like {theme} With {n} Mods"
+    - "Transforming Skyrim Into {theme} ({year})"
+  weekly_roundup:
+    - "Best New Skyrim Mods This Week (You Probably Missed These)"

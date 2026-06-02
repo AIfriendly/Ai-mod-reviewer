@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skyrim-reviewer"
+version = "0.1.0"
+description = "AI-assisted Skyrim mod review video generator (research -> script -> assets -> voice -> edit -> thumbnail)"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+include = ["skyrim_reviewer*"]
+
+[project.scripts]
+skyrim-reviewer = "skyrim_reviewer.cli:app"

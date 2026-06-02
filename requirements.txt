@@ -1,0 +1,23 @@
+# --- Core orchestration ---
+typer>=0.12          # CLI
+pydantic>=2.7        # typed config + data models
+pyyaml>=6.0          # channel/voice config files
+python-dotenv>=1.0   # load API keys from .env
+httpx>=0.27          # NexusMods API client
+tenacity>=8.2        # retry/backoff for network calls
+
+# --- Script generation ---
+anthropic>=0.40      # Claude API (script writer, prompt caching)
+
+# --- Voice (text-to-speech) ---
+# ElevenLabs cloned-voice provider (optional, only needed for that provider)
+elevenlabs>=1.0 ; python_version >= "3.9"
+
+# --- Video / image editing ---
+moviepy>=1.0.3,<2.0  # timeline assembly (1.x API: set_duration/resize/set_position)
+imageio-ffmpeg>=0.4.9  # bundled ffmpeg binary (portable fallback)
+Pillow>=10.0         # Ken Burns frames, thumbnails
+numpy>=1.24          # frame math
+
+# --- Captions / subtitles ---
+# (srt is generated in-house; no extra dep required)
