@@ -33,6 +33,34 @@ A deep research pass (Reddit r/skyrimmods + r/NewTubers, creator case studies,
 
 ---
 
+## Footage (fully automated, mod images via the API)
+
+This channel uses the one footage source that's both **legal and fully automated**:
+the single main image the **official NexusMods API** exposes per mod. No scraping,
+no recording, no ripping other creators.
+
+A static still over a 60s segment would tank retention, so the editor turns each
+image into **multi-shot Ken Burns** — several distinct camera moves (different
+crops, zoom directions, focus points) hard-cut together — so one screenshot plays
+like b-roll. (`config/channel.yaml` → `video.shot_seconds` controls the pace; a new
+move ~every 16s.)
+
+Footage resolution order per segment: author-permitted **video clip** (if you ever
+add one) → **mod image** (multi-shot Ken Burns) → **placeholder slate**.
+
+**Permissions** — mods only show their image if the author allows reuse (they own
+their uploads). Two ways:
+
+```bash
+skyrim-reviewer approve VividWeathers     # author permitted media reuse (recommended)
+skyrim-reviewer approve 266               # or approve a specific mod id
+```
+
+…or, for hands-off automation, set `assume_all_permitted: true` in
+`config/permissions.yaml` (informed opt-in — every author is still credited on
+screen + in the description, but some may not want reuse; you accept that risk).
+Either way unapproved mods fall back to a neutral credited slate.
+
 ## Pipeline
 
 ```

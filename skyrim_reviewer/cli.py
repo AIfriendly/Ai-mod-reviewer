@@ -23,6 +23,19 @@ def categories():
 
 
 @app.command()
+def approve(value: str):
+    """Approve a mod AUTHOR (name) or MOD ID (number) for media reuse.
+
+    Use after an author permits showing their media (comment/DM/"free to use in
+    videos with credit"). The footage stage then downloads that mod's image.
+    """
+    from .config import add_permission
+    key = add_permission(value)
+    typer.echo(f"Approved '{value}' -> {key}. The author will still be credited "
+               f"on screen and in the description.")
+
+
+@app.command()
 def research(category: str):
     """Research + rank the best mods for a category (no script/render)."""
     from .research import research_category

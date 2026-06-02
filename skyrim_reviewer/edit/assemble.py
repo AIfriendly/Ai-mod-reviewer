@@ -38,11 +38,12 @@ def assemble_video(project: Project, accent: str = "#d4af37",
     overlays_dir.mkdir(parents=True, exist_ok=True)
 
     durations = segment_durations(script)
+    shot_seconds = channel_video_cfg().get("shot_seconds", 18.0)
     seg_clips = []
     for seg, dur in zip(script.segments, durations):
         mod = _mod_by_id(project.mods, seg.mod_id) if seg.mod_id else None
         media_paths = [a.local_path for a in (mod.media if mod else []) if a and a.local_path]
-        visual = clip_for_segment(media_paths, dur, size, fps=fps)
+        visual = clip_for_segment(media_paths, dur, size, fps=fps, shot_seconds=shot_seconds)
 
         layers = [visual]
         if mod:  # credit lower-third on screen
@@ -89,6 +90,11 @@ def assemble_video(project: Project, accent: str = "#d4af37",
 
     project.output_path = str(out_path)
     return project
+
+
+def channel_video_cfg() -> dict:
+    from ..config import channel_config
+    return channel_config()["video"]
 
 
 def project_resolution(project: Project) -> list[int]:

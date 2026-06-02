@@ -25,6 +25,9 @@ assets_cache/
 !docs/**/*.png
 !docs/**/*.jpg
 
+# CLI-managed permission ledger (may contain author names / churns often)
+config/permissions.local.yaml
+
 # OS
 .DS_Store
 Thumbs.db

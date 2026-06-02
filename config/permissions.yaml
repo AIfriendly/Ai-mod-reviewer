@@ -26,3 +26,12 @@ denied_mod_ids: []
 # mods, but the asset stage will use placeholder slates (no downloaded media) until
 # you add them above. Lets you test the pipeline end-to-end before chasing permissions.
 allow_placeholder_for_unapproved: true
+
+# ⚠️ INFORMED OPT-IN. If true, the pipeline treats EVERY mod's main API image as
+# reusable (still always crediting the author on screen + in the description).
+# This is the "fully automated" footage mode — but mod authors retain ownership and
+# some forbid media reuse, so a few may issue takedowns. Recommended instead: leave
+# this false and `skyrim-reviewer approve <author>` the mods whose authors permit it
+# (DM/comment/"free to use in videos with credit"). You accept responsibility for
+# what you publish with this on.
+assume_all_permitted: false

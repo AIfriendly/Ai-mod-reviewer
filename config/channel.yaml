@@ -40,6 +40,9 @@ video:
   active_profile: "test"      # test | full   <- first runs use the short test profile
   resolution: [1920, 1080]
   fps: 30
+  # Multi-shot Ken Burns: one mod image becomes a new "camera move" every
+  # ~shot_seconds, so a single permitted screenshot plays like b-roll.
+  shot_seconds: 16
   profiles:
     test:
       target_minutes: 5

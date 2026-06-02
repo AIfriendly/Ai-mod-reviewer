@@ -53,6 +53,52 @@ def voice_config() -> dict:
     return load_yaml("voice.yaml")
 
 
+def transformations_config() -> dict:
+    return load_yaml("transformations.yaml")
+
+
+def load_permissions() -> dict:
+    """Merge the human-edited permissions.yaml with the CLI-managed local file.
+
+    permissions.yaml keeps the documentation/comments; `skyrim-reviewer approve`
+    writes to permissions.local.yaml. List fields are unioned; scalar flags in the
+    local file override the base.
+    """
+    base = load_yaml("permissions.yaml")
+    local_path = CONFIG_DIR / "permissions.local.yaml"
+    if local_path.exists():
+        with open(local_path, "r", encoding="utf-8") as fh:
+            local = _expand_env(yaml.safe_load(fh) or {})
+        for k, v in local.items():
+            if isinstance(v, list) and isinstance(base.get(k), list):
+                base[k] = list(dict.fromkeys(base[k] + v))
+            else:
+                base[k] = v
+    return base
+
+
+def add_permission(value: str) -> str:
+    """Append an approved author (string) or mod id (int) to permissions.local.yaml.
+
+    Returns the list it was added to ('approved_mod_ids' or 'approved_authors').
+    """
+    _load_dotenv_once()
+    local_path = CONFIG_DIR / "permissions.local.yaml"
+    data = {}
+    if local_path.exists():
+        with open(local_path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+    key = "approved_mod_ids" if value.isdigit() else "approved_authors"
+    item: object = int(value) if value.isdigit() else value
+    data.setdefault(key, [])
+    if item not in data[key]:
+        data[key].append(item)
+    with open(local_path, "w", encoding="utf-8") as fh:
+        fh.write("# Managed by `skyrim-reviewer approve` — edit permissions.yaml for docs.\n")
+        yaml.safe_dump(data, fh, sort_keys=True)
+    return key
+
+
 def active_profile(cfg: dict | None = None, override: str | None = None) -> tuple[str, VideoProfile]:
     """Return (profile_name, VideoProfile) honouring an optional CLI override."""
     cfg = cfg or channel_config()

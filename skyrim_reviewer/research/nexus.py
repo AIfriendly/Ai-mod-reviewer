@@ -16,7 +16,7 @@ from typing import Any, Iterable
 import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
-from ..config import channel_config, get_env, load_yaml, require_env
+from ..config import channel_config, get_env, load_permissions, require_env
 from ..models import MediaAsset, Mod
 
 API_BASE = "https://api.nexusmods.com/v1"
@@ -100,14 +100,18 @@ def _to_mod(raw: dict, domain: str) -> Mod:
 
 
 def _permission_status(mod: Mod, perms: dict) -> bool:
-    """True if the user has recorded reuse permission for this mod/author."""
+    """True if reuse of this mod's media is permitted (denials always win)."""
+    who = mod.uploaded_by or mod.author
     if mod.mod_id in set(perms.get("denied_mod_ids", []) or []):
         return False
-    if (mod.uploaded_by or mod.author) in set(perms.get("denied_authors", []) or []):
+    if who in set(perms.get("denied_authors", []) or []):
         return False
     if mod.mod_id in set(perms.get("approved_mod_ids", []) or []):
         return True
-    if (mod.uploaded_by or mod.author) in set(perms.get("approved_authors", []) or []):
+    if who in set(perms.get("approved_authors", []) or []):
+        return True
+    # Informed opt-in "fully automated" mode (see permissions.yaml).
+    if perms.get("assume_all_permitted", False):
         return True
     return False
 
@@ -136,7 +140,7 @@ def research_category(category_id: str, limit: int, client: NexusClient | None =
     """Return the top `limit` ranked, eligible mods for a configured category."""
     cfg = channel_config()
     ranking = cfg["ranking"]
-    perms = load_yaml("permissions.yaml")
+    perms = load_permissions()
     domain = cfg["channel"]["game_domain"]
 
     cat = next((c for c in cfg["categories"] if c["id"] == category_id), None)
