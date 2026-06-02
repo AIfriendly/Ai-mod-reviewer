@@ -1,0 +1,137 @@
+# Chat-authored transformation video — runs with NO API keys.
+#   skyrim-reviewer make the-witcher --fmt transformation \
+#       --script examples/transforming_skyrim_witcher.yaml
+#
+# Mods are illustrative placeholders (media_ok: false -> the pipeline shows a
+# neutral slate and credits each author). Swap in the real mods you use, set their
+# page_url, and flip media_ok to true ONLY for authors who permitted media reuse.
+
+title: "I Turned Skyrim Into The Witcher (With 12 Mods)"
+hook_line: "Skyrim Is Now The Witcher"
+format: transformation
+theme: "The Witcher"
+next_topic: "Transforming Skyrim into Elden Ring"
+tags: [skyrim, the witcher, skyrim mods, witcher 3, modlist, transformation]
+description: >
+  I spent a week turning Skyrim into the dark fantasy world of The Witcher — the
+  muddy villages, the silver-sword monster hunts, the candlelit gloom. Here's
+  every mod that got me there, and what each one changes.
+
+mods:
+  - name: "Continent Weathers & ENB"
+    author: "PlaceholderAuthor1"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000001"
+    summary: "Muted, overcast weather and a desaturated ENB preset that nails the Continent's mood."
+    media_ok: false
+  - name: "Witcher Village Overhaul"
+    author: "PlaceholderAuthor2"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000002"
+    summary: "Rebuilds Skyrim's towns as muddy, lived-in Velen-style hamlets."
+    media_ok: false
+  - name: "Silver & Steel Combat"
+    author: "PlaceholderAuthor3"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000003"
+    summary: "Two-weapon swordplay with whirlwind finishers — silver for beasts, steel for men."
+    media_ok: false
+  - name: "Signs of the Witcher"
+    author: "PlaceholderAuthor4"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000004"
+    summary: "Replaces shouts/spells with Igni, Quen, Aard and the rest of the Witcher signs."
+    media_ok: false
+  - name: "Monster Hunt Contracts"
+    author: "PlaceholderAuthor5"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000005"
+    summary: "Notice-board contracts to track and slay reimagined Witcher-style monsters."
+    media_ok: false
+
+segments:
+  - kind: hook
+    title: "Cold open"
+    target_seconds: 12
+    narration: >
+      This is Skyrim. Grey, familiar, the same mountain you've climbed a hundred
+      times. But by the end of this video, it won't be Skyrim anymore — it'll be
+      the Continent. The mud, the monsters, the silver sword. So let's burn it
+      all down and rebuild it as The Witcher.
+
+  - kind: intro
+    title: "The promise"
+    target_seconds: 22
+    narration: >
+      Twelve mods. One week. I wasn't after a few Witcher armors bolted onto
+      vanilla — I wanted Skyrim to FEEL like Geralt's world the second you load in.
+      So we'll build it the way the illusion actually works: first the look, then
+      the world, then the people, then the way it fights. Stick around for the
+      last one, because that's the mod that finally made me forget I was playing
+      Skyrim at all.
+
+  - kind: mod
+    ref: 1
+    title: "The Look"
+    target_seconds: 60
+    narration: >
+      It all starts with the light. Vanilla Skyrim is bright and blue; the
+      Continent is overcast, muddy, and grim. Continent Weathers and its ENB
+      preset, by PlaceholderAuthor1, drain the saturation, drop a low grey sky over
+      everything, and push thick volumetric fog through the pines. Suddenly the
+      same forest road feels dangerous. This single change does more for the
+      transformation than anything else — get the mood right, and your brain fills
+      in the rest. Huge credit to the author for nailing that palette.
+
+  - kind: mod
+    ref: 2
+    title: "The World"
+    target_seconds: 60
+    narration: >
+      Now the towns. Whiterun never felt like Velen — too clean, too golden.
+      Witcher Village Overhaul by PlaceholderAuthor2 tears that down and rebuilds
+      the settlements as muddy, lived-in hamlets: crooked fences, hanging laundry,
+      pigs in the lanes, smoke curling off thatched roofs. Walking into a village
+      now feels like walking into a contract. It's the difference between a game
+      map and a place where people actually scrape out a living.
+
+  - kind: mod
+    ref: 4
+    title: "The People & The Signs"
+    target_seconds: 55
+    narration: >
+      A Witcher isn't a dragonborn shouting at the sky — he's a mutant with five
+      signs. Signs of the Witcher by PlaceholderAuthor4 swaps Skyrim's magic for
+      Igni, Quen, Aard, Yrden and Axii, mapped so they feel like quick combat
+      tools instead of spells. Throw up a Quen shield before a fight, blast a
+      drowner back with Aard — and just like that, you're not casting, you're
+      hunting.
+
+  - kind: mod
+    ref: 3
+    title: "The Feel"
+    target_seconds: 55
+    narration: >
+      But the moment it truly clicked was the combat. Silver and Steel by
+      PlaceholderAuthor3 rebuilds swordplay around two blades and those signature
+      pirouette finishers — silver for the beasts, steel for the men. Pair it with
+      the signs and every encounter turns into a little Witcher fight: dodge,
+      sign, strike, finish. This is where Skyrim stopped imitating the Witcher and
+      started BEING it.
+
+  - kind: mod
+    ref: 5
+    title: "The payoff"
+    target_seconds: 45
+    narration: >
+      And this is the one I promised you. Monster Hunt Contracts by
+      PlaceholderAuthor5 drops notice boards in every town — read a contract,
+      track the beast, investigate, and hunt it down for coin. It ties every other
+      mod together into the actual Witcher gameplay loop. I took one contract, rode
+      out into that grey fog, found the monster's lair... and completely forgot I
+      was playing Skyrim. That's when I knew it had worked.
+
+  - kind: outro
+    title: "Outro"
+    target_seconds: 30
+    narration: >
+      Twelve mods, and Skyrim is gone — this is the Continent now. The full load
+      order's in the description with credit to every author, because none of this
+      works without them. If you'd run this build, hit subscribe, because next week
+      I'm doing it again — we're transforming Skyrim into Elden Ring, and that one
+      gets weird. See you in the Lands Between.

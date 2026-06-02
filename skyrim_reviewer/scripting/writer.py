@@ -94,6 +94,24 @@ _OUTPUT_SCHEMA = {
 }
 
 
+# Format-specific structure notes appended to the (volatile) user prompt.
+_FORMAT_GUIDANCE = {
+    VideoFormat.transformation: (
+        "This is a TRANSFORMATION video — not a list. Treat it as a cinematic "
+        "journey that turns Skyrim into the target game. The HOOK opens on the "
+        "contrast (drab vanilla vs the new world) and poses the fantasy. Then move "
+        "through the world aspect by aspect — the LOOK (visuals/ENB), the WORLD "
+        "(locations), the PEOPLE (characters/armor), the FEEL (combat), the SOUND — "
+        "weaving the mods into each beat rather than numbering them 1..N. The OUTRO "
+        "lands the payoff: Skyrim is gone, this is the new game now."
+    ),
+    VideoFormat.weekly_roundup: (
+        "This is a weekly roundup of fresh mods — keep energy high and segments "
+        "tight; assume returning subscribers who want what's NEW this week."
+    ),
+}
+
+
 def _build_user_prompt(category_title: str, fmt: VideoFormat, profile: VideoProfile,
                        mods: list[Mod], next_topic: str, theme: str) -> str:
     lines = [
@@ -102,6 +120,8 @@ def _build_user_prompt(category_title: str, fmt: VideoFormat, profile: VideoProf
         f"Format: {fmt.value}.",
         f"Working title topic: {category_title}.",
     ]
+    if fmt in _FORMAT_GUIDANCE:
+        lines.append(_FORMAT_GUIDANCE[fmt])
     if theme:
         lines.append(f"Transformation theme: {theme}.")
     lines += [

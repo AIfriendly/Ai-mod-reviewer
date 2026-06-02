@@ -88,8 +88,28 @@ skyrim-reviewer research weapons           # see the ranked mods
 skyrim-reviewer script weapons             # research + print the script (no render)
 skyrim-reviewer make weapons               # full pipeline, 5-min test profile
 skyrim-reviewer make graphics --profile full
-skyrim-reviewer make "the-witcher" --fmt transformation --theme "The Witcher"
 ```
+
+### No-API-key path (script authored in chat)
+
+You don't need an Anthropic key. Author the script (research + narration) as a
+YAML spec — mods can be embedded inline, so it runs with **no API keys at all**
+(only a voice). A complete worked example ships in `examples/`:
+
+```bash
+skyrim-reviewer make the-witcher --fmt transformation \
+    --script examples/transforming_skyrim_witcher.yaml
+```
+
+See `skyrim_reviewer/scripting/manual.py` for the spec format.
+
+### "Transforming Skyrim into X" template
+
+Transformation videos are the viral-spike format. `config/transformations.yaml`
+defines the cinematic pillars (Look → World → People → Feel → Sound), themes
+(Witcher, Elden Ring, GoT, LOTR, Bloodborne) and title templates. The intro is
+built to open on the vanilla-vs-modded contrast, and the Remotion title card is a
+kinetic ember-lit reveal.
 
 Output lands in `output/<slug>.mp4` with a matching `.srt`, `.description.txt`
 (title + description + accurate chapters), and `work/<slug>/thumbnail.png`.
@@ -125,7 +145,13 @@ remotion/               Animated title cards (React/Remotion)
 
 ## Status
 
-This is a scaffold with working stage implementations. Before a real run you need:
-`ANTHROPIC_API_KEY`, a `NEXUS_API_KEY`, a configured voice, and (for real footage)
-permission entries. Without those, run `--skip-render` to exercise research +
-scripting, or rely on placeholder slates for an end-to-end dry run.
+Working stage implementations. Two ways to run:
+
+- **Chat-authored (no API keys):** use `--script <spec.yaml>` (see `examples/`).
+  Only a voice is required to produce a finished video; placeholder slates cover
+  any mod without permitted media.
+- **Automated:** add `ANTHROPIC_API_KEY` (script writer) + `NEXUS_API_KEY`
+  (research) to fetch and write everything programmatically.
+
+Either way, configure a voice in `config/voice.yaml` and add permission entries in
+`config/permissions.yaml` for any mod whose media you want to show on screen.

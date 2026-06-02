@@ -8,7 +8,7 @@ export const RemotionRoot: React.FC = () => {
     <Composition
       id="TitleCard"
       component={TitleCard}
-      durationInFrames={120} // 4s at 30fps
+      durationInFrames={150} // 5s at 30fps — room for the kinetic title to breathe
       fps={30}
       width={1920}
       height={1080}

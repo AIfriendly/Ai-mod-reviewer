@@ -1,0 +1,59 @@
+# "Transforming Skyrim into X" thematic template.
+#
+# These are your VIRAL-SPIKE videos (the 20-30% of output, per the research).
+# Unlike a category list, a transformation video is a CINEMATIC JOURNEY: open on
+# the contrast (vanilla vs the new world), then build the fantasy aspect by aspect
+# — visuals, world/locations, characters, combat, audio — so by the end Skyrim
+# genuinely feels like the target game.
+#
+# Each theme lists the "pillars" the script should hit and example mod types to
+# curate. You hand-pick the actual mods (best for theme fit) and write/curate the
+# script in chat, then drop it into a spec (see examples/).
+
+# Structure pillars every transformation video should cover, in order:
+pillars:
+  - id: visuals
+    label: "The Look"
+    prompt: "ENB/weather/texture mods that nail the target game's color palette and mood."
+  - id: world
+    label: "The World"
+    prompt: "New lands, city overhauls, or terrain mods that evoke the target's locations."
+  - id: characters
+    label: "The People"
+    prompt: "NPC overhauls, followers, or armor that bring the target's characters to Skyrim."
+  - id: combat
+    label: "The Feel"
+    prompt: "Combat / animation / mechanics mods that make it PLAY like the target game."
+  - id: audio
+    label: "The Sound"
+    prompt: "Music / sound replacers that complete the illusion (note licensing!)."
+
+# Title templates for transformation videos ({theme}, {n}, {year} get filled).
+title_templates:
+  - "I Turned Skyrim Into {theme} (With {n} Mods)"
+  - "Transforming Skyrim Into {theme} — Full Modlist {year}"
+  - "Skyrim But It's {theme}"
+  - "{n} Mods That Make Skyrim Feel Like {theme}"
+
+# Example themes to rotate. `pillars` overrides which sections to emphasize.
+themes:
+  the_witcher:
+    name: "The Witcher"
+    hook: "the dark fantasy of the Continent"
+    palette: "muted greens, mud, candlelight"
+  elden_ring:
+    name: "Elden Ring"
+    hook: "the haunting grandeur of the Lands Between"
+    palette: "golden mist, towering ruins, melancholy"
+  game_of_thrones:
+    name: "Game of Thrones"
+    hook: "the cold politics of Westeros"
+    palette: "grey snow, iron, banners"
+  lord_of_the_rings:
+    name: "The Lord of the Rings"
+    hook: "the sweeping epic of Middle-earth"
+    palette: "green Shire warmth, Mordor ash"
+  bloodborne:
+    name: "Bloodborne"
+    hook: "the gothic horror of Yharnam"
+    palette: "blood moon, fog, victorian dread"

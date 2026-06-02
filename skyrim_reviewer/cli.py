@@ -57,11 +57,18 @@ def make(
     theme: str = typer.Option("", help="For transformation videos, e.g. 'The Witcher'"),
     next_topic: str = typer.Option("", help="Tease this as next week's topic"),
     skip_render: bool = typer.Option(False, help="Stop before the final video render"),
+    script: str = typer.Option(
+        None, "--script",
+        help="Path to a chat-authored YAML script spec (skips research + Claude; "
+             "no API keys needed)"),
 ):
-    """Run the full pipeline: research -> script -> assets -> voice -> edit."""
+    """Run the full pipeline: research -> script -> assets -> voice -> edit.
+
+    Provide --script <file.yaml> to use a hand-written script (no API keys).
+    """
     from .pipeline import run
     run(category, profile_name=profile, fmt=fmt, theme=theme,
-        next_topic=next_topic, skip_render=skip_render)
+        next_topic=next_topic, skip_render=skip_render, script_spec=script)
 
 
 def _profile(name):

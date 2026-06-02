@@ -40,12 +40,18 @@ def _save(project: Project) -> None:
 
 def run(category_id: str, *, profile_name: str | None = None,
         fmt: str = "category_list", theme: str = "",
-        next_topic: str = "", skip_render: bool = False) -> Project:
+        next_topic: str = "", skip_render: bool = False,
+        script_spec: str | None = None) -> Project:
+    """Run the pipeline.
+
+    If `script_spec` (a YAML path) is given, research + Claude are skipped and the
+    hand-written / chat-authored script is used instead — no Anthropic or Nexus
+    key required.
+    """
     from .assets import acquire_media
     from .edit.assemble import assemble_video
     from .edit.remotion_render import render_title_card
-    from .research import research_category
-    from .scripting import write_script
+    from .scripting import apply_spec, load_spec
     from .thumbnail import make_thumbnail
     from .voice import get_provider
 
@@ -56,19 +62,29 @@ def run(category_id: str, *, profile_name: str | None = None,
     cat = next((c for c in cfg["categories"] if c["id"] == category_id), None)
     category_title = cat["title"] if cat else (theme or "Best Skyrim Mods")
 
-    # 1. Research
-    print(f"[1/6] Researching best mods for '{category_id}'...")
-    project.mods = research_category(category_id, project.profile.mods_per_video)
-    _save(project)
-    print(f"      Selected {len(project.mods)} mods.")
+    if script_spec:
+        # Manual / chat-authored path — mods + script come from the spec file.
+        print(f"[1/6] Loading chat-authored script spec: {script_spec}")
+        spec = load_spec(script_spec)
+        apply_spec(project, spec)
+        category_title = project.script.title
+        print(f"[2/6] Using {len(project.mods)} mods from spec — no API calls.")
+    else:
+        from .research import research_category
+        from .scripting import write_script
+        # 1. Research
+        print(f"[1/6] Researching best mods for '{category_id}'...")
+        project.mods = research_category(category_id, project.profile.mods_per_video)
+        _save(project)
+        print(f"      Selected {len(project.mods)} mods.")
 
-    # 2. Script
-    print("[2/6] Writing narration script (Claude)...")
-    project.script = write_script(
-        project.mods, category_title=category_title, fmt=VideoFormat(fmt),
-        profile=project.profile,
-        next_topic=next_topic or "more game-changing Skyrim mods", theme=theme,
-    )
+        # 2. Script (Claude API)
+        print("[2/6] Writing narration script (Claude)...")
+        project.script = write_script(
+            project.mods, category_title=category_title, fmt=VideoFormat(fmt),
+            profile=project.profile,
+            next_topic=next_topic or "more game-changing Skyrim mods", theme=theme,
+        )
     _save(project)
     print(f"      Title: {project.script.title}")
 
