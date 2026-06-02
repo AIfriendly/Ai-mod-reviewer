@@ -31,3 +31,6 @@ config/permissions.local.yaml
 # OS
 .DS_Store
 Thumbs.db
+
+# CLI draft outputs (work-in-progress scripts)
+scripts/

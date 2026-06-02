@@ -66,6 +66,10 @@ class NexusClient:
     def latest_updated(self) -> list[dict]:
         return self._get(f"/games/{self.domain}/mods/latest_updated.json")
 
+    def updated(self, period: str = "1m") -> list[dict]:
+        """Mod ids updated in a period (1d|1w|1m) — the widest discovery list."""
+        return self._get(f"/games/{self.domain}/mods/updated.json?period={period}")
+
     def mod_details(self, mod_id: int) -> dict:
         return self._get(f"/games/{self.domain}/mods/{mod_id}.json")
 
@@ -153,44 +157,123 @@ def research_category(category_id: str, limit: int, client: NexusClient | None =
     client = client or NexusClient(domain=domain)
     now = datetime.now(timezone.utc)
     try:
-        # Pool candidates from trending + recently updated, then filter to the category.
+        # Pool candidates from trending + latest added + latest updated.
+        # (The v1 API has no "browse category by popularity" endpoint, so this is
+        # the widest automated pool available — see research_trending for roundups,
+        # and prefer chat-authored specs for evergreen "best of all time" lists.)
         pool: dict[int, dict] = {}
-        for raw in (*client.trending(), *client.latest_updated()):
+        for raw in (*client.trending(), *client.latest_added(),
+                    *client.latest_updated()):
             mid = raw.get("mod_id")
             if mid is not None:
                 pool[mid] = raw
 
-        candidates: list[Mod] = []
+        def _eligible(mod: Mod) -> bool:
+            if ranking.get("require_media", True) and not mod.picture_url:
+                return False
+            mod.allow_media_reuse = _permission_status(mod, perms)
+            if (ranking.get("require_reuse_permission", True)
+                    and not mod.allow_media_reuse
+                    and not perms.get("allow_placeholder_for_unapproved", True)):
+                return False
+            return True
+
+        in_cat: dict[int, Mod] = {}
+        other: dict[int, Mod] = {}
         for raw in pool.values():
             mod = _to_mod(raw, domain)
-            if wanted_cat_ids and mod.category_id not in wanted_cat_ids:
+            if not _eligible(mod):
                 continue
-            if ranking.get("require_media", True) and not mod.picture_url:
-                continue
-            mod.allow_media_reuse = _permission_status(mod, perms)
-            if ranking.get("require_reuse_permission", True) and not mod.allow_media_reuse:
-                # Keep it for ranking only if placeholders are allowed; otherwise drop.
-                if not perms.get("allow_placeholder_for_unapproved", True):
-                    continue
             mod.score = _score(mod, ranking, now)
-            candidates.append(mod)
+            (in_cat if (not wanted_cat_ids or mod.category_id in wanted_cat_ids)
+             else other)[mod.mod_id] = mod
 
-        candidates.sort(key=lambda m: m.score, reverse=True)
-        top = candidates[:limit]
-
-        # Enrich the chosen few with full details (one call each) for better narration.
-        for mod in top:
+        # Deep scan: the trending/latest pool is tiny and utility-heavy, so walk the
+        # recently-updated mod list, fetch details, and keep real category matches.
+        # Early-stops once we have enough, so it rarely uses the full scan budget.
+        if ranking.get("deep_scan", True) and wanted_cat_ids:
+            target = max(limit * 3, 12)
+            scan_limit = int(ranking.get("scan_limit", 250))
+            period = ranking.get("updated_period", "1m")
+            scanned = 0
             try:
-                detail = client.mod_details(mod.mod_id)
-                mod.summary = (detail.get("summary") or mod.summary or "").strip()
-                mod.endorsements = int(detail.get("endorsement_count", mod.endorsements) or 0)
-                if detail.get("picture_url"):
-                    mod.picture_url = detail["picture_url"]
+                ids = [u.get("mod_id") for u in client.updated(period)]
             except Exception:
-                pass
-            if mod.picture_url:
-                mod.media.append(MediaAsset(url=mod.picture_url, kind="image"))
+                ids = []
+            for mid in ids:
+                if mid is None or mid in in_cat or scanned >= scan_limit:
+                    if scanned >= scan_limit:
+                        break
+                    continue
+                scanned += 1
+                try:
+                    detail = client.mod_details(int(mid))
+                except Exception:
+                    continue
+                if detail.get("status") not in (None, "published") or \
+                        detail.get("available") is False:
+                    continue
+                if detail.get("category_id") not in wanted_cat_ids:
+                    continue
+                mod = _to_mod(detail, domain)
+                if not _eligible(mod):
+                    continue
+                mod.score = _score(mod, ranking, now)
+                in_cat[mod.mod_id] = mod
+                if len(in_cat) >= target:
+                    break
+
+        ranked_in = sorted(in_cat.values(), key=lambda m: m.score, reverse=True)
+        ranked_other = sorted(other.values(), key=lambda m: m.score, reverse=True)
+        # Prefer category matches; fill the rest from the wider pool so a run always
+        # returns `limit` mods even when the live category pool is thin.
+        top = (ranked_in + ranked_other)[:limit]
+
+        _enrich(top, client)
         return top
     finally:
         if owns_client:
             client.close()
+
+
+def research_trending(limit: int, client: NexusClient | None = None) -> list[Mod]:
+    """Best trending mods this period, no category filter — ideal for the weekly
+    roundup format (the format the v1 API actually supports well)."""
+    cfg = channel_config()
+    ranking = cfg["ranking"]
+    perms = load_permissions()
+    domain = cfg["channel"]["game_domain"]
+    owns_client = client is None
+    client = client or NexusClient(domain=domain)
+    now = datetime.now(timezone.utc)
+    try:
+        mods = []
+        for raw in client.trending():
+            mod = _to_mod(raw, domain)
+            if ranking.get("require_media", True) and not mod.picture_url:
+                continue
+            mod.allow_media_reuse = _permission_status(mod, perms)
+            mod.score = _score(mod, ranking, now)
+            mods.append(mod)
+        mods.sort(key=lambda m: m.score, reverse=True)
+        top = mods[:limit]
+        _enrich(top, client)
+        return top
+    finally:
+        if owns_client:
+            client.close()
+
+
+def _enrich(top: list[Mod], client: NexusClient) -> None:
+    """Fill summary/endorsements/picture from full mod details (one call each)."""
+    for mod in top:
+        try:
+            detail = client.mod_details(mod.mod_id)
+            mod.summary = (detail.get("summary") or mod.summary or "").strip()
+            mod.endorsements = int(detail.get("endorsement_count", mod.endorsements) or 0)
+            if detail.get("picture_url"):
+                mod.picture_url = detail["picture_url"]
+        except Exception:
+            pass
+        if mod.picture_url and not mod.media:
+            mod.media.append(MediaAsset(url=mod.picture_url, kind="image"))

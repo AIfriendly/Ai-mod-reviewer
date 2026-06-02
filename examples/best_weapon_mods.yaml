@@ -1,0 +1,121 @@
+# REAL, chat-authored category-list video. Mods + IDs came from live deep-scan
+# research (skyrim-reviewer draft weapons); the narration was written in chat.
+#   skyrim-reviewer make weapons --script examples/best_weapon_mods.yaml
+#
+# media_ok is false for all four (placeholder slates + on-screen credit). Once an
+# author OKs reuse:  skyrim-reviewer approve PrivateEye   (then re-run).
+
+title: "4 Skyrim Weapon Mods You NEED in 2026"
+hook_line: "Skyrim's Best Weapons"
+format: category_list
+next_topic: "the best Skyrim armor mods"
+tags: [skyrim, skyrim mods, weapon mods, best skyrim mods 2026, skyrim se]
+description: >
+  Skyrim's vanilla weapon roster gets old fast. These four mods add new weapon
+  types and seriously upgrade the blades you already swing — here's what each one
+  changes and why it earns a slot in your load order.
+
+mods:
+  - mod_id: 6308
+    name: "Heavy Armory - New Weapons"
+    author: "PrivateEye"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/6308"
+    summary: "Adds lore-friendly new weapon types — halberds, mauls, spears, tridents — to every tier."
+    media_ok: false
+  - mod_id: 13776
+    name: "Awesome Artifacts"
+    author: "Argonil"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/13776"
+    summary: "Rebalances and upgrades the game's unique artifacts so legendary weapons actually feel legendary."
+    media_ok: false
+  - mod_id: 28264
+    name: "Elven Blades"
+    author: "Vilidran"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/28264"
+    summary: "High-quality remodels of the elven sword and greatsword."
+    media_ok: false
+  - mod_id: 27572
+    name: "Glass Blades"
+    author: "Vilidran"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/27572"
+    summary: "High-quality remodels of the glass sword and greatsword."
+    media_ok: false
+
+segments:
+  - kind: hook
+    title: "Cold open"
+    target_seconds: 8
+    narration: >
+      Be honest — you've been swinging the same five iron and steel weapons since
+      2011. By the end of this video your armory looks nothing like vanilla, and it
+      starts with a mod that quietly fixes Skyrim's biggest weapon problem.
+
+  - kind: intro
+    title: "The promise"
+    target_seconds: 18
+    narration: >
+      Four mods, all free, all on Nexus. Two of them add brand-new weapon types,
+      two of them make the blades you already love actually look the part. I'll show
+      you what each one does and exactly where it fits — and stick around, because
+      I saved the best-looking one for last.
+
+  - kind: mod
+    ref: 1
+    title: "Heavy Armory - New Weapons"
+    target_seconds: 60
+    narration: >
+      We start with the big one: Heavy Armory by PrivateEye. Skyrim ships with
+      swords, axes, maces and bows — and that's it. Heavy Armory fills in
+      everything that's missing: halberds, war-spears, tridents, mauls, even
+      shortswords, all crafted to look like they belonged in the base game from day
+      one. Every new weapon is integrated into the world — you'll find them on
+      bandits, buy them from smiths, and forge them yourself at every material tier.
+      It's the single biggest upgrade you can make to Skyrim's weapon variety, and
+      it's been a load-order staple for years. Huge credit to PrivateEye.
+
+  - kind: mod
+    ref: 2
+    title: "Awesome Artifacts"
+    target_seconds: 60
+    narration: >
+      Next, let's fix the weapons Skyrim wants you to think are special. The
+      Daedric artifacts — Mehrunes' Razor, the Mace of Molag Bal — look incredible
+      and then hit like a wet noodle by the time you actually earn them. Awesome
+      Artifacts by Argonil rebalances and upgrades them so a legendary weapon
+      finally feels legendary: stronger effects, smarter enchantments, and stats
+      that scale with the effort it took to get them. Now that hard-won artifact is
+      a reward, not a museum piece. Thanks to Argonil for this one.
+
+  - kind: mod
+    ref: 3
+    title: "Elven Blades"
+    target_seconds: 55
+    narration: >
+      Now we go from mechanics to looks. Vanilla elven weapons are weirdly chunky
+      and flat. Elven Blades by Vilidran remodels the elven sword and greatsword
+      from scratch — slimmer, sharper, with crisp gilded detailing that finally
+      reads as high-elven craftsmanship. It's a drop-in replacer, so every elven
+      blade in the game upgrades automatically. Small change, massive difference
+      every time you draw your weapon.
+
+  - kind: mod
+    ref: 4
+    title: "Glass Blades"
+    target_seconds: 50
+    narration: >
+      And here's the one I promised you. From the same author, Vilidran, Glass
+      Blades does for glass weapons what Elven Blades did for elven — and the glass
+      set is where it really shines. The translucent green, the malachite glow, the
+      elegant curve of the greatsword: this is the best these weapons have ever
+      looked in Skyrim. Pair it with Elven Blades and your high-tier loadout goes
+      from dated to drop-dead gorgeous.
+
+  - kind: outro
+    title: "Outro"
+    target_seconds: 30
+    narration: >
+      That's four mods and a completely transformed armory — new weapon types,
+      artifacts worth chasing, and blades that finally look the part. Every mod and
+      author is linked in the description, so go endorse their work. If this helped,
+      subscribe — next week we're doing the same thing for armor, and that lineup is
+      stacked. I'll see you then.

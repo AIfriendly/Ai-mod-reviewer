@@ -10,26 +10,27 @@ channel:
 
 # Evergreen category "buckets" you rotate through for the backbone videos.
 # Each maps to NexusMods category ids / search terms used by the research stage.
+# nexus_category_ids verified against the live skyrimspecialedition game endpoint.
 categories:
   - id: weapons
     title: "Best Skyrim Weapon Mods"
-    nexus_category_ids: [41, 60]         # Weapons, Weapons (Misc) — verify per domain
+    nexus_category_ids: [55, 36]         # Weapons; Weapons and Armour
     search_terms: ["weapon", "sword", "bow"]
   - id: armor
     title: "Best Skyrim Armor & Clothing Mods"
-    nexus_category_ids: [42, 43]
+    nexus_category_ids: [54, 60, 103, 36]  # Armour; Clothing & Accessories; Shields; Weapons+Armour
     search_terms: ["armor", "armour", "clothing", "outfit"]
   - id: new_lands
     title: "Best Skyrim New Lands & Quest Mods"
-    nexus_category_ids: [22, 24]
+    nexus_category_ids: [89, 35, 88]     # Locations - New; Quests and Adventures; Dungeons
     search_terms: ["new lands", "worldspace", "quest", "expansion"]
   - id: graphics
     title: "Best Skyrim Graphics & Visual Mods"
-    nexus_category_ids: [97, 29]
+    nexus_category_ids: [62, 29, 97, 74]  # Visuals & Graphics; Models & Textures; ENB/ReShade; Environmental
     search_terms: ["enb", "texture", "graphics", "lighting"]
   - id: gameplay
     title: "Best Skyrim Gameplay Overhaul Mods"
-    nexus_category_ids: [28, 51]
+    nexus_category_ids: [79, 77, 24, 78]  # Overhauls; Combat; Gameplay; Immersion
     search_terms: ["combat", "overhaul", "survival", "ai"]
 
 # Target video shape. Two profiles: start with `test` (5 min) to validate quality,
@@ -67,6 +68,12 @@ ranking:
   weight_has_media: 0.10
   require_media: true         # only feature mods that have showable media
   require_reuse_permission: true   # footage policy: only mods whose author permits media reuse
+  # Deep scan: the v1 API has no "browse category by popularity" endpoint, so we
+  # walk the recently-updated mod list and fetch details to find REAL category
+  # matches (otherwise the tiny trending pool returns utilities like SkyUI).
+  deep_scan: true
+  scan_limit: 250             # max mod-detail lookups per run (rate-limit friendly)
+  updated_period: "1m"        # 1d | 1w | 1m discovery window
 
 # Branding for titles/thumbnails (Remotion + thumbnail generator read these).
 branding:

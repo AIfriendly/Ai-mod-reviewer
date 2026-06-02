@@ -48,6 +48,32 @@ def research(category: str):
 
 
 @app.command()
+def draft(
+    category: str,
+    profile: str = typer.Option(None, help="test | full"),
+    fmt: str = typer.Option("category_list", help="category_list | transformation | weekly_roundup"),
+    out: str = typer.Option(None, help="Output spec path (default scripts/<cat>-<profile>.yaml)"),
+):
+    """Live-research a category and write a script SKELETON (mods filled, narration
+    blank) — then write the narration in chat and run `make --script <file>`."""
+    from datetime import date
+    from .config import channel_config
+    from .research import research_category
+    from .scripting.manual import spec_skeleton, write_spec
+    name, prof = _profile(profile)
+    cfg = channel_config()
+    cat = next((c for c in cfg["categories"] if c["id"] == category), None)
+    title = cat["title"] if cat else f"Best Skyrim {category} Mods"
+    typer.echo(f"Researching '{category}' (deep scan, may take ~30-60s)...")
+    mods = research_category(category, prof.mods_per_video)
+    spec = spec_skeleton(mods, title=title, fmt=fmt, profile=prof)
+    out = out or f"scripts/{category}-{name}-{date.today().isoformat()}.yaml"
+    write_spec(spec, out)
+    typer.echo(f"Wrote {out} with {len(mods)} mods. Fill in the narration, then:\n"
+               f"  skyrim-reviewer make {category} --fmt {fmt} --script {out}")
+
+
+@app.command()
 def script(
     category: str,
     profile: str = typer.Option(None, help="test | full (default from config)"),

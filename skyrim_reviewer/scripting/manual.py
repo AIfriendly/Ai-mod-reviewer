@@ -40,6 +40,50 @@ import yaml
 from ..models import MediaAsset, Mod, Project, Script, Segment, VideoFormat
 
 
+def spec_skeleton(mods, *, title: str, fmt: str, profile, next_topic: str = "",
+                  theme: str = "") -> dict:
+    """Build a script-spec skeleton from researched mods, with EMPTY narration.
+
+    The mods (and their permission flags) come from live research; the narration is
+    left blank for a human/assistant to write in chat. Saves the API-research ->
+    chat-authored-script bridge when you have a Nexus key but no Anthropic key.
+    """
+    segs = [
+        {"kind": "hook", "title": "Cold open", "target_seconds": profile.hook_seconds,
+         "narration": ""},
+        {"kind": "intro", "title": "The promise", "target_seconds": profile.intro_seconds,
+         "narration": ""},
+    ]
+    for i, m in enumerate(mods, 1):
+        segs.append({"kind": "mod", "ref": i, "title": m.name,
+                     "target_seconds": profile.seconds_per_mod, "narration": ""})
+    segs.append({"kind": "outro", "title": "Outro",
+                 "target_seconds": profile.outro_seconds, "narration": ""})
+    spec = {
+        "title": title,
+        "hook_line": "",
+        "format": fmt,
+        "next_topic": next_topic,
+        "tags": [],
+        "description": "",
+        "mods": [{
+            "mod_id": m.mod_id, "name": m.name, "author": m.uploaded_by or m.author,
+            "page_url": m.page_url, "summary": m.summary,
+            "image_url": m.picture_url, "media_ok": m.allow_media_reuse,
+        } for m in mods],
+        "segments": segs,
+    }
+    if theme:
+        spec["theme"] = theme
+    return spec
+
+
+def write_spec(spec: dict, path: str | Path) -> None:
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        yaml.safe_dump(spec, fh, sort_keys=False, allow_unicode=True, width=100)
+
+
 def load_spec(path: str | Path) -> dict:
     with open(path, "r", encoding="utf-8") as fh:
         return yaml.safe_load(fh)
