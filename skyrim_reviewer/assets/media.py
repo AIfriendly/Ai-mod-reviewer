@@ -50,10 +50,29 @@ def acquire_media(project: Project, resolution: tuple[int, int] = (1920, 1080)) 
     assets_dir = workdir / "assets"
     assets_dir.mkdir(parents=True, exist_ok=True)
 
+    # Optional, OFF by default: pull each approved mod's full image gallery from its
+    # Nexus page (the API exposes only one image). This is a ToS-violating scrape —
+    # see research/gallery.py and config/permissions.yaml -> allow_gallery_scrape.
+    from ..config import channel_config, load_permissions
+    perms = load_permissions()
+    scrape = bool(perms.get("allow_gallery_scrape", False))
+    gallery_max = int(perms.get("gallery_max_images", 6))
+    domain = channel_config()["channel"]["game_domain"]
+
     credits: list[dict] = []
     for mod in project.mods:
         slug = f"mod_{mod.mod_id}"
         used_placeholder = True
+        if mod.allow_media_reuse and scrape:
+            from ..research.gallery import fetch_gallery
+            have = {a.url for a in mod.media}
+            if sum(1 for a in mod.media if a.kind == "image") < gallery_max:
+                for u in fetch_gallery(mod.mod_id, domain, gallery_max):
+                    if u not in have:
+                        mod.media.append(MediaAsset(url=u, kind="image"))
+                        have.add(u)
+            imgs = [a for a in mod.media if a.kind == "image"][:gallery_max]
+            mod.media = [a for a in mod.media if a.kind != "image"] + imgs
         if mod.allow_media_reuse and mod.media:
             # Download the approved media.
             for idx, asset in enumerate(mod.media):

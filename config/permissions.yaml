@@ -27,6 +27,14 @@ denied_mod_ids: []
 # you add them above. Lets you test the pipeline end-to-end before chasing permissions.
 allow_placeholder_for_unapproved: true
 
+# ⚠️ TOS-VIOLATING OPT-IN. The official API exposes only ONE image per mod. If true,
+# the asset stage reads each approved mod's *website* page to collect its full image
+# gallery (dozens of screenshots). This is against the NexusMods ToS/API policy and
+# the account behind your API key could be banned. Off by default. Only runs for
+# approved mods; authors are still credited. gallery_max_images caps how many per mod.
+allow_gallery_scrape: false
+gallery_max_images: 6
+
 # ⚠️ INFORMED OPT-IN. If true, the pipeline treats EVERY mod's main API image as
 # reusable (still always crediting the author on screen + in the description).
 # This is the "fully automated" footage mode — but mod authors retain ownership and

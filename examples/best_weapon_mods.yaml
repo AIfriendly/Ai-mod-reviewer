@@ -21,6 +21,11 @@ mods:
     author: "PrivateEye"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/6308"
     image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/21120-1-1343308058.jpg"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/6308/6308-1642025643-1947517637.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/6308/6308-1642078266-2048856091.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/6308/6308-1642078284-1437418426.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/6308/6308-1642085347-827440442.jpeg"
     summary: "Adds lore-friendly new weapon types — halberds, mauls, spears, tridents — to every tier."
     media_ok: true
   - mod_id: 13776
@@ -28,6 +33,11 @@ mods:
     author: "Argonil"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/13776"
     image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/88102-37-1511766066.jpg"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/13776/13776-1551244048-1255089522.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/13776/13776-1551244101-79257456.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/13776/13776-1551244285-214010012.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/13776/13776-1551244086-688801663.png"
     summary: "Rebalances and upgrades the game's unique artifacts so legendary weapons actually feel legendary."
     media_ok: true
   - mod_id: 28264
@@ -35,6 +45,11 @@ mods:
     author: "Vilidran"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/28264"
     image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565887700-1825696022.png"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565890749-225219648.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565887688-1901034316.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565887691-1563372966.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/28264/28264-1565887689-579040839.png"
     summary: "High-quality remodels of the elven sword and greatsword."
     media_ok: true
   - mod_id: 27572
@@ -42,6 +57,11 @@ mods:
     author: "Vilidran"
     page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/27572"
     image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669469575-833663610.jpeg"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669469642-530860803.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669469642-1944875949.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669478433-937164847.png"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/27572/27572-1669478400-1595000628.png"
     summary: "High-quality remodels of the glass sword and greatsword."
     media_ok: true
 

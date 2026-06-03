@@ -39,14 +39,18 @@ This channel uses the one footage source that's both **legal and fully automated
 the single main image the **official NexusMods API** exposes per mod. No scraping,
 no recording, no ripping other creators.
 
-A static still over a 60s segment would tank retention, so the editor turns each
-image into **multi-shot Ken Burns** — several distinct camera moves (different
-crops, zoom directions, focus points) hard-cut together — so one screenshot plays
-like b-roll. (`config/channel.yaml` → `video.shot_seconds` controls the pace; a new
-move ~every 16s.)
+Each image is shown **whole** (fitted, never cropped) over a softly blurred fill of
+itself, with a gentle Ken Burns zoom — and a single still is split into a couple of
+push/pull shots so it isn't static. When a mod has several images, the editor cycles
+through them.
 
-Footage resolution order per segment: author-permitted **video clip** (if you ever
-add one) → **mod image** (multi-shot Ken Burns) → **placeholder slate**.
+> **Why only one image per mod?** The official API (v1 REST and v2 GraphQL) exposes
+> exactly one `picture_url` per mod — the full screenshot gallery lives only on the
+> mod's website page, which the API does not expose. Getting the rest requires
+> reading the page (see *Gallery scraping* below).
+
+Footage resolution order per segment: author-permitted **video clip** → **mod
+image(s)** (fit + gentle Ken Burns) → **placeholder slate**.
 
 **Permissions** — mods only show their image if the author allows reuse (they own
 their uploads). Two ways:
@@ -60,6 +64,18 @@ skyrim-reviewer approve 266               # or approve a specific mod id
 `config/permissions.yaml` (informed opt-in — every author is still credited on
 screen + in the description, but some may not want reuse; you accept that risk).
 Either way unapproved mods fall back to a neutral credited slate.
+
+### Gallery scraping (⚠️ ToS-violating, off by default)
+
+To get **many** images per mod, set `allow_gallery_scrape: true` (and
+`gallery_max_images`) in `config/permissions.yaml`. The asset stage then reads each
+**approved** mod's website page and pulls its full image gallery (see
+`skyrim_reviewer/research/gallery.py`).
+
+This breaks the NexusMods API/ToS, and **the account behind your API key could be
+banned**. It's polite (browser UA, backoff) and only runs for approved mods, but the
+risk is yours. The recommended alternative is your own gameplay clips dropped into a
+mod folder, which the editor prefers over images.
 
 ## Pipeline
 
