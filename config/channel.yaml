@@ -92,13 +92,18 @@ branding:
   watermark: "@YourChannel"
 
 # Title templates (research-backed). {n}, {category}, {year} are filled in.
+# Channel-style titles (modeled on Heavy Burns / Syn Gaming / SoftGaming): a power
+# word, a number, a year, and curiosity. Keep under ~70 chars so they don't truncate.
 title_templates:
   category_list:
-    - "{n} Skyrim {category} Mods You NEED in {year}"
-    - "The Only Skyrim {category} Mods You'll Ever Need ({year})"
-    - "{n} {category} Mods That Make Skyrim Feel Like a New Game"
+    - "The BEST Skyrim {category} Mods in {year}! ({n} You NEED)"
+    - "These {n} Skyrim {category} Mods Are INSANE! ({year})"
+    - "Top {n} Skyrim {category} Mods That Change EVERYTHING"
+    - "REMASTER Your Skyrim {category} With These {n} Mods! ({year})"
   transformation:
-    - "I Made Skyrim Look Like {theme} With {n} Mods"
-    - "Transforming Skyrim Into {theme} ({year})"
+    - "I REMASTERED Skyrim Into {theme} With {n} Mods!"
+    - "Transforming Skyrim Into {theme}! (INSANE Mods {year})"
   weekly_roundup:
-    - "Best New Skyrim Mods This Week (You Probably Missed These)"
+    - "These {n} NEW Skyrim Mods Blew Me Away! ({year})"
+    - "REMASTER Your Skyrim in {year} With These INSANE NEW Mods!"
+    - "{n} NEW Skyrim Mods You NEED to Try in {year}!"

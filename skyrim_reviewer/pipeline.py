@@ -107,7 +107,8 @@ def run(category_id: str, *, profile_name: str | None = None,
         accent=cfg["branding"]["accent_color"],
         out_path=Path(project.workdir) / "remotion" / "title.mp4",
     )
-    make_thumbnail(project, accent=cfg["branding"]["accent_color"])
+    make_thumbnail(project, accent=cfg["branding"]["accent_color"],
+                   category_title=category_title)
     _save(project)
 
     # 6. Edit / assemble

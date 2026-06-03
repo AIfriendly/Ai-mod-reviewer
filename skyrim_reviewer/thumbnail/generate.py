@@ -44,10 +44,33 @@ def _hero_images(project: Project) -> list[str]:
 
 
 def make_thumbnail(project: Project, text: str | None = None,
-                   accent: str = "#d4af37") -> str:
+                   accent: str = "#d4af37", category_title: str = "") -> str:
+    """Channel-style thumbnail. Renders via Remotion when available (split panels,
+    accent keyword, banner, ESRB badge, border); falls back to the PIL design."""
+    out = Path(project.workdir) / "thumbnail.png"
+    heroes = _hero_images(project)
+    if heroes:
+        from ..branding import thumbnail_text
+        from ..edit.remotion_render import render_thumbnail
+        title = (project.script.title if project.script else "") or "Best Skyrim Mods"
+        headline, keyword, banner = thumbnail_text(title, category_title or title)
+        # One image per mod (up to 3) so the split panels show different mods.
+        # Prefer a gallery screenshot (2nd image) over the splash/title-card main image.
+        panels = []
+        for mod in project.mods:
+            imgs = [a.local_path for a in mod.media if a.local_path and
+                    Path(a.local_path).suffix.lower() in
+                    {".png", ".jpg", ".jpeg", ".webp"}]
+            if imgs:
+                panels.append(imgs[1] if len(imgs) > 1 else imgs[0])
+            if len(panels) == 3:
+                break
+        if render_thumbnail(headline, keyword, banner, panels or heroes, accent, out):
+            project.thumbnail_path = str(out)
+            return str(out)
+
     canvas = Image.new("RGB", SIZE, (12, 18, 26))
     draw = ImageDraw.Draw(canvas)
-    heroes = _hero_images(project)
     text = (text or project.script.hook_line if project.script else None) or "TOP MODS"
 
     if len(heroes) >= 2:

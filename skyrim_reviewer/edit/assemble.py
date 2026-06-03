@@ -107,14 +107,20 @@ def assemble_video(project: Project, accent: str = "#d4af37",
         threads=4, preset="medium",
     )
 
-    # Sidecar artefacts: subtitles + accurate chapters.
+    # Sidecar artefacts: subtitles + accurate chapters + channel-style description.
     write_srt(script, durations, out_dir / f"{project.slug}.srt")
     script.chapters = youtube_chapters(script, durations)
-    credits_block = "\n\nChapters:\n" + "\n".join(script.chapters)
-    if music_attribution:
-        credits_block += "\n\nMusic:\n" + music_attribution
-    (out_dir / f"{project.slug}.description.txt").write_text(
-        script.title + "\n\n" + script.description + credits_block, encoding="utf-8")
+    from ..branding import make_description
+    watermark = ""
+    try:
+        from ..config import channel_config
+        watermark = channel_config()["branding"].get("watermark", "")
+    except Exception:
+        pass
+    description = make_description(
+        project, music_credit=music_attribution, watermark=watermark,
+        next_topic=getattr(project, "next_topic", "") or "")
+    (out_dir / f"{project.slug}.description.txt").write_text(description, encoding="utf-8")
 
     project.output_path = str(out_path)
     return project
