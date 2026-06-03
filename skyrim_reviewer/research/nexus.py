@@ -9,6 +9,7 @@ Docs: https://app.swaggerhub.com/apis-docs/NexusMods/nexus-mods_public_api_param
 """
 from __future__ import annotations
 
+import re
 import time
 from datetime import datetime, timezone
 from typing import Any, Iterable
@@ -264,16 +265,30 @@ def research_trending(limit: int, client: NexusClient | None = None) -> list[Mod
             client.close()
 
 
+_IMG_RE = re.compile(
+    r"https?://staticdelivery\.nexusmods\.com/[^\s\"'()<>]+?\.(?:jpe?g|png|webp)", re.I)
+
+
 def _enrich(top: list[Mod], client: NexusClient) -> None:
-    """Fill summary/endorsements/picture from full mod details (one call each)."""
+    """Fill summary/endorsements and gather every image the API exposes per mod:
+    the main picture plus any screenshots the author embedded in the description
+    (parsed from the API response — not scraped). The v1/v2 APIs expose no per-mod
+    gallery, so this is the most images obtainable without scraping the mod page."""
     for mod in top:
+        urls: list[str] = []
         try:
             detail = client.mod_details(mod.mod_id)
             mod.summary = (detail.get("summary") or mod.summary or "").strip()
             mod.endorsements = int(detail.get("endorsement_count", mod.endorsements) or 0)
             if detail.get("picture_url"):
                 mod.picture_url = detail["picture_url"]
+                urls.append(detail["picture_url"])
+            urls.extend(_IMG_RE.findall(detail.get("description") or ""))
         except Exception:
             pass
-        if mod.picture_url and not mod.media:
-            mod.media.append(MediaAsset(url=mod.picture_url, kind="image"))
+        if mod.picture_url:
+            urls.insert(0, mod.picture_url)
+        existing = {a.url for a in mod.media}
+        for u in dict.fromkeys(urls):           # preserve order, drop dups
+            if u not in existing:
+                mod.media.append(MediaAsset(url=u, kind="image"))

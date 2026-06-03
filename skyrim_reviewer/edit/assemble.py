@@ -40,11 +40,19 @@ def assemble_video(project: Project, accent: str = "#d4af37",
 
     durations = segment_durations(script)
     shot_seconds = channel_video_cfg().get("shot_seconds", 18.0)
+    # A backdrop for the title/intro/outro cards: the first available mod image.
+    backdrop = next((a.local_path for m in project.mods for a in m.media
+                     if a and a.local_path), None)
     seg_clips = []
     for seg, dur in zip(script.segments, durations):
         mod = _mod_by_id(project.mods, seg.mod_id) if seg.mod_id else None
         media_paths = [a.local_path for a in (mod.media if mod else []) if a and a.local_path]
-        visual = clip_for_segment(media_paths, dur, size, fps=fps, shot_seconds=shot_seconds)
+        if mod and media_paths:
+            visual = clip_for_segment(media_paths, dur, size, fps=fps,
+                                      shot_seconds=shot_seconds)
+        else:
+            # Hook / intro / outro (no mod image) -> a real title card, not a blank.
+            visual = _card_clip(seg, script, dur, size, fps, accent, backdrop)
 
         layers = [visual]
         if mod:  # credit lower-third on screen
@@ -91,6 +99,30 @@ def assemble_video(project: Project, accent: str = "#d4af37",
 
     project.output_path = str(out_path)
     return project
+
+
+def _card_clip(seg, script: Script, dur: float, size, fps: int, accent: str,
+               backdrop: str | None):
+    """Title/intro/outro card with a gentle zoom, so non-mod segments aren't blank."""
+    from moviepy.editor import ImageClip
+    from .titlecard import title_card_array
+
+    kind = getattr(seg, "kind", "") or ""
+    if kind == "outro":
+        title, subtitle = "Thanks for watching", "Like · Subscribe · Comment"
+    elif kind == "intro":
+        title, subtitle = script.title, getattr(script, "hook_line", "") or ""
+    else:  # hook / cold open
+        title = getattr(script, "hook_line", "") or script.title
+        subtitle = ""
+
+    arr = title_card_array(title, subtitle, size, accent=accent, bg_image=backdrop)
+    clip = ImageClip(arr).set_duration(dur).set_fps(fps)
+    # subtle push-in
+    clip = clip.resize(lambda t: 1.0 + 0.04 * (t / dur if dur else 0))
+    clip = clip.set_position(("center", "center"))
+    from moviepy.editor import CompositeVideoClip
+    return CompositeVideoClip([clip], size=size).set_duration(dur)
 
 
 def channel_video_cfg() -> dict:

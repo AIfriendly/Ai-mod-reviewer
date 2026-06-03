@@ -104,8 +104,14 @@ def apply_spec(project: Project, spec: dict) -> Project:
             page_url=m.get("page_url", ""),
             allow_media_reuse=bool(m.get("media_ok", False)),
         )
+        # Accept a single image_url and/or a list of image_urls (more images = more
+        # variety per mod). Order preserved, duplicates dropped.
+        urls = []
         if m.get("image_url"):
-            mod.media.append(MediaAsset(url=m["image_url"], kind="image"))
+            urls.append(m["image_url"])
+        urls.extend(m.get("image_urls", []) or [])
+        for u in dict.fromkeys(urls):
+            mod.media.append(MediaAsset(url=u, kind="image"))
         mods.append(mod)
     project.mods = mods
 
