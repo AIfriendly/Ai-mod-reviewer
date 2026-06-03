@@ -64,8 +64,11 @@ def ideas(
 
 
 @app.command()
-def research(category: str):
+def research(category: str, game: str = typer.Option(None, help="Nexus game domain, e.g. fallout4")):
     """Research + rank the best mods for a category (no script/render)."""
+    if game:
+        import os
+        os.environ["MODREVIEWER_GAME"] = game
     from .research import research_category
     _, profile = _profile(None)
     mods = research_category(category, profile.mods_per_video)
@@ -125,6 +128,8 @@ def make(
     next_topic: str = typer.Option("", help="Tease this as next week's topic"),
     skip_render: bool = typer.Option(False, help="Stop before the final video render"),
     publish: bool = typer.Option(True, help="Upload video+title+thumb+description to GoFile"),
+    game: str = typer.Option(None, help="Nexus game domain (e.g. fallout4, starfield). "
+                             "Default: skyrim. See config/games.yaml"),
     script: str = typer.Option(
         None, "--script",
         help="Path to a chat-authored YAML script spec (skips research + Claude; "
@@ -136,6 +141,9 @@ def make(
     On success the video, title, thumbnail and description are bundled to one GoFile
     link (disable with --no-publish).
     """
+    if game:
+        import os
+        os.environ["MODREVIEWER_GAME"] = game
     from .pipeline import run
     run(category, profile_name=profile, fmt=fmt, theme=theme,
         next_topic=next_topic, skip_render=skip_render, script_spec=script,

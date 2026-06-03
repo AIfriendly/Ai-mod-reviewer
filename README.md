@@ -68,6 +68,19 @@ you can grab everything for an upload from one place. Disable with `make --no-pu
 re-bundle an existing render with `skyrim-reviewer publish <slug>`. Note: a GoFile
 guest link is accessible to anyone who has it.
 
+**Multiple games.** The whole pipeline is game-agnostic (it keys off the Nexus
+`domain`). Target another game per video with `--game`:
+
+```bash
+skyrim-reviewer make weapons --game fallout4    # Fallout 4 mods (Pip-Boy green accent)
+skyrim-reviewer research armor --game starfield
+```
+
+Supported games live in `config/games.yaml` (Nexus domain + Steam app id for trailer
+B-roll + accent colour): Skyrim SE, Skyrim, Fallout 4, Starfield, Oblivion Remastered.
+Category buckets in `channel.yaml` are Skyrim-tuned; other games work best with the
+`weekly_roundup` format until their category ids are added.
+
 > **Why only one image per mod?** The official API (v1 REST and v2 GraphQL) exposes
 > exactly one `picture_url` per mod — the full screenshot gallery lives only on the
 > mod's website page, which the API does not expose. Getting the rest requires

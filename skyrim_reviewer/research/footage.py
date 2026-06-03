@@ -22,10 +22,14 @@ from ..utils.ffmpeg import configure_moviepy  # noqa: F401
 _UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 
 # Steam app ids for the games this channel might cover.
-STEAM_APPIDS = {"skyrimspecialedition": 489830, "skyrim": 72850}
+STEAM_APPIDS = {"skyrimspecialedition": 489830, "skyrim": 72850,
+                "fallout4": 377160, "starfield": 1716740,
+                "oblivionremastered": 2623190}
 # Extra app ids to pool for B-roll variety (so the intro montage has different
 # source footage to cut between every few seconds).
-VARIANT_APPIDS = {"skyrimspecialedition": [489830, 72850], "skyrim": [72850, 489830]}
+VARIANT_APPIDS = {"skyrimspecialedition": [489830, 72850],
+                  "skyrim": [72850, 489830],
+                  "fallout4": [377160]}
 
 
 def _pick_trailer(movies: list[dict]) -> dict | None:

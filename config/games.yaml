@@ -1,0 +1,27 @@
+# Supported games. The whole pipeline (research, gallery, footage, render) is
+# game-agnostic — it keys off the Nexus `domain`. Switch per video with:
+#   skyrim-reviewer make weapons --game fallout4
+# `steam_appid` is used for the cinematic intro trailer B-roll. `categories` for a
+# game are still tuned in channel.yaml (Skyrim today); other games work best with the
+# weekly_roundup / trending format until their category ids are added.
+games:
+  skyrimspecialedition:
+    name: "Skyrim Special Edition"
+    steam_appid: 489830
+    accent: "#d4af37"        # Skyrim gold
+  skyrim:
+    name: "Skyrim (Legendary)"
+    steam_appid: 72850
+    accent: "#d4af37"
+  fallout4:
+    name: "Fallout 4"
+    steam_appid: 377160
+    accent: "#3fae29"        # Pip-Boy green
+  starfield:
+    name: "Starfield"
+    steam_appid: 1716740
+    accent: "#e0552b"        # Constellation orange
+  oblivionremastered:
+    name: "Oblivion Remastered"
+    steam_appid: 2623190
+    accent: "#c8a24b"

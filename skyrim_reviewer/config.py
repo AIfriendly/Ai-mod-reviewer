@@ -46,7 +46,24 @@ def load_yaml(name: str) -> dict:
 
 
 def channel_config() -> dict:
-    return load_yaml("channel.yaml")
+    cfg = load_yaml("channel.yaml")
+    # Multi-game override: `make --game fallout4` sets this so research + footage
+    # target another Nexus game without editing config. See config/games.yaml.
+    game = os.environ.get("MODREVIEWER_GAME")
+    if game:
+        cfg.setdefault("channel", {})["game_domain"] = game
+        g = games_config().get("games", {}).get(game, {})
+        if g.get("accent"):
+            cfg.setdefault("branding", {})["accent_color"] = g["accent"]
+    return cfg
+
+
+def games_config() -> dict:
+    """Registry of supported games (Nexus domain + Steam app id + display name)."""
+    try:
+        return load_yaml("games.yaml")
+    except FileNotFoundError:
+        return {}
 
 
 def voice_config() -> dict:
