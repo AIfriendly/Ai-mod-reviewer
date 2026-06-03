@@ -41,7 +41,7 @@ def _save(project: Project) -> None:
 def run(category_id: str, *, profile_name: str | None = None,
         fmt: str = "category_list", theme: str = "",
         next_topic: str = "", skip_render: bool = False,
-        script_spec: str | None = None) -> Project:
+        script_spec: str | None = None, publish: bool = True) -> Project:
     """Run the pipeline.
 
     If `script_spec` (a YAML path) is given, research + Claude are skipped and the
@@ -57,6 +57,7 @@ def run(category_id: str, *, profile_name: str | None = None,
 
     cfg = channel_config()
     project = new_project(category_id, profile_name, fmt, theme)
+    project.next_topic = next_topic
     resolution = tuple(cfg["video"]["resolution"])
 
     cat = next((c for c in cfg["categories"] if c["id"] == category_id), None)
@@ -120,4 +121,15 @@ def run(category_id: str, *, profile_name: str | None = None,
     _save(project)
     print(f"\nDone -> {project.output_path}")
     print(f"Thumbnail -> {project.thumbnail_path}")
+
+    # Bundle video + title + thumbnail + description to one GoFile link.
+    if publish:
+        print("Uploading bundle to GoFile...")
+        try:
+            from .publish import publish_project
+            link = publish_project(project)
+            _save(project)
+            print(f"GoFile -> {link}" if link else "GoFile upload failed (skipped).")
+        except Exception as e:
+            print(f"GoFile upload failed ({e}); video is still in output/.")
     return project

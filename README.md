@@ -62,6 +62,12 @@ on top mod channels (Heavy Burns, Brodual, MxR, Mern, …) crossed with your cat
 each with the exact `make` command to produce it. Edit `config/reference_channels.yaml`
 to tune the channels/formats. Add `--live` to name real currently-trending mods.
 
+**One-link delivery.** After each render, the video + title + thumbnail + description
+(+ subtitles) are bundled into a single **GoFile** folder and the link is printed, so
+you can grab everything for an upload from one place. Disable with `make --no-publish`;
+re-bundle an existing render with `skyrim-reviewer publish <slug>`. Note: a GoFile
+guest link is accessible to anyone who has it.
+
 > **Why only one image per mod?** The official API (v1 REST and v2 GraphQL) exposes
 > exactly one `picture_url` per mod — the full screenshot gallery lives only on the
 > mod's website page, which the API does not expose. Getting the rest requires

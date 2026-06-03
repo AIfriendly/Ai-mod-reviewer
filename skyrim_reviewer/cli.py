@@ -124,18 +124,42 @@ def make(
     theme: str = typer.Option("", help="For transformation videos, e.g. 'The Witcher'"),
     next_topic: str = typer.Option("", help="Tease this as next week's topic"),
     skip_render: bool = typer.Option(False, help="Stop before the final video render"),
+    publish: bool = typer.Option(True, help="Upload video+title+thumb+description to GoFile"),
     script: str = typer.Option(
         None, "--script",
         help="Path to a chat-authored YAML script spec (skips research + Claude; "
              "no API keys needed)"),
 ):
-    """Run the full pipeline: research -> script -> assets -> voice -> edit.
+    """Run the full pipeline: research -> script -> assets -> voice -> edit -> publish.
 
     Provide --script <file.yaml> to use a hand-written script (no API keys).
+    On success the video, title, thumbnail and description are bundled to one GoFile
+    link (disable with --no-publish).
     """
     from .pipeline import run
     run(category, profile_name=profile, fmt=fmt, theme=theme,
-        next_topic=next_topic, skip_render=skip_render, script_spec=script)
+        next_topic=next_topic, skip_render=skip_render, script_spec=script,
+        publish=publish)
+
+
+@app.command()
+def publish(slug: str):
+    """Upload an already-rendered project's bundle (video + title + thumbnail +
+    description) to a single GoFile folder. `slug` is the output file name without
+    .mp4, e.g. 2026-06-03-weapons-test."""
+    from pathlib import Path
+
+    from .models import Project
+    from .publish import publish_project
+    # Find the saved project state by slug.
+    state = next(Path("work").glob(f"*{slug}*/state.json"), None) \
+        or Path("work") / slug / "state.json"
+    if not Path(state).exists():
+        typer.echo(f"No saved project for '{slug}' (looked for {state}).")
+        raise typer.Exit(1)
+    project = Project.model_validate_json(Path(state).read_text())
+    link = publish_project(project)
+    typer.echo(f"GoFile -> {link}" if link else "Upload failed.")
 
 
 def _profile(name):

@@ -100,3 +100,5 @@ class Project(BaseModel):
     workdir: str = ""              # work/<slug>/
     output_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
+    next_topic: str = ""           # teased as the next upload (used in the description)
+    gofile_url: Optional[str] = None  # shared folder with video + title + thumb + desc
