@@ -33,18 +33,27 @@ categories:
     nexus_category_ids: [79, 77, 24, 78]  # Overhauls; Combat; Gameplay; Immersion
     search_terms: ["combat", "overhaul", "survival", "ai"]
 
-# Target video shape. Two profiles: start with `test` (5 min) to validate quality,
-# then switch to `full` (20 min, ad-friendly = 2-3 mid-rolls) once it looks good.
-# Select at runtime:  skyrim-reviewer make --profile test   (default)
-#                     skyrim-reviewer make --profile full
+# Target video shape. Channel plan: ~2 uploads/week, 10-15 min each -> `standard`
+# is the default. `test` (5 min) quickly validates quality; `full` (20 min) is for
+# occasional deep-dives.
+# Select at runtime:  skyrim-reviewer make --profile standard   (default)
+#                     skyrim-reviewer make --profile test | full
 video:
-  active_profile: "test"      # test | full   <- first runs use the short test profile
+  active_profile: "standard"  # standard (10-15 min) | test (5 min) | full (20 min)
   resolution: [1920, 1080]
   fps: 30
   # Multi-shot Ken Burns: one mod image becomes a new "camera move" every
   # ~shot_seconds, so a single permitted screenshot plays like b-roll.
   shot_seconds: 16
+  intro_footage: true         # cinematic Skyrim trailer B-roll montage on the intro
   profiles:
+    standard:                 # channel default: ~12 min, lands in the 10-15 band
+      target_minutes: 12
+      mods_per_video: 8         # ~8 mods at ~80s each + intro/outro ≈ 12 min
+      seconds_per_mod: 80
+      hook_seconds: 10          # cold open over trailer B-roll, NO logo intro
+      intro_seconds: 22         # promise + pattern interrupt
+      outro_seconds: 48         # CTA tied to the next upload
     test:
       target_minutes: 5
       mods_per_video: 4         # short proof-of-concept
