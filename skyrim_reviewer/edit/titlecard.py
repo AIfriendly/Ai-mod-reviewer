@@ -78,3 +78,35 @@ def title_card_array(title: str, subtitle: str, size: tuple[int, int],
         draw.text(((W - w) // 2, y + 34), subtitle, font=sub_f, fill=(220, 220, 220))
 
     return np.asarray(img)
+
+
+def title_overlay_rgba(title: str, subtitle: str, size: tuple[int, int],
+                       accent: str = "#d4af37") -> np.ndarray:
+    """Transparent overlay (RGBA) for laying a title over live footage: a bottom-up
+    dark scrim for legibility + centered title + accent underline."""
+    W, H = size
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    # Bottom-weighted gradient scrim so text stays readable over any footage.
+    scrim = np.zeros((H, W, 4), "uint8")
+    col = np.linspace(0, 200, H).astype("uint8")          # transparent top -> dark base
+    scrim[..., 3] = col[:, None]
+    img = Image.alpha_composite(img, Image.fromarray(scrim))
+    draw = ImageDraw.Draw(img)
+
+    title_f = _font(max(40, W // 18), bold=True)
+    sub_f = _font(max(22, W // 48))
+    lines = textwrap.wrap(title.upper(), width=22) or [""]
+    line_h = title_f.size + 14
+    y = int(H * 0.60)
+    for ln in lines:
+        w = draw.textlength(ln, font=title_f)
+        x = (W - w) // 2
+        draw.text((x + 3, y + 3), ln, font=title_f, fill=(0, 0, 0, 255))
+        draw.text((x, y), ln, font=title_f, fill=(255, 255, 255, 255))
+        y += line_h
+    bar_w = int(W * 0.18)
+    draw.rectangle([(W - bar_w) // 2, y + 6, (W + bar_w) // 2, y + 14], fill=_hex(accent))
+    if subtitle:
+        w = draw.textlength(subtitle, font=sub_f)
+        draw.text(((W - w) // 2, y + 34), subtitle, font=sub_f, fill=(220, 220, 220, 255))
+    return np.asarray(img)

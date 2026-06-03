@@ -1,0 +1,67 @@
+# Reference Skyrim-mod YouTube channels whose proven, high-performing formats this
+# channel emulates. Used by `skyrim-reviewer ideas` to generate viral-style video
+# ideas. Sources: community channel roundups (moddingskyrim.com/youtube) + observed
+# top-viewed mod-showcase title patterns. These are inspirations, not content to copy.
+
+channels:
+  - name: Heavy Burns
+    style: 'Cinematic "I transformed Skyrim with N mods" overhauls — lush visuals, ambient VO, theme-driven.'
+    best_format: transformation
+  - name: Brodual
+    style: 'Clean, calm per-category mod reviews with an immersion focus. The genre standard.'
+    best_format: category_list
+  - name: MxR Mods
+    style: 'Humorous top-N mod roundups, reaction-style commentary, broad appeal.'
+    best_format: top_list
+  - name: Mern
+    style: 'Energetic, meme-heavy, fast-cut reviews tuned for high retention.'
+    best_format: top_list
+  - name: Odysseus Gaming
+    style: 'Silent cinematic showcases — music-led, lets the mods speak for themselves.'
+    best_format: showcase
+  - name: Syn Gaming
+    style: 'High-production graphics + combat showcases.'
+    best_format: showcase
+  - name: Bards College Graduate
+    style: 'Beautiful texture/environment overhauls with before/after comparisons.'
+    best_format: comparison
+  - name: Pixel and Pearls
+    style: 'Side-by-side comparisons of similar mods to crown the best one.'
+    best_format: comparison
+
+# Proven viral title patterns. Virality levers: a number, a superlative, urgency,
+# and a year. `pipeline_fmt` maps to a format `make` already supports.
+formats:
+  - id: top_list
+    template: 'Top {n} {superlative} Skyrim {category_noun} Mods'
+    pipeline_fmt: category_list
+    inspired_by: [MxR Mods, Mern]
+    hook: 'You have {n} seconds to find the {category_noun} mod that changes everything.'
+  - id: underrated
+    template: "The Most UNDERRATED Skyrim {category_noun} Mods You've NEVER Heard Of"
+    pipeline_fmt: category_list
+    inspired_by: [Brodual]
+    hook: "Everyone installs the same mods. These {category_noun} gems almost nobody knows about."
+  - id: new_year
+    template: '{n} NEW Skyrim Mods You NEED to Try in {year}'
+    pipeline_fmt: weekly_roundup
+    inspired_by: [MxR Mods]
+    hook: "Skyrim modding in {year} is wild — here are {n} fresh ones worth your load order."
+  - id: best_ever
+    template: 'The Best Skyrim {category_noun} Mods EVER Created'
+    pipeline_fmt: category_list
+    inspired_by: [Brodual]
+    hook: "After years of modding, these are the {category_noun} mods that still define Skyrim."
+  - id: transformation
+    template: 'I Transformed Skyrim into {theme} with {n} Mods'
+    pipeline_fmt: transformation
+    inspired_by: [Heavy Burns, Syn Gaming]
+    hook: "What if Skyrim looked nothing like Skyrim? {n} mods later, it's {theme}."
+  - id: comparison
+    template: 'Skyrim {category_noun} Mods Compared — Which Should You Actually Use?'
+    pipeline_fmt: category_list
+    inspired_by: [Pixel and Pearls, Bards College Graduate]
+    hook: "Two {category_noun} mods, one load order slot. Let's settle it."
+
+superlatives: [Best, Most Insane, Must-Have, Game-Changing, Essential, Underrated]
+themes: ['The Witcher', 'Dark Souls', 'Game of Thrones', 'a Survival Nightmare', 'Photorealism']

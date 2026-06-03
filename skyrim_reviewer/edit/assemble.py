@@ -43,6 +43,16 @@ def assemble_video(project: Project, accent: str = "#d4af37",
     # A backdrop for the title/intro/outro cards: the first available mod image.
     backdrop = next((a.local_path for m in project.mods for a in m.media
                      if a and a.local_path), None)
+    # Cinematic intro: official gameplay-trailer B-roll behind the title (cached).
+    # Multiple trailers are pooled so the intro montage cuts between different footage.
+    footage: list[str] = []
+    if channel_video_cfg().get("intro_footage", True):
+        try:
+            from ..config import channel_config
+            from ..research.footage import fetch_trailers
+            footage = fetch_trailers(channel_config()["channel"]["game_domain"])
+        except Exception:
+            footage = []
     seg_clips = []
     for seg, dur in zip(script.segments, durations):
         mod = _mod_by_id(project.mods, seg.mod_id) if seg.mod_id else None
@@ -50,8 +60,11 @@ def assemble_video(project: Project, accent: str = "#d4af37",
         if mod and media_paths:
             visual = clip_for_segment(media_paths, dur, size, fps=fps,
                                       shot_seconds=shot_seconds)
+        elif footage and (getattr(seg, "kind", "") in ("hook", "intro")):
+            # Cold open: cinematic Skyrim trailer footage behind the title + hook VO.
+            visual = _intro_footage_clip(seg, script, dur, size, fps, accent, footage)
         else:
-            # Hook / intro / outro (no mod image) -> a real title card, not a blank.
+            # Other non-mod segments (outro) -> a title card, not a blank.
             visual = _card_clip(seg, script, dur, size, fps, accent, backdrop)
 
         layers = [visual]
@@ -68,8 +81,12 @@ def assemble_video(project: Project, accent: str = "#d4af37",
 
     video = concatenate_videoclips(seg_clips, method="compose")
 
-    # Music bed, ducked under the narration.
-    bed = music_bed(video.duration, music_dir=music_dir)
+    # Music bed, ducked under the narration. Record the track so we can credit it
+    # (CC BY tracks require attribution in the description).
+    from .music import pick_track, track_credit
+    chosen = pick_track(music_dir)
+    music_attribution = track_credit(chosen)
+    bed = music_bed(video.duration, music_dir=music_dir, track=chosen)
     if bed is not None and video.audio is not None:
         video = video.set_audio(CompositeAudioClip([video.audio, bed]))
     elif bed is not None:
@@ -93,12 +110,80 @@ def assemble_video(project: Project, accent: str = "#d4af37",
     # Sidecar artefacts: subtitles + accurate chapters.
     write_srt(script, durations, out_dir / f"{project.slug}.srt")
     script.chapters = youtube_chapters(script, durations)
+    credits_block = "\n\nChapters:\n" + "\n".join(script.chapters)
+    if music_attribution:
+        credits_block += "\n\nMusic:\n" + music_attribution
     (out_dir / f"{project.slug}.description.txt").write_text(
-        script.title + "\n\n" + script.description + "\n\nChapters:\n" +
-        "\n".join(script.chapters), encoding="utf-8")
+        script.title + "\n\n" + script.description + credits_block, encoding="utf-8")
 
     project.output_path = str(out_path)
     return project
+
+
+def _fill(clip, size):
+    """Scale + center-crop a clip to fill the frame (no bars)."""
+    from moviepy.video.fx.all import crop, resize
+    W, H = size
+    scale = max(W / clip.w, H / clip.h)
+    clip = resize(clip, scale)
+    return crop(clip, width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
+
+
+def _intro_footage_clip(seg, script: Script, dur: float, size, fps: int,
+                        accent: str, footage_paths: list[str], cut_seconds: float = 5.0):
+    """Trailer B-roll edited as a montage — a DIFFERENT clip every ~`cut_seconds` —
+    with the title + scrim overlaid. Pulls distinct 5s shots from the pooled trailers."""
+    import hashlib
+
+    from moviepy.editor import (CompositeVideoClip, ImageClip, VideoFileClip,
+                                concatenate_videoclips)
+    from .titlecard import title_overlay_rgba
+
+    # Collect candidate non-overlapping shots (start offsets) across all trailers,
+    # skipping each trailer's opening (publisher logos / ESRB rating cards) and any
+    # near-black shots (fade transitions / title cards).
+    skip_intro = 8.0
+    shots = []  # (path, start)
+    for path in footage_paths:
+        try:
+            clip = VideoFileClip(path)
+            d = clip.duration
+        except Exception:
+            continue
+        t = skip_intro if d > skip_intro + cut_seconds else 0.0
+        while t + cut_seconds <= d + 0.01:
+            try:
+                bright = float(clip.get_frame(min(t + 0.5, d)).mean())
+            except Exception:
+                bright = 0.0
+            if bright >= 28:                 # drop black fades / dark logo screens
+                shots.append((path, t))
+            t += cut_seconds
+    if not shots:
+        return _card_clip(seg, script, dur, size, fps, accent,
+                          footage_paths[0] if footage_paths else None)
+
+    # Deterministic shuffle so consecutive cuts come from varied points/trailers.
+    rng = __import__("random").Random(int(hashlib.md5(script.title.encode()).hexdigest(), 16))
+    rng.shuffle(shots)
+
+    n_cuts = max(1, int(round(dur / cut_seconds)))
+    pieces, used = [], 0.0
+    for i in range(n_cuts):
+        path, start = shots[i % len(shots)]
+        seg_dur = min(cut_seconds, dur - used)
+        if seg_dur <= 0.05:
+            break
+        sub = VideoFileClip(path).without_audio().subclip(start, start + seg_dur)
+        pieces.append(_fill(sub, size))
+        used += seg_dur
+    montage = concatenate_videoclips(pieces, method="compose").set_duration(dur)
+
+    title = getattr(script, "hook_line", "") or script.title
+    subtitle = script.title if getattr(seg, "kind", "") == "intro" else ""
+    overlay = ImageClip(title_overlay_rgba(title, subtitle, size, accent)).set_duration(dur)
+    return (CompositeVideoClip([montage, overlay], size=size)
+            .set_duration(dur).set_fps(fps))
 
 
 def _card_clip(seg, script: Script, dur: float, size, fps: int, accent: str,

@@ -35,6 +35,34 @@ def approve(value: str):
                f"on screen and in the description.")
 
 
+@app.command(name="fetch-music")
+def fetch_music():
+    """Download the default royalty-free fantasy music set (Kevin MacLeod, CC BY 4.0)
+    into music/. Tracks are credited automatically in each video's description."""
+    from .edit.music import fetch_default_tracks
+    paths = fetch_default_tracks()
+    typer.echo(f"Fetched {len(paths)} tracks into music/. They'll be credited "
+               f"(CC BY 4.0) in the video description automatically.")
+
+
+@app.command()
+def ideas(
+    count: int = typer.Option(8, help="How many video ideas to generate"),
+    live: bool = typer.Option(False, help="Attach real currently-trending mods (uses the API)"),
+):
+    """Generate viral-style video ideas modeled on top Skyrim-mod channels
+    (config/reference_channels.yaml). Each idea prints a title, hook, the channels
+    it's modeled on, and the exact command to produce it."""
+    from .ideas import generate_ideas
+    for i, idea in enumerate(generate_ideas(count, live=live), 1):
+        typer.echo(f"\n{i}. {idea['title']}")
+        typer.echo(f"   hook:    {idea['hook']}")
+        typer.echo(f"   style:   {idea['format']}  (like {', '.join(idea['inspired_by']) or 'general'})")
+        if idea["mods"]:
+            typer.echo(f"   mods:    {', '.join(idea['mods'][:5])}")
+        typer.echo(f"   make it: {idea['command']}")
+
+
 @app.command()
 def research(category: str):
     """Research + rank the best mods for a category (no script/render)."""

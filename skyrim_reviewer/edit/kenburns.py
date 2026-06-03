@@ -23,8 +23,17 @@ def _seed(s: str) -> int:
     return int(hashlib.md5(s.encode()).hexdigest(), 16)
 
 
-# Gentle camera moves: (zoom_from, zoom_to). Small range so nothing is cropped hard.
-_MOVES = [(1.00, 1.05), (1.05, 1.00), (1.00, 1.04), (1.04, 1.00)]
+# Documentary Ken Burns moves: (zoom_from, zoom_to, pan_x, pan_y).
+# pan_* = fraction of the frame the camera drifts across the shot (left/right/up/down),
+# so the camera glides over the image like a History-Channel doc, not just a static zoom.
+_MOVES = [
+    (1.06, 1.14,  0.07,  0.00),   # slow push-in, pan right
+    (1.14, 1.06, -0.07,  0.00),   # pull-out, pan left
+    (1.06, 1.12,  0.00,  0.06),   # push-in, pan down
+    (1.12, 1.06,  0.00, -0.06),   # pull-out, pan up
+    (1.05, 1.13,  0.06, -0.04),   # push-in, drift up-right
+    (1.13, 1.05, -0.06,  0.04),   # pull-out, drift down-left
+]
 
 
 def _blurred_fill(image_path: str, size: tuple[int, int],
@@ -44,25 +53,36 @@ def _blurred_fill(image_path: str, size: tuple[int, int],
 
 
 def _shot(image_path: str, duration: float, size: tuple[int, int], move, fps: int):
-    """One gentle shot: whole image fitted + centered over its blurred fill."""
+    """One cinematic shot: the whole image fitted over its blurred fill, with a
+    combined zoom + pan (left/right/up/down) so the camera glides across it."""
     from moviepy.editor import CompositeVideoClip
 
     W, H = size
-    z_from, z_to = move
+    z_from, z_to, pan_x, pan_y = move
 
     bg = ImageClip(_blurred_fill(image_path, size)).set_duration(duration)
 
-    fg = ImageClip(image_path)
+    fg = ImageClip(image_path).set_duration(duration)
     iw, ih = fg.size
-    fit = min(W / iw, H / ih) * 0.94          # leave a small margin; never crop
-    fg = fg.set_duration(duration)
+    fit = min(W / iw, H / ih)                 # fit the whole image into the frame
+    fw, fh = fit * iw, fit * ih
+
+    def ease(t):
+        f = (t / duration) if duration else 0.0
+        return f * f * (3 - 2 * f)            # smoothstep for a slow, weighted glide
 
     def zoom(t):
-        frac = (t / duration) if duration else 0
-        ease = frac * frac * (3 - 2 * frac)    # smoothstep
-        return fit * (z_from + (z_to - z_from) * ease)
+        return fit * (z_from + (z_to - z_from) * ease(t))
 
-    fg = fg.resize(zoom).set_position(("center", "center"))
+    def pos(t):
+        z = z_from + (z_to - z_from) * ease(t)
+        cw, ch = fw * z, fh * z               # current foreground size
+        # center, then drift across the frame (pan), measured from mid-shot.
+        x = (W - cw) / 2 + pan_x * W * (ease(t) - 0.5)
+        y = (H - ch) / 2 + pan_y * H * (ease(t) - 0.5)
+        return x, y
+
+    fg = fg.resize(zoom).set_position(pos)
     return (CompositeVideoClip([bg, fg], size=size)
             .set_duration(duration).set_fps(fps))
 

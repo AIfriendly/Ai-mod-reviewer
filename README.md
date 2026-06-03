@@ -40,9 +40,27 @@ the single main image the **official NexusMods API** exposes per mod. No scrapin
 no recording, no ripping other creators.
 
 Each image is shown **whole** (fitted, never cropped) over a softly blurred fill of
-itself, with a gentle Ken Burns zoom — and a single still is split into a couple of
-push/pull shots so it isn't static. When a mod has several images, the editor cycles
+itself, with a **documentary-style Ken Burns move — combined zoom + pan** (left/right/
+up/down), like a History-Channel doc rather than a flat zoom. A single still is split
+into a couple of distinct moves; when a mod has several images, the editor cycles
 through them.
+
+**Cinematic intro.** Instead of jumping into the topic, the cold open plays a montage
+of official Skyrim **gameplay-trailer B-roll** (pulled from Steam's public API, cached)
+that **cuts to a different clip every ~5 seconds**, with the title + a spoken hook over
+it. Logo/rating screens and black fades are filtered out. See
+`skyrim_reviewer/research/footage.py`. Trailer footage is Bethesda's IP (monetised
+Skyrim videos are permitted, but keep clips short to limit Content-ID risk).
+
+**Music.** Royalty-free fantasy/epic tracks (not the Skyrim OST, which gets Content-ID
+claimed). Run `skyrim-reviewer fetch-music` to download the default Kevin MacLeod
+CC BY 4.0 set into `music/`; the chosen track is credited automatically in the
+description. Drop your own tracks in `music/` to use them instead.
+
+**Video ideas.** `skyrim-reviewer ideas` generates viral-style titles + hooks modeled
+on top mod channels (Heavy Burns, Brodual, MxR, Mern, …) crossed with your categories,
+each with the exact `make` command to produce it. Edit `config/reference_channels.yaml`
+to tune the channels/formats. Add `--live` to name real currently-trending mods.
 
 > **Why only one image per mod?** The official API (v1 REST and v2 GraphQL) exposes
 > exactly one `picture_url` per mod — the full screenshot gallery lives only on the
