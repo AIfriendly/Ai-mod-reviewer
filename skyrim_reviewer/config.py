@@ -55,6 +55,8 @@ def channel_config() -> dict:
         g = games_config().get("games", {}).get(game, {})
         if g.get("accent"):
             cfg.setdefault("branding", {})["accent_color"] = g["accent"]
+        if g.get("categories"):          # game-specific category buckets + ids
+            cfg["categories"] = g["categories"]
     return cfg
 
 

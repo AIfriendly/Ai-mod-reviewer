@@ -17,6 +17,32 @@ games:
     name: "Fallout 4"
     steam_appid: 377160
     accent: "#3fae29"        # Pip-Boy green
+    # Fallout 4 category buckets (real Nexus FO4 category ids — see /v1/games/fallout4).
+    categories:
+      - id: weapons
+        title: "Best Fallout 4 Weapon Mods"
+        nexus_category_ids: [41, 42, 3]        # Weapons; Weapons and Armour; Ammo
+        search_terms: ["weapon", "gun", "rifle", "pistol"]
+      - id: armor
+        title: "Best Fallout 4 Armor & Clothing Mods"
+        nexus_category_ids: [5, 9, 42, 53]     # Armour; Clothing; Weapons+Armour; Power Armour
+        search_terms: ["armor", "armour", "clothing", "power armor"]
+      - id: new_lands
+        title: "Best Fallout 4 New Lands & Quest Mods"
+        nexus_category_ids: [20, 21, 30, 7]    # New Lands; Locations-New; Quests; Buildings
+        search_terms: ["new lands", "quest", "location", "adventure"]
+      - id: graphics
+        title: "Best Fallout 4 Graphics & Visual Mods"
+        nexus_category_ids: [40, 19, 13, 55, 56]  # Visuals; Models&Textures; ENB; ReShade; Weather
+        search_terms: ["enb", "texture", "graphics", "weather", "lighting"]
+      - id: gameplay
+        title: "Best Fallout 4 Gameplay Overhaul Mods"
+        nexus_category_ids: [15, 24, 51, 27, 46]  # Gameplay; Overhauls; Immersion; Perks; Skills
+        search_terms: ["overhaul", "survival", "combat", "gameplay"]
+      - id: settlements
+        title: "Best Fallout 4 Settlement Mods"
+        nexus_category_ids: [48, 45, 63, 68, 61]  # Player Settlement; Crafting; Sim Settlements 1/2; Blueprints
+        search_terms: ["settlement", "build", "workshop", "sim settlements"]
   starfield:
     name: "Starfield"
     steam_appid: 1716740

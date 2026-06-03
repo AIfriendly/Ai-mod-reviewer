@@ -16,8 +16,11 @@ app = typer.Typer(add_completion=False, help="AI Skyrim mod review video generat
 
 
 @app.command()
-def categories():
+def categories(game: str = typer.Option(None, help="Nexus game domain, e.g. fallout4")):
     """List the configured evergreen category buckets."""
+    if game:
+        import os
+        os.environ["MODREVIEWER_GAME"] = game
     for c in channel_config()["categories"]:
         typer.echo(f"  {c['id']:<12} {c['title']}")
 
