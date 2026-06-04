@@ -20,12 +20,13 @@ def pip(*args):
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", *args], check=True)
 
 
-# A torch build compatible with both P100 (sm_60) and T4 (sm_75).
-pip("torch==2.4.1", "torchaudio==2.4.1",
+# A torch build compatible with both P100 (sm_60) and T4 (sm_75). torchvision must
+# match (transformers' pipeline imports it; a mismatch -> "torchvision::nms" errors).
+pip("torch==2.4.1", "torchvision==0.19.1", "torchaudio==2.4.1",
     "--index-url", "https://download.pytorch.org/whl/cu121")
-# F5 + deps, but keep the torch we just installed.
+# F5 + deps, but keep the torch stack we just installed.
 with open("/kaggle/working/constraints.txt", "w") as fh:
-    fh.write("torch==2.4.1\ntorchaudio==2.4.1\n")
+    fh.write("torch==2.4.1\ntorchvision==0.19.1\ntorchaudio==2.4.1\n")
 pip("-c", "/kaggle/working/constraints.txt", "f5-tts")
 
 import torch  # noqa: E402
