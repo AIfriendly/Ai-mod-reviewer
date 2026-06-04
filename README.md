@@ -28,7 +28,7 @@ A deep research pass (Reddit r/skyrimmods + r/NewTubers, creator case studies,
 |---|---|
 | **Format = Hybrid** | Evergreen **"Best [category] Mods"** lists are the growth backbone (people search them for years); **"Transforming Skyrim into X"** videos are the viral spikes; **weekly roundups** decay fast — use sparingly. |
 | **~20 min** | Long enough for 2–3 mid-roll ads. Structure: cold hook (no logo intro) → promise → 8–12 mods @ ~85–125s → save a banger for last → CTA. Start with **5-min test** videos to validate quality. |
-| **Titles/thumbnails** | `"N Skyrim X Mods You NEED in 2026"`, before/after split thumbnails (~+35% CTR for graphics mods), 0–3 words of big bold text, high contrast. |
+| **Titles/thumbnails** | Channel-style titles (power word + number + year, e.g. `"The BEST Skyrim Weapon Mods in 2026! (8 You NEED)"`) and split-panel thumbnails with one accent keyword + big bold text, high contrast — modeled on top mod channels. Generate ideas with `skyrim-reviewer ideas`. |
 | **Footage** | Successful channels record their own gameplay. **NexusMods' API forbids scraping/rehosting media**, and authors own their uploads — so this tool only pulls media for mods you've recorded as permission-approved, always credits authors, and uses placeholder slates otherwise. |
 | **Cadence** | 1 long video/week is a viable solo floor; supplement with Shorts. Skyrim modding is still a healthy, active niche. |
 
