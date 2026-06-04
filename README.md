@@ -1,14 +1,20 @@
 # 🐉 AI Skyrim Mod Review Generator
 
-Researches the best Skyrim mods, writes a narration script with Claude, narrates
-it in **your cloned voice**, edits a finished YouTube video with **moviepy +
-ffmpeg** (Ken Burns on stills, music bed, captions), renders polished **Remotion**
-title cards, and generates a **before/after thumbnail** — all from one command.
+Researches the best mods for a Nexus game, writes a narration script, narrates it in
+**your cloned voice** (F5-TTS, runnable on a free Kaggle GPU), and edits a finished
+YouTube video with **moviepy + ffmpeg** — a cinematic trailer-B-roll intro, documentary
+Ken Burns on mod screenshots, royalty-free music — then renders a **Remotion** title
+card + channel-style **thumbnail**, writes the **title + description**, and bundles
+everything to a single **GoFile** link. All from one command.
 
 ```bash
-skyrim-reviewer make weapons            # 5-min test video (default)
-skyrim-reviewer make weapons --profile full   # 20-min video once you're happy
+skyrim-reviewer ideas                    # viral video ideas (modeled on top channels)
+skyrim-reviewer make weapons             # full ~12-min video (default 'standard' profile)
+skyrim-reviewer make weapons --game fallout4   # same pipeline, Fallout 4
 ```
+
+Default cadence is built for **~2 uploads/week, 10–15 min each** (the `standard`
+profile). `test` (5 min) and `full` (20 min) profiles are also available.
 
 ---
 
@@ -117,12 +123,15 @@ mod folder, which the editor prefers over images.
 ## Pipeline
 
 ```
-research → script → assets → voice → edit → package
-  │         │         │        │       │       │
-NexusMods  Claude   permitted  your   moviepy  Remotion title card
-API ranks  writes   media +    cloned ffmpeg   + before/after thumbnail
-best mods  the      credits    voice  Ken Burns  + .srt + chapters
-           script              (TTS)  + music
+research → script → assets → voice → edit → package → publish
+  │         │         │        │       │       │         │
+NexusMods  Claude or permitted your   moviepy Remotion   one GoFile
+API ranks  YAML     media +    cloned ffmpeg  title card folder:
+best mods  spec     gallery    voice  trailer + channel  video + title
+(any game) writes   scrape     (F5 /  intro,  thumbnail  + thumbnail
+           script              Kaggle Ken     + .srt     + description
+                               GPU)   Burns,  + chapters
+                                      music
 ```
 
 Each stage saves to `work/<slug>/state.json`, so stages are resumable.
@@ -139,11 +148,17 @@ pip install -r requirements.txt
 #    provides a bundled binary automatically.
 #    Debian/Ubuntu: sudo apt-get install ffmpeg
 
-# 3. Keys
-cp .env.example .env      # then fill in ANTHROPIC_API_KEY, NEXUS_API_KEY, voice keys
+# 3. Keys (.env) — NEXUS_API_KEY for research; ANTHROPIC_API_KEY only for the
+#    automated script writer (the YAML-spec path needs neither); KAGGLE_API_TOKEN
+#    for free-GPU voice; optional ElevenLabs/OpenAI voice keys.
+cp .env.example .env
 
-# 4. (Optional) Remotion title cards
+# 4. (Optional) Remotion title card + thumbnail (needs Node)
 cd remotion && npm install && cd ..
+
+# 5. (Optional) F5 cloned voice + royalty-free music
+pip install f5-tts
+skyrim-reviewer fetch-music
 ```
 
 ### Voice
@@ -160,11 +175,36 @@ skyrim-reviewer voice-prep my_voice.wav        # -> voices/clone/ref_primary.wav
 # config/voice.yaml -> provider: f5tts
 ```
 
-> **F5 needs a GPU for production.** F5-TTS is zero-shot (clones from one ref clip +
-> its transcript at synth time). On CPU it runs ~40–50× slower than realtime, so a
-> 12-min video takes hours — fine for testing one clip, not for a 2-a-week schedule.
-> Run it on a GPU (yours or a cloud GPU) with `nfe_step: 32`; on CPU drop to
-> `nfe_step: 16`. For zero-cost CPU rendering, use **`piper`** instead.
+A `<reference>.txt` sidecar (the reference's transcript) is used automatically if
+present — it skips Whisper auto-transcription (faster, fewer deps). All narration is
+**mastered** for a consistent, close-mic sound (`enhance: true` in `voice.yaml`):
+a sub-bass high-pass + gentle −19 LUFS normalize. Tune the chain in
+`skyrim_reviewer/voice/enhance.py`.
+
+> **F5 is zero-shot** (clones from one ref clip + transcript at synth time). On CPU
+> it's ~40–50× slower than realtime — fine for a test clip, not a 2-a-week schedule.
+
+#### Free GPU narration via Kaggle (recommended for F5)
+
+`--voice kaggle` offloads the F5 narration to Kaggle's **free GPU** automatically —
+no manual clicking. It pushes your reference + segment texts as a private Kaggle
+dataset, runs a GPU kernel, downloads one wav per segment, and (on success) deletes
+the dataset + kernel so nothing accumulates. ~13-min total per video vs. ~1 hour on
+CPU.
+
+```bash
+# One-time: phone-verify your Kaggle account (enables GPU + internet on kernels),
+# then Settings -> API -> Create New Token. Put it in .env:
+#   KAGGLE_API_TOKEN=KGAT_...        (or classic KAGGLE_USERNAME + KAGGLE_KEY)
+skyrim-reviewer make weapons --voice kaggle
+```
+
+Manual alternative (no Kaggle automation): `skyrim-reviewer export-script weapons
+--script <spec>` writes `output/<slug>_narration_kit.zip` (texts + reference +
+`kaggle/f5_narrate.ipynb`); run it on any GPU notebook, drop the wavs in
+`work/<slug>/narration/`, and assemble with `--voice prerecorded`.
+
+For zero-cost CPU rendering with no clone, use **`piper`** instead.
 
 ```bash
 # Fast local Piper voice (good for CPU testing / fallback)
@@ -188,12 +228,24 @@ it (so you can build and test the whole video before chasing permissions).
 ## Usage
 
 ```bash
-skyrim-reviewer categories                 # list category buckets
-skyrim-reviewer research weapons           # see the ranked mods
+skyrim-reviewer ideas                      # viral video ideas + the make command for each
+skyrim-reviewer categories                 # list category buckets (add --game fallout4)
+skyrim-reviewer research weapons           # see the ranked mods (add --game ...)
 skyrim-reviewer script weapons             # research + print the script (no render)
-skyrim-reviewer make weapons               # full pipeline, 5-min test profile
-skyrim-reviewer make graphics --profile full
+skyrim-reviewer make weapons               # full ~12-min video (default 'standard')
+skyrim-reviewer make graphics --profile full        # 20-min deep-dive
+skyrim-reviewer make armor --game fallout4          # another Nexus game
+skyrim-reviewer make weapons --voice kaggle         # narrate on Kaggle's free GPU
+skyrim-reviewer make weapons --no-publish           # skip the GoFile upload
+skyrim-reviewer publish <slug>             # (re-)bundle a render to one GoFile link
+skyrim-reviewer fetch-music                # download the default CC-BY music set
+skyrim-reviewer voice-prep my_voice.wav    # prep an F5 voice reference
+skyrim-reviewer approve <author|mod_id>    # permit a mod's media reuse
 ```
+
+Key `make` flags: `--profile standard|test|full`, `--game <nexus_domain>`,
+`--voice f5tts|kaggle|piper|elevenlabs|prerecorded`, `--fmt category_list|transformation|weekly_roundup`,
+`--script <spec.yaml>`, `--no-publish`.
 
 ### No-API-key path (script authored in chat)
 
@@ -225,10 +277,12 @@ Output lands in `output/<slug>.mp4` with a matching `.srt`, `.description.txt`
 
 | File | Controls |
 |---|---|
-| `config/channel.yaml` | Niche, categories, video profiles (test/full), ranking weights, branding, title templates |
-| `config/voice.yaml` | TTS provider + your cloned-voice settings |
-| `config/permissions.yaml` | Which mods/authors approved media reuse |
-| `.env` | API keys |
+| `config/channel.yaml` | Niche, categories, video profiles (standard/test/full), ranking weights, branding, channel-style title templates, `intro_footage` |
+| `config/voice.yaml` | TTS provider (f5tts/kaggle/piper/…), cloned-voice + `enhance` mastering |
+| `config/games.yaml` | Multi-game registry: Nexus domain + Steam trailer app-id + accent + per-game categories (Skyrim SE, Skyrim, Fallout 4, Starfield, Oblivion Remastered) |
+| `config/reference_channels.yaml` | Channels + viral formats the `ideas` generator models |
+| `config/permissions.yaml` | Approved media reuse + `allow_gallery_scrape` / `gallery_max_images` |
+| `.env` | API keys (NEXUS, optional ANTHROPIC, KAGGLE_API_TOKEN, voice keys) |
 
 ---
 
@@ -236,21 +290,30 @@ Output lands in `output/<slug>.mp4` with a matching `.srt`, `.description.txt`
 
 ```
 skyrim_reviewer/
-  research/nexus.py     NexusMods API client + ranking (AUP-compliant)
-  scripting/writer.py   Claude script generation (prompt caching + structured output)
-  assets/media.py       Permission-gated media download + credits manifest
-  voice/                Pluggable TTS (elevenlabs/openai/piper/prerecorded)
-  edit/                 Ken Burns, lower-thirds, music, captions, assembly
-  thumbnail/generate.py Before/after thumbnail
-  pipeline.py / cli.py  Orchestration + CLI
-remotion/               Animated title cards (React/Remotion)
+  research/nexus.py       NexusMods API client + ranking (any game; AUP-compliant)
+  research/gallery.py     Opt-in mod-gallery image scraper (more images per mod)
+  research/footage.py     Official Steam trailer B-roll (cinematic intro)
+  scripting/writer.py     Claude script generation (prompt caching + structured output)
+  scripting/manual.py     Chat-authored YAML spec path (no API keys)
+  assets/media.py         Permission-gated media download + credits manifest
+  voice/                  Pluggable TTS: f5tts, kaggle_gpu (free GPU), piper,
+                          elevenlabs, openai, prerecorded; enhance.py mastering
+  edit/                   Trailer intro montage, Ken Burns, music, captions, assembly
+  thumbnail/generate.py   Channel-style thumbnail (Remotion, PIL fallback)
+  branding.py             Channel-style titles + YouTube description builder
+  ideas.py                Viral video-idea generator
+  publish/gofile.py       One-link delivery (video+title+thumb+description)
+  pipeline.py / cli.py    Orchestration + CLI
+remotion/                 Animated title card + thumbnail (React/Remotion)
+kaggle/                   GPU narration kernel + notebook
+config/                   channel / voice / games / reference_channels / permissions
 ```
 
 ---
 
 ## Status
 
-Working stage implementations. Two ways to run:
+End-to-end working. Two ways to run:
 
 - **Chat-authored (no API keys):** use `--script <spec.yaml>` (see `examples/`).
   Only a voice is required to produce a finished video; placeholder slates cover
@@ -258,5 +321,10 @@ Working stage implementations. Two ways to run:
 - **Automated:** add `ANTHROPIC_API_KEY` (script writer) + `NEXUS_API_KEY`
   (research) to fetch and write everything programmatically.
 
-Either way, configure a voice in `config/voice.yaml` and add permission entries in
-`config/permissions.yaml` for any mod whose media you want to show on screen.
+For the cloned voice at production speed, set `KAGGLE_API_TOKEN` and use
+`--voice kaggle` (free GPU). Configure the voice in `config/voice.yaml` and add
+permission entries in `config/permissions.yaml` for any mod whose media you show.
+
+**Known trade-offs (documented inline):** gallery scraping and trailer B-roll are
+copyright/ToS-sensitive (opt-in, credited, short clips); F5 on CPU is impractically
+slow (use the Kaggle GPU path); GoFile guest links are public.
