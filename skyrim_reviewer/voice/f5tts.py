@@ -18,10 +18,33 @@ Runs on CPU (slow) or GPU (fast). The model weights download once from HuggingFa
 """
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
 from .base import TTSProvider
+
+
+def _ensure_ffmpeg_on_path() -> None:
+    """F5/Whisper's audio loading shells out to a system `ffmpeg`. If there isn't one,
+    expose the bundled imageio-ffmpeg binary under the name `ffmpeg` on PATH."""
+    if shutil.which("ffmpeg"):
+        return
+    try:
+        import imageio_ffmpeg
+        exe = imageio_ffmpeg.get_ffmpeg_exe()
+        bindir = Path(exe).parent / "_ffbin"
+        bindir.mkdir(exist_ok=True)
+        link = bindir / "ffmpeg"
+        if not link.exists():
+            try:
+                link.symlink_to(exe)
+            except Exception:
+                shutil.copy(exe, link)
+        os.environ["PATH"] = str(bindir) + os.pathsep + os.environ.get("PATH", "")
+    except Exception:
+        pass
 
 
 class F5TTSProvider(TTSProvider):
@@ -36,6 +59,7 @@ class F5TTSProvider(TTSProvider):
     def _engine(self):
         """Lazily build the F5-TTS API object (loads the model once)."""
         if self._api is None:
+            _ensure_ffmpeg_on_path()
             from f5_tts.api import F5TTS
             self._api = F5TTS(model=self.model)
         return self._api

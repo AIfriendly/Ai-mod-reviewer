@@ -43,3 +43,4 @@ voices/
 # One-off demo driver
 _demo_render.py
 _reassemble.py
+_f5_smoke.py
