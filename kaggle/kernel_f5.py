@@ -3,9 +3,11 @@
 Reads the narration kit dataset (manifest.json + reference.wav), generates one wav
 per segment in the cloned voice with F5-TTS, and writes them to /kaggle/working.
 
-IMPORTANT: install F5-TTS with all its deps, but PIN torch/torchaudio to Kaggle's
-preinstalled CUDA build (constraints file). Letting pip replace torch breaks the GPU
-(`CUDA error: no kernel image is available for execution on the device`).
+GPU note: Kaggle assigns either a Tesla P100 (sm_60) or T4 (sm_75). Its default
+PyTorch is too new and dropped Pascal/P100 support, causing
+`CUDA error: no kernel image is available for execution on the device`. We install
+torch 2.4.1+cu121, whose binaries cover sm_60..sm_90 (P100 AND T4), then install
+F5-TTS pinned to that torch so it isn't replaced.
 """
 import glob
 import json
@@ -13,19 +15,24 @@ import os
 import subprocess
 import sys
 
-import torch
-import torchaudio
 
-# Pin the GPU-matched torch so pip keeps it while installing F5's other deps.
-con = "/kaggle/working/constraints.txt"
-with open(con, "w") as fh:
-    fh.write(f"torch=={torch.__version__}\ntorchaudio=={torchaudio.__version__}\n")
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-c", con, "f5-tts"],
-               check=True)
+def pip(*args):
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", *args], check=True)
 
-print("CUDA available:", torch.cuda.is_available(),
-      "| device:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
-      flush=True)
+
+# A torch build compatible with both P100 (sm_60) and T4 (sm_75).
+pip("torch==2.4.1", "torchaudio==2.4.1",
+    "--index-url", "https://download.pytorch.org/whl/cu121")
+# F5 + deps, but keep the torch we just installed.
+with open("/kaggle/working/constraints.txt", "w") as fh:
+    fh.write("torch==2.4.1\ntorchaudio==2.4.1\n")
+pip("-c", "/kaggle/working/constraints.txt", "f5-tts")
+
+import torch  # noqa: E402
+cap = torch.cuda.get_device_capability(0) if torch.cuda.is_available() else None
+print("CUDA:", torch.cuda.is_available(), "| torch", torch.__version__,
+      "| device", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU",
+      "| capability", cap, flush=True)
 
 manifest_path = next(iter(glob.glob("/kaggle/input/**/manifest.json", recursive=True)))
 kit = os.path.dirname(manifest_path)
