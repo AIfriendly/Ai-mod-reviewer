@@ -24,19 +24,30 @@ def upload_files(paths: list[str]) -> str | None:
         return None
     with httpx.Client(headers={"User-Agent": _UA}, timeout=300.0,
                       follow_redirects=True) as c:
-        server = c.get(f"{_API}/servers").json()["data"]["servers"][0]["name"]
+        servers = [s["name"] for s in c.get(f"{_API}/servers").json()["data"]["servers"]]
         token = c.post(f"{_API}/accounts").json()["data"]["token"]
-        upload_url = f"https://{server}.gofile.io/contents/uploadfile"
         auth = {"User-Agent": _UA, "Authorization": f"Bearer {token}"}
+
+        def _upload(fp, folder_id):
+            # Try servers in turn; GoFile returns 503 when a store node is down.
+            last = None
+            for server in servers:
+                url = f"https://{server}.gofile.io/contents/uploadfile"
+                data = {"folderId": folder_id} if folder_id else {}
+                try:
+                    with open(fp, "rb") as fh:
+                        r = c.post(url, headers=auth, data=data,
+                                   files={"file": (fp.name, fh)})
+                    r.raise_for_status()
+                    return r.json()["data"]
+                except Exception as e:
+                    last = e
+                    continue
+            raise last
 
         folder_id, page = None, None
         for fp in files:
-            data = {"folderId": folder_id} if folder_id else {}
-            with open(fp, "rb") as fh:
-                r = c.post(upload_url, headers=auth, data=data,
-                           files={"file": (fp.name, fh)})
-            r.raise_for_status()
-            d = r.json()["data"]
+            d = _upload(fp, folder_id)
             folder_id = folder_id or d.get("parentFolder") or d.get("parentFolderId")
             page = d.get("downloadPage") or page
         return page
