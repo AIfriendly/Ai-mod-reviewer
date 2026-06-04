@@ -23,6 +23,10 @@ def get_provider(cfg: dict | None = None) -> TTSProvider:
     if provider == "f5tts":
         from .f5tts import F5TTSProvider
         return F5TTSProvider(cfg.get("f5tts", {}))
+    if provider == "kaggle":
+        from .kaggle_gpu import KaggleF5Provider
+        # Reuse the f5tts ref/nfe settings unless a kaggle block overrides them.
+        return KaggleF5Provider({**cfg.get("f5tts", {}), **cfg.get("kaggle", {})})
     if provider == "prerecorded":
         from .prerecorded import PrerecordedProvider
         return PrerecordedProvider(cfg.get("prerecorded", {}))
