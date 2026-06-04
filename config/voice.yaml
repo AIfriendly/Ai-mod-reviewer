@@ -2,7 +2,7 @@
 # The narration stage is provider-pluggable. Set `provider` and fill the matching
 # section. Your CLONED VOICE plugs in here.
 
-# provider: elevenlabs | openai | piper | prerecorded
+# provider: elevenlabs | openai | piper | f5tts | prerecorded
 provider: piper
 
 elevenlabs:
@@ -21,6 +21,15 @@ openai:
 piper:
   # Local, offline, free. Point to a downloaded Piper voice model.
   model_path: "voices/en_US-ryan-high.onnx"
+
+f5tts:
+  # YOUR cloned voice via F5-TTS (zero-shot). Prepare the reference clip with
+  # `skyrim-reviewer voice-prep <your_sample.wav>` (clean ≤15s, 24kHz mono).
+  ref_audio: "voices/clone/ref_primary.wav"
+  ref_text: ""              # leave empty to auto-transcribe the reference (Whisper)
+  model: "F5TTS_v1_Base"
+  speed: 1.0                # <1.0 = slower / more deliberate delivery
+  # seed: 42                # set for reproducible takes
 
 prerecorded:
   # Use audio you (or your cloned voice) rendered yourself.

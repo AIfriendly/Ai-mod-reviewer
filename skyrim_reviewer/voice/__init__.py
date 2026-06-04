@@ -1,6 +1,6 @@
 """Pluggable text-to-speech. Your cloned voice plugs in via config/voice.yaml.
 
-    provider: elevenlabs | openai | piper | prerecorded
+    provider: elevenlabs | openai | piper | f5tts | prerecorded
 """
 from __future__ import annotations
 
@@ -20,6 +20,9 @@ def get_provider(cfg: dict | None = None) -> TTSProvider:
     if provider == "piper":
         from .piper import PiperProvider
         return PiperProvider(cfg.get("piper", {}))
+    if provider == "f5tts":
+        from .f5tts import F5TTSProvider
+        return F5TTSProvider(cfg.get("f5tts", {}))
     if provider == "prerecorded":
         from .prerecorded import PrerecordedProvider
         return PrerecordedProvider(cfg.get("prerecorded", {}))

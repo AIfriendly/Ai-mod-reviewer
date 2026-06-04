@@ -38,6 +38,27 @@ def approve(value: str):
                f"on screen and in the description.")
 
 
+@app.command(name="voice-prep")
+def voice_prep(
+    source: str = typer.Argument(..., help="Audio/video file with your voice"),
+    out: str = typer.Option("voices/clone/ref_primary.wav", help="Output reference wav"),
+    start: float = typer.Option(0.0, help="Start seconds to clip from"),
+    seconds: float = typer.Option(12.0, help="Clip length (F5 wants a clean ≤15s ref)"),
+):
+    """Prepare an F5-TTS reference clip: clip + resample to 24kHz mono + loudness
+    normalize. Use the cleanest, most representative few seconds of your voice."""
+    import subprocess
+    from pathlib import Path
+
+    from .utils.ffmpeg import ffmpeg_path
+    Path(out).parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [ffmpeg_path(), "-y", "-v", "error", "-ss", str(start), "-t", str(seconds),
+         "-i", source, "-af", "loudnorm=I=-19:TP=-2:LRA=11", "-ar", "24000",
+         "-ac", "1", out], check=True)
+    typer.echo(f"Wrote {out}. Set voice.yaml -> provider: f5tts to use your clone.")
+
+
 @app.command(name="fetch-music")
 def fetch_music():
     """Download the default royalty-free fantasy music set (Kevin MacLeod, CC BY 4.0)
