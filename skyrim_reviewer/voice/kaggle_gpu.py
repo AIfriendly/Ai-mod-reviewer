@@ -195,9 +195,17 @@ class KaggleF5Provider(TTSProvider):
         print(f"      Offloading {len(segments)} segments to Kaggle GPU (F5)...")
         run_kaggle_f5(segments, self.ref_audio, self.ref_text, self.nfe_step,
                       out_dir, timeout=self.timeout)
+        try:
+            from ..config import voice_config
+            do_enhance = voice_config().get("enhance", True)
+        except Exception:
+            do_enhance = True
         for s in script.segments:
             wav = out_dir / f"{s.segment_id}.wav"
             if wav.exists():
+                if do_enhance:           # close-mic mastering, same as other providers
+                    from .enhance import enhance_file
+                    enhance_file(wav)
                 s.audio_path = str(wav)
                 s.audio_seconds = _audio_duration(wav)
         return script
