@@ -149,12 +149,25 @@ cd remotion && npm install && cd ..
 ### Voice
 
 Edit `config/voice.yaml` → `provider:` and fill the matching section. Options:
-`elevenlabs` (your cloned voice — set `voice_id` or `ELEVENLABS_VOICE_ID`),
-`openai`, `prerecorded` (drop `work/narration/<segment_id>.wav` files), or
-**`piper`** for a fully local, free, offline voice (no keys):
+**`f5tts`** (the channel default — *your cloned voice*, free/local), `elevenlabs`
+(set `voice_id` or `ELEVENLABS_VOICE_ID`), `openai`, `prerecorded`
+(drop `work/narration/<segment_id>.wav` files), or **`piper`** (fast local voice).
 
 ```bash
-# Local Piper voice (the channel's default for zero-cost rendering)
+# F5-TTS cloned voice (default). Prepare a clean ≤15s reference of your voice:
+pip install f5-tts
+skyrim-reviewer voice-prep my_voice.wav        # -> voices/clone/ref_primary.wav
+# config/voice.yaml -> provider: f5tts
+```
+
+> **F5 needs a GPU for production.** F5-TTS is zero-shot (clones from one ref clip +
+> its transcript at synth time). On CPU it runs ~40–50× slower than realtime, so a
+> 12-min video takes hours — fine for testing one clip, not for a 2-a-week schedule.
+> Run it on a GPU (yours or a cloud GPU) with `nfe_step: 32`; on CPU drop to
+> `nfe_step: 16`. For zero-cost CPU rendering, use **`piper`** instead.
+
+```bash
+# Fast local Piper voice (good for CPU testing / fallback)
 pip install piper-tts
 python -m piper.download_voices en_US-ryan-high --download-dir voices
 # config/voice.yaml -> provider: piper  (model_path: voices/en_US-ryan-high.onnx)
