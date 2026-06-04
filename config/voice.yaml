@@ -3,7 +3,7 @@
 # section. Your CLONED VOICE plugs in here.
 
 # provider: elevenlabs | openai | piper | f5tts | prerecorded
-provider: piper
+provider: f5tts
 
 elevenlabs:
   # voice_id of YOUR cloned voice. Either set it here or via ELEVENLABS_VOICE_ID env.
@@ -29,6 +29,7 @@ f5tts:
   ref_text: ""              # leave empty to auto-transcribe the reference (Whisper)
   model: "F5TTS_v1_Base"
   speed: 1.0                # <1.0 = slower / more deliberate delivery
+  nfe_step: 16              # 32 = best quality; 16 ~2x faster (good for CPU). GPU: use 32
   # seed: 42                # set for reproducible takes
 
 prerecorded:

@@ -1,0 +1,77 @@
+# Best Skyrim Armor Mods — chat-authored spec. Narration kept concise because the
+# F5-TTS cloned voice renders slowly on CPU. mods are real (NexusMods).
+title: "The BEST Skyrim Armor Mods in 2026! (3 You NEED)"
+category_id: armor
+format: category_list
+hook_line: "Skyrim's Best Armor"
+
+description: >
+  Skyrim's vanilla armor gets repetitive fast. These three mods flood the world with
+  lore-friendly new sets and fix how armor is balanced — here's why each earns a slot
+  in your load order.
+
+segments:
+  - kind: hook
+    narration: "Vanilla Skyrim armor gets old by level ten. These three mods completely change that."
+  - kind: intro
+    narration: "I'm counting down three armor mods that make Skyrim feel brand new. Let's get into it."
+
+  - kind: mod
+    ref: 1
+    narration: >
+      Number one: Immersive Armors by hothtrooper44. With over two hundred thousand
+      endorsements, it's the most popular armor mod ever made. It adds dozens of
+      lore-friendly sets and shields, all balanced to blend right into the game.
+
+  - kind: mod
+    ref: 2
+    narration: >
+      Number two: Armor and Clothing Extension by kryptopyr. This one rebalances every
+      piece of armor in the game, adds protection to clothing, and finally makes your
+      gear choices actually matter.
+
+  - kind: mod
+    ref: 3
+    narration: >
+      Number three: Tera Armors Collection by PoptartJuniper. If you want jaw-dropping,
+      high-detail fantasy armor, this massive pack delivers some of the best-looking
+      sets in all of Skyrim.
+
+  - kind: outro
+    narration: "That's my top three. Which armor mod is your favorite? Subscribe for two new Skyrim videos every week."
+
+mods:
+  - mod_id: 3479
+    name: "Immersive Armors"
+    author: "hothtrooper44"
+    endorsements: 206352
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/3479"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/3479-0-1478731779.png"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/19733-1-1341168132.jpg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/3479-0-1478731461.jpg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/19733-3-1341167892.jpg"
+    summary: "Adds 200+ lore-friendly armor and shield sets, all balanced for the vanilla game."
+    media_ok: true
+
+  - mod_id: 19002
+    name: "Armor and Clothing Extension"
+    author: "kryptopyr"
+    endorsements: 35266
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/19002"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/19002/19002-1533222917-6321020.jpeg"
+    image_urls:
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/19002/43053-1533185654-1535081445.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/19002/43053-1533185654-1166488406.jpeg"
+      - "https://staticdelivery.nexusmods.com/mods/1704/images/19002/43053-1533185652-765920145.jpeg"
+    summary: "Rebalances all armor and clothing so gear choices matter."
+    media_ok: true
+
+  - mod_id: 9651
+    name: "Tera Armors Collection - Special Edition"
+    author: "PoptartJuniper"
+    endorsements: 12982
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/9651"
+    image_url: "https://staticdelivery.nexusmods.com/mods/1704/images/9651-0-1493419748.jpg"
+    summary: "A huge pack of high-detail fantasy armor sets."
+    media_ok: true

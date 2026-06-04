@@ -54,6 +54,7 @@ class F5TTSProvider(TTSProvider):
         self.model = cfg.get("model", "F5TTS_v1_Base")
         self.speed = float(cfg.get("speed", 1.0))
         self.seed = cfg.get("seed", None)
+        self.nfe_step = int(cfg.get("nfe_step", 32))   # lower = faster (CPU), default 32
         self._api = None
 
     def _engine(self):
@@ -81,6 +82,7 @@ class F5TTSProvider(TTSProvider):
             file_wave=str(wav_path),
             speed=self.speed,
             seed=self.seed,
+            nfe_step=self.nfe_step,
             remove_silence=True,
         )
 
