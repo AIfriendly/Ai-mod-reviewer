@@ -28,22 +28,39 @@ KERNEL_SRC = ROOT / "kaggle" / "kernel_f5.py"
 
 
 def _auth():
-    """Authenticate the Kaggle API from env creds (writes ~/.kaggle/kaggle.json)."""
-    user = os.environ.get("KAGGLE_USERNAME")
-    key = os.environ.get("KAGGLE_KEY")
-    if not user or not key:
-        raise RuntimeError(
-            "Kaggle GPU voice needs KAGGLE_USERNAME and KAGGLE_KEY in .env "
-            "(Kaggle -> Settings -> API -> Create New Token).")
+    """Authenticate the Kaggle API. Supports the new KAGGLE_API_TOKEN (KGAT_…) and
+    the classic KAGGLE_USERNAME + KAGGLE_KEY. Returns (api, username)."""
+    from ..config import get_env
+    token = get_env("KAGGLE_API_TOKEN")
+    user = get_env("KAGGLE_USERNAME")
+    key = get_env("KAGGLE_KEY")
     kdir = Path.home() / ".kaggle"
     kdir.mkdir(exist_ok=True)
-    cfg = kdir / "kaggle.json"
-    cfg.write_text(json.dumps({"username": user, "key": key}))
-    cfg.chmod(0o600)
+    if token:
+        at = kdir / "access_token"
+        at.write_text(token)
+        at.chmod(0o600)
+        os.environ["KAGGLE_API_TOKEN"] = token
+    elif user and key:
+        cfg = kdir / "kaggle.json"
+        cfg.write_text(json.dumps({"username": user, "key": key}))
+        cfg.chmod(0o600)
+    else:
+        raise RuntimeError(
+            "Kaggle GPU voice needs KAGGLE_API_TOKEN (or KAGGLE_USERNAME + "
+            "KAGGLE_KEY) in .env (Kaggle -> Settings -> API -> Create New Token).")
     from kaggle.api.kaggle_api_extended import KaggleApi
     api = KaggleApi()
     api.authenticate()
-    return api, user
+    username = user or getattr(api, "config_values", {}).get("username")
+    if not username:
+        try:
+            username = api.get_config_value("username")
+        except Exception:
+            username = None
+    if not username:
+        raise RuntimeError("Could not determine your Kaggle username from the token.")
+    return api, username
 
 
 def run_kaggle_f5(segments: list[tuple[str, str]], ref_audio: str, ref_text: str,
@@ -92,12 +109,13 @@ def run_kaggle_f5(segments: list[tuple[str, str]], ref_audio: str, ref_text: str
             resp = api.kernels_status(kid)
             status = (resp.get("status") if isinstance(resp, dict)
                       else getattr(resp, "status", "")) or ""
+            # Status comes back like "KernelWorkerStatus.RUNNING" — match on substring.
             status = str(status).lower()
         except Exception:
             continue
-        if status in ("complete", "error", "cancelacknowledged"):
+        if any(s in status for s in ("complete", "error", "cancel")):
             break
-    if status != "complete":
+    if "complete" not in status:
         raise RuntimeError(f"Kaggle kernel did not complete (status={status}). "
                            f"Check https://www.kaggle.com/{kid}")
 
