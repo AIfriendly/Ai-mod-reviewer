@@ -10,15 +10,12 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-# Denoise -> rumble/harshness cleanup -> de-mud + presence + air -> compress -> normalize.
+# Minimal, transparent mastering: just remove sub-bass rumble and set a comfortable,
+# consistent level. No EQ colouring or heavy compression (those made it sound harsh /
+# "too loud"). Target ~-19 LUFS — a touch quieter than the reference, clean.
 _FILTER = (
-    "afftdn=nf=-25,"
-    "highpass=f=90,lowpass=f=12000,"
-    "equalizer=f=250:t=q:w=1.2:g=-3,"      # cut boxy/muddy lows
-    "equalizer=f=3200:t=q:w=2:g=4.5,"      # presence — brings voice 'forward'
-    "equalizer=f=8000:t=q:w=2:g=2.5,"      # air/clarity
-    "acompressor=threshold=-21dB:ratio=3.5:attack=5:release=90:makeup=5,"
-    "loudnorm=I=-16:TP=-1.5:LRA=11"
+    "highpass=f=75,"
+    "loudnorm=I=-19:TP=-2:LRA=11"
 )
 
 
