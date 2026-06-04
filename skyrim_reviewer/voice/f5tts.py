@@ -50,7 +50,11 @@ def _ensure_ffmpeg_on_path() -> None:
 class F5TTSProvider(TTSProvider):
     def __init__(self, cfg: dict):
         self.ref_audio = cfg.get("ref_audio", "voices/clone/ref_primary.wav")
-        self.ref_text = cfg.get("ref_text", "")          # "" -> auto-transcribe
+        # "" -> auto-transcribe; or use a sidecar <ref>.txt transcript if present.
+        sidecar = Path(self.ref_audio).with_suffix(".txt")
+        self.ref_text = (cfg.get("ref_text", "") or
+                         (sidecar.read_text(encoding="utf-8").strip()
+                          if sidecar.exists() else ""))
         self.model = cfg.get("model", "F5TTS_v1_Base")
         self.speed = float(cfg.get("speed", 1.0))
         self.seed = cfg.get("seed", None)

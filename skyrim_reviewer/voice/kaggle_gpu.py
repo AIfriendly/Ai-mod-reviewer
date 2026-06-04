@@ -27,6 +27,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 KERNEL_SRC = ROOT / "kaggle" / "kernel_f5.py"
 
 
+def _sidecar_text(ref_audio: str) -> str:
+    """Read the reference transcript from <ref_audio>.txt if present."""
+    sc = Path(ref_audio).with_suffix(".txt")
+    return sc.read_text(encoding="utf-8").strip() if sc.exists() else ""
+
+
 def _auth():
     """Authenticate the Kaggle API. Supports the new KAGGLE_API_TOKEN (KGAT_…) and
     the classic KAGGLE_USERNAME + KAGGLE_KEY. Returns (api, username)."""
@@ -145,7 +151,9 @@ class KaggleF5Provider(TTSProvider):
 
     def __init__(self, cfg: dict):
         self.ref_audio = cfg.get("ref_audio", "voices/clone/ref_primary.wav")
-        self.ref_text = cfg.get("ref_text", "")
+        # If no ref_text, use a sidecar <ref>.txt transcript so the GPU job can skip
+        # Whisper auto-transcription (faster, and avoids torchcodec audio-decoder deps).
+        self.ref_text = cfg.get("ref_text", "") or _sidecar_text(self.ref_audio)
         self.nfe_step = int(cfg.get("nfe_step", 32))
         self.timeout = int(cfg.get("timeout", 2400))
 
