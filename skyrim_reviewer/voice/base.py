@@ -17,11 +17,19 @@ class TTSProvider(abc.ABC):
     def narrate_script(self, script: Script, out_dir: Path) -> Script:
         """Render every segment's narration; fill segment.audio_path + audio_seconds."""
         out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            from ..config import voice_config
+            do_enhance = voice_config().get("enhance", True)
+        except Exception:
+            do_enhance = True
         for seg in script.segments:
             if not seg.narration.strip():
                 continue
             out = out_dir / f"{seg.segment_id}.mp3"
             self.synth(seg.narration, out)
+            if do_enhance:               # master to close-mic'd, broadcast level
+                from .enhance import enhance_file
+                enhance_file(out)
             seg.audio_path = str(out)
             seg.audio_seconds = _audio_duration(out)
         return script

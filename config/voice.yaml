@@ -40,3 +40,6 @@ prerecorded:
 # Pacing
 words_per_minute: 155
 pause_between_segments_ms: 450
+
+# Voice mastering: bring the cloned voice forward (close-mic) + even, broadcast level.
+enhance: true
