@@ -38,6 +38,27 @@ def approve(value: str):
                f"on screen and in the description.")
 
 
+@app.command(name="export-script")
+def export_script(
+    category: str = typer.Argument(..., help="Category id (for the slug)"),
+    script: str = typer.Option(..., "--script", help="YAML script spec to export"),
+    ref: str = typer.Option("voices/clone/ref_primary.wav", help="Voice reference clip"),
+    ref_text: str = typer.Option("", help="Transcript of the reference (optional)"),
+):
+    """Export a narration kit (segment texts + your voice reference + Kaggle notebook)
+    to run the F5 voiceover on a free GPU. Produces output/<slug>_narration_kit.zip."""
+    from .pipeline import new_project
+    from .publish.narration import export_narration_kit
+    from .scripting import apply_spec, load_spec
+    project = new_project(category, "test", "category_list")
+    apply_spec(project, load_spec(script))
+    kit = export_narration_kit(project, ref_audio=ref, ref_text=ref_text)
+    typer.echo(f"Narration kit -> {kit}/ (and {kit}.zip)\n"
+               f"Upload the .zip to Kaggle as a Dataset, run f5_narrate.ipynb on a GPU, "
+               f"then put the returned wavs in work/narration/ and assemble with "
+               f"`make {category} --script {script} --voice prerecorded`.")
+
+
 @app.command(name="voice-prep")
 def voice_prep(
     source: str = typer.Argument(..., help="Audio/video file with your voice"),
@@ -154,6 +175,8 @@ def make(
     publish: bool = typer.Option(True, help="Upload video+title+thumb+description to GoFile"),
     game: str = typer.Option(None, help="Nexus game domain (e.g. fallout4, starfield). "
                              "Default: skyrim. See config/games.yaml"),
+    voice: str = typer.Option(None, help="Override the TTS provider for this run "
+                              "(e.g. prerecorded to use GPU-made audio in work/narration)"),
     script: str = typer.Option(
         None, "--script",
         help="Path to a chat-authored YAML script spec (skips research + Claude; "
@@ -171,7 +194,7 @@ def make(
     from .pipeline import run
     run(category, profile_name=profile, fmt=fmt, theme=theme,
         next_topic=next_topic, skip_render=skip_render, script_spec=script,
-        publish=publish)
+        publish=publish, voice_override=voice)
 
 
 @app.command()

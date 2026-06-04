@@ -41,7 +41,8 @@ def _save(project: Project) -> None:
 def run(category_id: str, *, profile_name: str | None = None,
         fmt: str = "category_list", theme: str = "",
         next_topic: str = "", skip_render: bool = False,
-        script_spec: str | None = None, publish: bool = True) -> Project:
+        script_spec: str | None = None, publish: bool = True,
+        voice_override: str | None = None) -> Project:
     """Run the pipeline.
 
     If `script_spec` (a YAML path) is given, research + Claude are skipped and the
@@ -95,9 +96,19 @@ def run(category_id: str, *, profile_name: str | None = None,
     _save(project)
 
     # 4. Voice
-    print("[4/6] Narrating with the configured voice...")
-    provider = get_provider()
-    provider.narrate_script(project.script, Path(project.workdir) / "narration")
+    narration_dir = Path(project.workdir) / "narration"
+    if voice_override:
+        from .config import voice_config
+        vcfg = {**voice_config(), "provider": voice_override}
+        if voice_override == "prerecorded":
+            # Use the wavs brought back from the GPU, sitting in the project's dir.
+            vcfg["prerecorded"] = {"audio_dir": str(narration_dir)}
+        print(f"[4/6] Narrating with override voice: {voice_override}...")
+        provider = get_provider(vcfg)
+    else:
+        print("[4/6] Narrating with the configured voice...")
+        provider = get_provider()
+    provider.narrate_script(project.script, narration_dir)
     _save(project)
 
     # 5. Package extras: Remotion title card + thumbnail
