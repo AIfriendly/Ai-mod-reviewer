@@ -102,3 +102,5 @@ class Project(BaseModel):
     thumbnail_path: Optional[str] = None
     next_topic: str = ""           # teased as the next upload (used in the description)
     gofile_url: Optional[str] = None  # shared folder with video + title + thumb + desc
+    title_variants: list[str] = Field(default_factory=list)      # A/B title options
+    thumbnail_variants: list[str] = Field(default_factory=list)  # A/B thumbnail paths

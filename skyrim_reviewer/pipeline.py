@@ -121,6 +121,24 @@ def run(category_id: str, *, profile_name: str | None = None,
     )
     make_thumbnail(project, accent=cfg["branding"]["accent_color"],
                    category_title=category_title)
+    # A/B variants: alternative titles + thumbnails to choose from before upload.
+    try:
+        from .branding import title_variants
+        from .thumbnail.generate import make_thumbnail_variants
+        n_mods = len(project.mods)
+        titles = title_variants(category_title, n_mods, fmt=fmt)
+        thumbs = make_thumbnail_variants(project, accent=cfg["branding"]["accent_color"],
+                                         category_title=category_title)
+        Path("output").mkdir(exist_ok=True)
+        lines = ["TITLE OPTIONS (pick one):"] + [f"  {i+1}. {t}" for i, t in enumerate(titles)]
+        lines += ["", "THUMBNAIL OPTIONS:"] + [f"  {i+1}. {p}" for i, p in enumerate(thumbs)]
+        (Path("output") / f"{project.slug}.variants.txt").write_text(
+            "\n".join(lines), encoding="utf-8")
+        project.title_variants = titles
+        project.thumbnail_variants = thumbs
+        print(f"      A/B: {len(titles)} titles + {len(thumbs)} thumbnails")
+    except Exception as e:
+        print(f"      (A/B variants skipped: {e})")
     _save(project)
 
     # 6. Edit / assemble

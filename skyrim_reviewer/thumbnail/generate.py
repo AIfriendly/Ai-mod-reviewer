@@ -116,3 +116,30 @@ def _tag(draw, label: str, xy, color) -> None:
     draw.rectangle([bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad],
                    fill=(0, 0, 0))
     draw.text(xy, label, font=font, fill=color)
+
+
+def make_thumbnail_variants(project, accent: str = "#d4af37",
+                            category_title: str = "", n: int = 3) -> list[str]:
+    """Render N A/B thumbnail variants (different keyword/banner + panel images) into
+    work/<slug>/thumbs/. Returns the list of paths. Remotion when available, else PIL."""
+    from ..branding import thumbnail_variants_text
+    from ..edit.remotion_render import render_thumbnail
+    out_dir = Path(project.workdir) / "thumbs"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # One representative image per mod (prefer a gallery screenshot over splash art).
+    per_mod = []
+    for mod in project.mods:
+        imgs = [a.local_path for a in mod.media if a.local_path and
+                Path(a.local_path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
+        if imgs:
+            per_mod.append(imgs[1] if len(imgs) > 1 else imgs[0])
+    variants = thumbnail_variants_text(category_title or "", n)
+    paths = []
+    for i, (headline, keyword, banner) in enumerate(variants):
+        # Rotate which mods appear so each variant looks distinct.
+        panels = (per_mod[i:] + per_mod[:i])[:3] or per_mod[:3]
+        out = out_dir / f"thumb_v{i+1}.png"
+        if panels and render_thumbnail(headline, keyword, banner, panels, accent, out):
+            paths.append(str(out))
+    return paths

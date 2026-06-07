@@ -33,6 +33,40 @@ def thumbnail_text(title: str, category_title: str) -> tuple[str, str, str]:
     return headline, kw, banner
 
 
+def title_variants(category_title: str, n_mods: int, fmt: str = "category_list",
+                   limit: int = 3) -> list[str]:
+    """A/B title options from the configured channel-style templates."""
+    from .config import channel_config
+    noun = category_noun(category_title)
+    year = date.today().year
+    tmpls = channel_config().get("title_templates", {}).get(fmt, [])
+    out: list[str] = []
+    for t in tmpls:
+        try:
+            out.append(t.format(n=n_mods, category=noun, year=year, theme="The Witcher"))
+        except Exception:
+            continue
+    seen: list[str] = []
+    for x in out:
+        if x not in seen:
+            seen.append(x)
+    return seen[:limit] or [f"The BEST Skyrim {noun} Mods in {year}!"]
+
+
+def thumbnail_variants_text(category_title: str, limit: int = 3) -> list[tuple]:
+    """A/B thumbnail (headline, accent_keyword, banner) options."""
+    noun = category_noun(category_title).upper()
+    year = str(date.today().year)
+    kws = ["BEST", "INSANE", "ULTIMATE", "ESSENTIAL"]
+    banners = [year, "MUST-HAVE", "RANKED", "TOP TIER"]
+    out = []
+    for i in range(limit):
+        kw = kws[i % len(kws)]
+        head = f"{kw} {noun} MODS" if noun and noun != "SKYRIM" else f"{kw} SKYRIM MODS"
+        out.append((head, kw, banners[i % len(banners)]))
+    return out
+
+
 def make_description(project, music_credit: str | None = None,
                      watermark: str = "", next_topic: str = "") -> str:
     """Build a channel-style YouTube description: hook, timestamps, mod links with

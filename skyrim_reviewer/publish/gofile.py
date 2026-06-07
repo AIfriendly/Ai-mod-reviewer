@@ -72,7 +72,10 @@ def publish_project(project) -> str | None:
         project.thumbnail_path,                    # the thumbnail
         str(out_dir / f"{slug}.description.txt"),   # the description
         str(out_dir / f"{slug}.srt"),              # subtitles (bonus)
+        str(out_dir / f"{slug}.variants.txt"),     # A/B title + thumbnail options
     ]
+    # A/B thumbnail variants, so all options are in the one download.
+    candidates += list(getattr(project, "thumbnail_variants", []) or [])
     link = upload_files([p for p in candidates if p])
     project.gofile_url = link
     return link
