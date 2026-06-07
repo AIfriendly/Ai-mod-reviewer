@@ -18,7 +18,7 @@ _FILTER = (
     "equalizer=f=130:t=q:w=1.0:g=2.5,"          # body / proximity warmth
     "equalizer=f=450:t=q:w=1.4:g=-2.5,"         # cut boxy 'radio' midrange
     "equalizer=f=5500:t=q:w=2:g=2.5,"           # presence / clarity
-    "equalizer=f=11000:t=highshelf:g=3,"        # air (de-dull the bandlimited feel)
+    "treble=g=3:f=11000,"                        # air shelf (de-dull bandlimited feel)
     "loudnorm=I=-19:TP=-2:LRA=11"
 )
 
