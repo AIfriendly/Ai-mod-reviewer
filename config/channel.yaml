@@ -70,10 +70,12 @@ video:
       outro_seconds: 60         # CTA tied to next week's topic
 
 # Ranking weights for the research stage (how it picks "best" mods).
+# Tuned to favour what's TRENDING NOW (higher recency weight) — combined with the
+# "never repeat" history filter, each run surfaces fresh, currently-hot mods.
 ranking:
-  weight_endorsements: 0.45
+  weight_endorsements: 0.35
   weight_downloads_recent: 0.30
-  weight_recency: 0.15
+  weight_recency: 0.30        # bias toward currently-trending / freshly-updated mods
   weight_has_media: 0.10
   require_media: true         # only feature mods that have showable media
   require_reuse_permission: true   # footage policy: only mods whose author permits media reuse

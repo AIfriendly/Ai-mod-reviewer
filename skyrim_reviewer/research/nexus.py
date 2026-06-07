@@ -226,6 +226,11 @@ def research_category(category_id: str, limit: int, client: NexusClient | None =
 
         ranked_in = sorted(in_cat.values(), key=lambda m: m.score, reverse=True)
         ranked_other = sorted(other.values(), key=lambda m: m.score, reverse=True)
+        # Rule 1: never repeat — drop mods already featured in a past video.
+        from ..history import seen_mod_ids
+        seen = seen_mod_ids(domain)
+        ranked_in = [m for m in ranked_in if m.mod_id not in seen]
+        ranked_other = [m for m in ranked_other if m.mod_id not in seen]
         # Prefer category matches; fill the rest from the wider pool so a run always
         # returns `limit` mods even when the live category pool is thin.
         top = (ranked_in + ranked_other)[:limit]
@@ -257,7 +262,10 @@ def research_trending(limit: int, client: NexusClient | None = None) -> list[Mod
             mod.score = _score(mod, ranking, now)
             mods.append(mod)
         mods.sort(key=lambda m: m.score, reverse=True)
-        top = mods[:limit]
+        # Rule 1: never repeat — exclude mods already featured.
+        from ..history import seen_mod_ids
+        seen = seen_mod_ids(domain)
+        top = [m for m in mods if m.mod_id not in seen][:limit]
         _enrich(top, client)
         return top
     finally:

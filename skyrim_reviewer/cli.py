@@ -109,6 +109,26 @@ def ideas(
 
 
 @app.command()
+def history(game: str = typer.Option(None, help="Nexus game domain (default: configured game)")):
+    """Show videos already made (so they're never repeated). The 'no repeats' rule
+    excludes these mods from future automated selections."""
+    import os
+    if game:
+        os.environ["MODREVIEWER_GAME"] = game
+    from .config import channel_config
+    from .history import _load
+    g = game or channel_config()["channel"]["game_domain"]
+    entries = _load().get(g, [])
+    if not entries:
+        typer.echo(f"No videos recorded yet for '{g}'.")
+        return
+    typer.echo(f"{len(entries)} video(s) recorded for '{g}':")
+    for e in entries:
+        typer.echo(f"  {e.get('date','')}  {e.get('title','')}  "
+                   f"({len(e.get('mod_ids', []))} mods)")
+
+
+@app.command()
 def research(category: str, game: str = typer.Option(None, help="Nexus game domain, e.g. fallout4")):
     """Research + rank the best mods for a category (no script/render)."""
     if game:

@@ -130,6 +130,12 @@ def run(category_id: str, *, profile_name: str | None = None,
     print("[6/6] Assembling final video (Ken Burns, music, captions)...")
     assemble_video(project, accent=cfg["branding"]["accent_color"])
     _save(project)
+    # Rule 1: log this video's mods so they're never repeated in future runs.
+    try:
+        from .history import record_video
+        record_video(project)
+    except Exception:
+        pass
     print(f"\nDone -> {project.output_path}")
     print(f"Thumbnail -> {project.thumbnail_path}")
 
