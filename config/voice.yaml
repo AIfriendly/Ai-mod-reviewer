@@ -29,7 +29,7 @@ f5tts:
   ref_text: ""              # leave empty to auto-transcribe the reference (Whisper)
   model: "F5TTS_v1_Base"
   speed: 1.0                # <1.0 = slower / more deliberate delivery
-  nfe_step: 16              # 32 = best quality; 16 ~2x faster (good for CPU). GPU: use 32
+  nfe_step: 32              # 32 = best quality (clarity); GPU handles it fast
   # seed: 42                # set for reproducible takes
 
 prerecorded:

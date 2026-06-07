@@ -10,11 +10,15 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-# Minimal, transparent mastering: just remove sub-bass rumble and set a comfortable,
-# consistent level. No EQ colouring or heavy compression (those made it sound harsh /
-# "too loud"). Target ~-19 LUFS — a touch quieter than the reference, clean.
+# "Proximity" master — counters the F5 'radio / far from mic' character without the
+# harsh, too-loud chain we rejected: add low-mid body (closeness), cut the boxy
+# 'telephone' mids, restore presence + air, then a gentle -19 LUFS level. No compressor.
 _FILTER = (
-    "highpass=f=75,"
+    "highpass=f=70,"
+    "equalizer=f=130:t=q:w=1.0:g=2.5,"          # body / proximity warmth
+    "equalizer=f=450:t=q:w=1.4:g=-2.5,"         # cut boxy 'radio' midrange
+    "equalizer=f=5500:t=q:w=2:g=2.5,"           # presence / clarity
+    "equalizer=f=11000:t=highshelf:g=3,"        # air (de-dull the bandlimited feel)
     "loudnorm=I=-19:TP=-2:LRA=11"
 )
 
