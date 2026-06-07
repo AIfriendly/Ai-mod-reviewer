@@ -81,26 +81,78 @@ def _delete_remote(api, user: str, slug: str) -> None:
         pass
 
 
+def _download_wavs(api, kid: str, out_dir: Path, seg_ids: list[str]) -> set[str]:
+    """Download a kernel's output and return the set of segment ids whose wav landed.
+    Works even when the status API is flaky — the output endpoint often still serves."""
+    try:
+        api.kernels_output(kid, path=str(out_dir), quiet=True)
+    except Exception:
+        return {sid for sid in seg_ids if (out_dir / f"{sid}.wav").exists()}
+    got = set()
+    for sid in seg_ids:
+        found = next(iter(out_dir.rglob(f"{sid}.wav")), None)
+        if found and found.parent != out_dir:
+            shutil.move(str(found), str(out_dir / f"{sid}.wav"))
+        if (out_dir / f"{sid}.wav").exists():
+            got.add(sid)
+    return got
+
+
+def _poll_kernel(api, kid: str, timeout: int, poll: int) -> str:
+    deadline = time.time() + timeout
+    status = "queued"
+    while time.time() < deadline:
+        time.sleep(poll)
+        try:
+            resp = api.kernels_status(kid)
+            status = str((resp.get("status") if isinstance(resp, dict)
+                          else getattr(resp, "status", "")) or "").lower()
+        except Exception:
+            continue                      # status API hiccup — keep waiting
+        if any(s in status for s in ("complete", "error", "cancel")):
+            break
+    return status
+
+
 def run_kaggle_f5(segments: list[tuple[str, str]], ref_audio: str, ref_text: str,
                   nfe_step: int, out_dir: Path, timeout: int = 2400,
                   poll: int = 20, cleanup: bool = True) -> Path:
-    """Generate <segment_id>.wav for each (segment_id, text) on Kaggle's GPU and
-    download them into out_dir. Returns out_dir.
+    """Generate <segment_id>.wav per (segment_id, text) on Kaggle's GPU, into out_dir.
 
-    On success the per-run dataset + kernel are deleted from your Kaggle account so
-    they don't accumulate (cleanup=True). On failure they're kept so the log is
-    inspectable. Local temp folders are always removed.
+    RESUMABLE: the job (dataset/kernel id) is recorded in out_dir/_kaggle_job.json. If
+    the local process is killed mid-run, the next call reattaches to the same kernel
+    and just downloads its output — no re-launch, no GPU re-run. On full success the
+    remote dataset + kernel are deleted (cleanup=True).
     """
     api, user = _auth()
     out_dir.mkdir(parents=True, exist_ok=True)
+    seg_ids = [sid for sid, _ in segments]
+    job_file = out_dir / "_kaggle_job.json"
+
+    # --- Resume an in-flight/finished job if one is recorded for this project ---
+    if job_file.exists():
+        try:
+            job = json.loads(job_file.read_text())
+            slug, kid = job["slug"], job["kid"]
+            got = _download_wavs(api, kid, out_dir, seg_ids)
+            if not set(seg_ids) <= got:           # not all ready yet -> wait, retry
+                _poll_kernel(api, kid, timeout, poll)
+                got = _download_wavs(api, kid, out_dir, seg_ids)
+            if set(seg_ids) <= got:
+                if cleanup:
+                    _delete_remote(api, user, slug)
+                    job_file.unlink(missing_ok=True)
+                return out_dir
+        except Exception:
+            pass                                   # fall through to a fresh launch
+
+    # --- Fresh launch ---
     tag = uuid.uuid4().hex[:8]
     slug = f"skyrim-f5-{tag}"
     kid = f"{user}/{slug}-run"
     ds_dir = out_dir / f"_kaggle_ds_{tag}"
     k_dir = out_dir / f"_kaggle_kernel_{tag}"
-
     try:
-        # 1) Build + push the dataset (manifest + reference).
         ds_dir.mkdir(parents=True, exist_ok=True)
         json.dump({"ref_text": ref_text, "nfe_step": nfe_step,
                    "segments": [{"segment_id": sid, "text": t} for sid, t in segments]},
@@ -112,49 +164,30 @@ def run_kaggle_f5(segments: list[tuple[str, str]], ref_audio: str, ref_text: str
         api.dataset_create_new(str(ds_dir), public=False, quiet=True)
         _wait_dataset_ready(api, f"{user}/{slug}", timeout=300)
 
-        # 2) Build + push the GPU kernel that runs F5 against that dataset.
         k_dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(KERNEL_SRC, k_dir / "kernel_f5.py")
-        json.dump({"id": kid, "title": f"{slug}-run",
-                   "code_file": "kernel_f5.py", "language": "python",
-                   "kernel_type": "script", "is_private": True,
+        json.dump({"id": kid, "title": f"{slug}-run", "code_file": "kernel_f5.py",
+                   "language": "python", "kernel_type": "script", "is_private": True,
                    "enable_gpu": True, "enable_internet": True,
                    "dataset_sources": [f"{user}/{slug}"],
                    "competition_sources": [], "kernel_sources": []},
                   open(k_dir / "kernel-metadata.json", "w"))
         api.kernels_push(str(k_dir))
+        # Record the job IMMEDIATELY so an idle-kill is recoverable on the next run.
+        job_file.write_text(json.dumps({"slug": slug, "kid": kid, "segments": seg_ids}))
 
-        # 3) Poll until the kernel finishes.
-        deadline = time.time() + timeout
-        status = "queued"
-        while time.time() < deadline:
-            time.sleep(poll)
-            try:
-                resp = api.kernels_status(kid)
-                status = (resp.get("status") if isinstance(resp, dict)
-                          else getattr(resp, "status", "")) or ""
-                # Status is like "KernelWorkerStatus.RUNNING" — match on substring.
-                status = str(status).lower()
-            except Exception:
-                continue
-            if any(s in status for s in ("complete", "error", "cancel")):
-                break
-        if "complete" not in status:
-            raise RuntimeError(f"Kaggle kernel did not complete (status={status}). "
-                               f"Check https://www.kaggle.com/{kid}")
+        status = _poll_kernel(api, kid, timeout, poll)
+        got = _download_wavs(api, kid, out_dir, seg_ids)
+        if not (set(seg_ids) <= got):
+            raise RuntimeError(
+                f"Kaggle kernel incomplete (status={status}, got {len(got)}/{len(seg_ids)} "
+                f"segments). Re-run to resume from https://www.kaggle.com/{kid}")
 
-        # 4) Download outputs (the wavs) into out_dir.
-        api.kernels_output(kid, path=str(out_dir), quiet=True)
-        for sid, _ in segments:           # flatten any nested output
-            found = next(iter(out_dir.rglob(f"{sid}.wav")), None)
-            if found and found.parent != out_dir:
-                shutil.move(str(found), str(out_dir / f"{sid}.wav"))
-
-        if cleanup:                       # tidy the account on success
+        if cleanup:
             _delete_remote(api, user, slug)
+            job_file.unlink(missing_ok=True)
         return out_dir
     finally:
-        # Local scratch always goes, plus the Kaggle output log file.
         shutil.rmtree(ds_dir, ignore_errors=True)
         shutil.rmtree(k_dir, ignore_errors=True)
         (out_dir / f"{slug}-run.log").unlink(missing_ok=True)
