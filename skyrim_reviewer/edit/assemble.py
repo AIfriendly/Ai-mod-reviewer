@@ -102,9 +102,11 @@ def assemble_video(project: Project, accent: str = "#d4af37",
     out_dir = Path("output")
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"{project.slug}.mp4"
+    codec, preset, threads, extra = _encode_opts()
+    print(f"      Encoding with {codec} (preset={preset}, threads={threads})")
     video.write_videofile(
-        str(out_path), fps=fps, codec="libx264", audio_codec="aac",
-        threads=4, preset="medium",
+        str(out_path), fps=fps, codec=codec, audio_codec="aac",
+        threads=threads, preset=preset, ffmpeg_params=extra,
     )
 
     # Sidecar artefacts: subtitles + accurate chapters + channel-style description.
@@ -187,7 +189,12 @@ def _intro_footage_clip(seg, script: Script, dur: float, size, fps: int,
 
     title = getattr(script, "hook_line", "") or script.title
     subtitle = script.title if getattr(seg, "kind", "") == "intro" else ""
-    overlay = ImageClip(title_overlay_rgba(title, subtitle, size, accent)).set_duration(dur)
+    # Title text only shows for the first ~5s, then fades out so it doesn't linger
+    # over the whole (now long) intro narration.
+    from moviepy.video.fx.all import fadeout
+    overlay_dur = min(5.0, dur)
+    overlay = (ImageClip(title_overlay_rgba(title, subtitle, size, accent))
+               .set_duration(overlay_dur).fx(fadeout, 0.6))
     return (CompositeVideoClip([montage, overlay], size=size)
             .set_duration(dur).set_fps(fps))
 
@@ -214,6 +221,38 @@ def _card_clip(seg, script: Script, dur: float, size, fps: int, accent: str,
     clip = clip.set_position(("center", "center"))
     from moviepy.editor import CompositeVideoClip
     return CompositeVideoClip([clip], size=size).set_duration(dur)
+
+
+def _has_nvenc() -> bool:
+    """True only if NVENC actually ENCODES here (a real GPU box) — ffmpeg lists the
+    encoder even without a GPU, so we do a tiny throwaway encode to be sure."""
+    import subprocess
+    from ..utils.ffmpeg import ffmpeg_path
+    try:
+        r = subprocess.run(
+            [ffmpeg_path(), "-hide_banner", "-f", "lavfi", "-i", "color=c=black:s=64x64:d=0.1",
+             "-c:v", "h264_nvenc", "-f", "null", "-"],
+            capture_output=True, text=True, timeout=30)
+        return r.returncode == 0
+    except Exception:
+        return False
+
+
+def _encode_opts():
+    """Pick (codec, preset, threads, ffmpeg_params). Uses GPU NVENC when available
+    (fast on a GPU box); otherwise multi-threaded x264 at a faster preset. Override
+    any of these via config/channel.yaml -> video.{codec,preset,threads}."""
+    import os
+    cfg = channel_video_cfg()
+    threads = int(cfg.get("threads", os.cpu_count() or 4))
+    codec = cfg.get("codec") or ("h264_nvenc" if _has_nvenc() else "libx264")
+    if codec == "h264_nvenc":
+        preset = cfg.get("preset_nvenc", "p4")
+        extra = ["-rc", "vbr", "-cq", "23", "-b:v", "0", "-pix_fmt", "yuv420p"]
+    else:
+        preset = cfg.get("preset", "faster")   # x264: was 'medium'; 'faster' ~2x quicker
+        extra = ["-crf", str(cfg.get("crf", 21))]
+    return codec, preset, threads, extra
 
 
 def channel_video_cfg() -> dict:
