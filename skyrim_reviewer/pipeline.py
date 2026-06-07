@@ -128,7 +128,12 @@ def run(category_id: str, *, profile_name: str | None = None,
         print("[6/6] Skipping final render (--skip-render).")
         return project
     print("[6/6] Assembling final video (Ken Burns, music, captions)...")
-    assemble_video(project, accent=cfg["branding"]["accent_color"])
+    accent = cfg["branding"]["accent_color"]
+    if cfg["video"].get("engine", "ffmpeg") == "ffmpeg":
+        from .edit.ffrender import render_video_ffmpeg
+        render_video_ffmpeg(project, accent=accent)
+    else:
+        assemble_video(project, accent=accent)
     _save(project)
     # Rule 1: log this video's mods so they're never repeated in future runs.
     try:

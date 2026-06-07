@@ -42,6 +42,7 @@ video:
   active_profile: "standard"  # standard (10-15 min) | test (5 min) | full (20 min)
   resolution: [1920, 1080]
   fps: 30
+  engine: "ffmpeg"      # ffmpeg (fast, native; default) | moviepy (legacy fallback)
   # Encoder: auto-detects NVIDIA NVENC on a GPU box (fast); else multi-threaded x264.
   # Override on a GPU box with `codec: h264_nvenc`. threads defaults to all CPU cores.
   # codec: h264_nvenc       # force GPU encode (or libx264 to force CPU)
