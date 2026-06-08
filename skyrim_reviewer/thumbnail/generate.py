@@ -65,7 +65,9 @@ def make_thumbnail(project: Project, text: str | None = None,
                 panels.append(imgs[1] if len(imgs) > 1 else imgs[0])
             if len(panels) == 3:
                 break
-        if render_thumbnail(headline, keyword, banner, panels or heroes, accent, out):
+        from ..config import channel_config as _cc
+        brand = _cc().get('channel', {}).get('name', '')
+        if render_thumbnail(headline, keyword, banner, panels or heroes, accent, out, brand=brand):
             project.thumbnail_path = str(out)
             return str(out)
 
@@ -140,6 +142,8 @@ def make_thumbnail_variants(project, accent: str = "#d4af37",
         # Rotate which mods appear so each variant looks distinct.
         panels = (per_mod[i:] + per_mod[:i])[:3] or per_mod[:3]
         out = out_dir / f"thumb_v{i+1}.png"
-        if panels and render_thumbnail(headline, keyword, banner, panels, accent, out):
+        from ..config import channel_config as _cc
+        brand = _cc().get('channel', {}).get('name', '')
+        if panels and render_thumbnail(headline, keyword, banner, panels, accent, out, brand=brand):
             paths.append(str(out))
     return paths

@@ -80,6 +80,31 @@ def voice_prep(
     typer.echo(f"Wrote {out}. Set voice.yaml -> provider: f5tts to use your clone.")
 
 
+@app.command()
+def brand():
+    """(Re)generate channel brand assets — logo + banner — into branding/, using
+    channel.name + branding.accent_color from config."""
+    from pathlib import Path
+    from .brand_assets import make_banner, make_logo
+    from .config import channel_config
+    cfg = channel_config()
+    name = cfg["channel"]["name"]
+    accent = cfg["branding"]["accent_color"]
+    Path("branding").mkdir(exist_ok=True)
+    make_logo(name, accent, Path("branding/logo.png"))
+    # Use a cached trailer frame as backdrop if available.
+    bg = next(iter(Path("assets_cache").glob("trailer_*.mp4")), None)
+    bgpng = None
+    if bg:
+        import subprocess
+        from .utils.ffmpeg import ffmpeg_path
+        bgpng = "branding/_bg.png"
+        subprocess.run([ffmpeg_path(), "-y", "-v", "error", "-ss", "10", "-i", str(bg),
+                        "-frames:v", "1", bgpng], check=False)
+    make_banner(name, accent, Path("branding/banner.png"), backdrop=bgpng)
+    typer.echo(f"Brand assets for '{name}' -> branding/logo.png + branding/banner.png")
+
+
 @app.command(name="fetch-music")
 def fetch_music():
     """Download the default royalty-free fantasy music set (Kevin MacLeod, CC BY 4.0)

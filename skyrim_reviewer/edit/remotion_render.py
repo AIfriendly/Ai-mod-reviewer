@@ -36,7 +36,7 @@ def render_title_card(title: str, subtitle: str, accent: str, out_path: Path) ->
 
 def render_thumbnail(headline: str, keyword: str, banner: str,
                      image_paths: list[str], accent: str, out_path: Path,
-                     badge: bool = True) -> bool:
+                     badge: bool = True, brand: str = "") -> bool:
     """Render the channel-style Thumbnail still (1280x720). Returns True on success.
 
     Hero images are staged in remotion/public/ so they load via staticFile().
@@ -60,7 +60,8 @@ def render_thumbnail(headline: str, keyword: str, banner: str,
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path = out_path.resolve()   # subprocess runs in remotion/, so use an abs path
     props = json.dumps({"headline": headline, "keyword": keyword, "banner": banner,
-                        "images": names, "accent": accent, "badge": badge})
+                        "images": names, "accent": accent, "badge": badge,
+                        "brand": brand})
     try:
         subprocess.run(
             ["npx", "remotion", "still", "src/index.ts", "Thumbnail",

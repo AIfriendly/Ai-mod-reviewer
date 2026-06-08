@@ -8,6 +8,7 @@ export interface ThumbnailProps {
   images: string[];     // staticFile names (1-3); split into panels
   accent: string;
   badge: boolean;       // draw an ESRB-style "E" badge
+  brand?: string;       // channel brand name shown as a corner tag
 }
 
 // Per-panel colour wash, like the split character panels on Heavy Burns / Syn Gaming.
@@ -18,7 +19,7 @@ const WASHES = [
 ];
 
 export const Thumbnail: React.FC<ThumbnailProps> = ({
-  headline, keyword, banner, images, accent, badge,
+  headline, keyword, banner, images, accent, badge, brand,
 }) => {
   const { width, height } = useVideoConfig();
   const panels = (images.length ? images : ["thumb_0.jpg"]).slice(0, 3);
@@ -92,6 +93,21 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({
             fontSize: 46, color: "#111", lineHeight: 1 }}>E</span>
           <span style={{ fontFamily: "Arial, sans-serif", fontWeight: 700,
             fontSize: 11, color: "#111", letterSpacing: 0.5 }}>EVERYONE</span>
+        </div>
+      ) : null}
+
+      {/* Channel brand tag, top-right */}
+      {brand ? (
+        <div style={{ position: "absolute", top: 30, right: 30, display: "flex",
+            alignItems: "center", gap: 10, background: "rgba(8,11,16,0.82)",
+            border: `3px solid ${accent}`, borderRadius: 10, padding: "8px 18px",
+            boxShadow: "0 3px 10px rgba(0,0,0,0.6)" }}>
+          <div style={{ width: 16, height: 16, background: accent,
+            transform: "rotate(45deg)" }} />
+          <span style={{ fontFamily: "Arial Black, Arial, sans-serif", fontWeight: 900,
+            fontSize: 40, color: "#fff", letterSpacing: 1, textTransform: "uppercase" }}>
+            {brand}
+          </span>
         </div>
       ) : null}
 

@@ -2,7 +2,7 @@
 # Defaults encode the research findings (see README "Research-backed strategy").
 
 channel:
-  name: "Your Skyrim Mod Channel"
+  name: "ModVault"
   game_domain: "skyrimspecialedition"   # NexusMods domain slug (game)
   # Hybrid strategy: evergreen category lists are the backbone, thematic specials
   # are the viral spikes. The pipeline tags each project with its format.
@@ -97,7 +97,7 @@ branding:
   accent_color: "#d4af37"     # Skyrim gold
   secondary_color: "#1b2a3a"
   font_family: "Cinzel"
-  watermark: "@YourChannel"
+  watermark: "@ModVault"
 
 # Title templates (research-backed). {n}, {category}, {year} are filled in.
 # Channel-style titles (modeled on Heavy Burns / Syn Gaming / SoftGaming): a power
