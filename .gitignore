@@ -55,3 +55,5 @@ _salvage.py
 _qtest.py
 _fftest.py
 _remux.py
+!branding/logo.png
+!branding/banner.png
