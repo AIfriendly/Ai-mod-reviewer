@@ -32,6 +32,16 @@ categories:
     title: "Best Skyrim Gameplay Overhaul Mods"
     nexus_category_ids: [79, 77, 24, 78]  # Overhauls; Combat; Gameplay; Immersion
     search_terms: ["combat", "overhaul", "survival", "ai"]
+  - id: followers
+    title: "Best Skyrim Follower Mods"
+    nexus_category_ids: [44]
+    graphql_categories: ["Followers & Companions"]
+    search_terms: ["follower", "companion"]
+  - id: magic
+    title: "Best Skyrim Magic Mods"
+    nexus_category_ids: [21, 85]
+    graphql_categories: ["Magic - Spells & Enchantments", "Magic - Gameplay"]
+    search_terms: ["magic", "spell", "enchant"]
 
 # Target video shape. Channel plan: ~2 uploads/week, 10-15 min each -> `standard`
 # is the default. `test` (5 min) quickly validates quality; `full` (20 min) is for
