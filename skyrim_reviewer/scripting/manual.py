@@ -91,6 +91,12 @@ def load_spec(path: str | Path) -> dict:
 
 def apply_spec(project: Project, spec: dict) -> Project:
     """Populate project.mods and project.script from a hand-written spec."""
+    # Optional slug override so multiple videos of the same category/day don't collide
+    # (output + workdir are keyed off the slug).
+    if spec.get("slug"):
+        from pathlib import Path as _P
+        project.slug = str(spec["slug"])
+        project.workdir = str(_P("work") / project.slug)
     # --- mods (embedded inline; no Nexus call needed) ---
     mods: list[Mod] = []
     for i, m in enumerate(spec.get("mods", []), 1):
