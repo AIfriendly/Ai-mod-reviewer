@@ -158,7 +158,39 @@ def research_category(category_id: str, limit: int, client: NexusClient | None =
     client = client or NexusClient(domain=domain)
     now = datetime.now(timezone.utc)
     try:
-        # Pool candidates from trending + latest added + latest updated.
+        # PRIMARY: v2 GraphQL full-catalogue search by category, ranked by endorsement
+        # (the whole library, not just freshly-updated mods). Falls through to the v1
+        # trending/latest pool if it's unavailable.
+        try:
+            from ..history import seen_mod_ids
+            from .graphql import discover_mods, graphql_categories_for
+            gcats = graphql_categories_for(category_id)
+            if ranking.get("use_graphql", True) and gcats:
+                seen = seen_mod_ids(domain)
+                picked = []
+                for mod in discover_mods(domain, gcats, count=max(limit * 6, 60)):
+                    if ranking.get("require_media", True) and not mod.picture_url:
+                        continue
+                    mod.allow_media_reuse = _permission_status(mod, perms)
+                    if (ranking.get("require_reuse_permission", True)
+                            and not mod.allow_media_reuse
+                            and not perms.get("allow_placeholder_for_unapproved", True)):
+                        continue
+                    if mod.mod_id in seen:          # rule 1: never repeat a video
+                        continue
+                    mod.score = _score(mod, ranking, now)
+                    picked.append(mod)
+                if picked:
+                    picked.sort(key=lambda m: m.score, reverse=True)
+                    top = picked[:limit]
+                    for m in top:
+                        if m.picture_url and not m.media:
+                            m.media.append(MediaAsset(url=m.picture_url, kind="image"))
+                    return top
+        except Exception:
+            pass  # fall back to the v1 pool below
+
+        # FALLBACK: pool candidates from trending + latest added + latest updated.
         # (The v1 API has no "browse category by popularity" endpoint, so this is
         # the widest automated pool available — see research_trending for roundups,
         # and prefer chat-authored specs for evergreen "best of all time" lists.)
