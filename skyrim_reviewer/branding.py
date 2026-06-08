@@ -18,12 +18,21 @@ def category_noun(category_title: str) -> str:
             or "Skyrim")
 
 
+def _short_noun(category_title: str) -> str:
+    """A short noun for thumbnails (drop '& ...' and extra words) so the big headline
+    fits without chopping. 'New Lands & Quest' -> 'New Lands'; 'Graphics & Visual' ->
+    'Graphics'."""
+    noun = category_noun(category_title).split("&")[0].strip()
+    words = noun.split()
+    return " ".join(words[:2]) if words else "Skyrim"
+
+
 def thumbnail_text(title: str, category_title: str) -> tuple[str, str, str]:
     """Return (headline, accent_keyword, top_banner) for the thumbnail.
 
     Headline is kept to ~3 punchy words so it's legible at small sizes.
     """
-    noun = category_noun(category_title).upper()
+    noun = _short_noun(category_title).upper()
     # A power word: reuse one already in the title if present, else default to BEST.
     kw = next((w for w in POWER_WORDS if w.split("-")[0] in title.upper()), "BEST")
     headline = f"{kw} {noun} MODS" if noun and noun != "SKYRIM" else f"{kw} SKYRIM MODS"
@@ -55,7 +64,7 @@ def title_variants(category_title: str, n_mods: int, fmt: str = "category_list",
 
 def thumbnail_variants_text(category_title: str, limit: int = 3) -> list[tuple]:
     """A/B thumbnail (headline, accent_keyword, banner) options."""
-    noun = category_noun(category_title).upper()
+    noun = _short_noun(category_title).upper()
     year = str(date.today().year)
     kws = ["BEST", "INSANE", "ULTIMATE", "ESSENTIAL"]
     banners = [year, "MUST-HAVE", "RANKED", "TOP TIER"]

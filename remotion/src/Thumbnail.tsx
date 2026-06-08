@@ -56,11 +56,17 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({
         </div>
       ) : null}
 
-      {/* Headline — huge, white with accent keyword(s), heavy stroke */}
+      {/* Headline — auto-fit so long headlines never chop. Size from the longest
+          word (must fit the width) and total length (keeps it to ~2-3 lines). */}
       <AbsoluteFill style={{ justifyContent: "flex-end", alignItems: "flex-start",
           padding: "0 56px 70px" }}>
         <h1 style={{ margin: 0, fontFamily: "Arial Black, Arial, sans-serif",
-            fontWeight: 900, fontSize: 150, lineHeight: 0.95, letterSpacing: 1,
+            fontWeight: 900,
+            fontSize: Math.max(64, Math.min(
+              140,
+              (width * 0.9) / (Math.max(...words.map((w) => w.length)) * 0.62),
+              (width * 1.7) / headline.length)),
+            lineHeight: 0.95, letterSpacing: 1,
             textTransform: "uppercase", maxWidth: width * 0.92,
             WebkitTextStroke: "10px #000",
             textShadow: "0 8px 26px rgba(0,0,0,0.9)" }}>
