@@ -48,7 +48,7 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
     W, H = size
     fw, fh = int(W * 0.92), int(H * 0.92)
     imgs = images or []
-    n = max(1, min(len(imgs), 4)) if imgs else 1
+    n = max(1, min(len(imgs), 6)) if imgs else 1   # use up to 6 images per mod
     imgs = (imgs[:n] if imgs else [])
     per = dur / n
     frames = max(1, round(per * fps))
@@ -68,11 +68,13 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
         zexpr = f"{z0}+({z1-z0})*on/{frames}"
         parts.append(
             f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
-            f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.08,setsar=1[bg{k}];"
+            f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.08,setsar=1,"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS[bg{k}];"
             f"[{k}:v]scale={fw}:{fh}:force_original_aspect_ratio=decrease,setsar=1[ff{k}];"
             f"[ff{k}]zoompan=z='{zexpr}':d={frames}:x='iw/2-(iw/zoom/2)':"
-            f"y='ih/2-(ih/zoom/2)':s={fw}x{fh}:fps={fps}[fz{k}];"
-            f"[bg{k}][fz{k}]overlay=(W-w)/2:(H-h)/2[s{k}];")
+            f"y='ih/2-(ih/zoom/2)':s={fw}x{fh}:fps={fps},"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS[fz{k}];"
+            f"[bg{k}][fz{k}]overlay=(W-w)/2:(H-h)/2:shortest=1[s{k}];")
         labels.append(f"[s{k}]")
     chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[vc];"
     if lower_third:
