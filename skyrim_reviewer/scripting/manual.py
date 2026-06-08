@@ -97,6 +97,7 @@ def apply_spec(project: Project, spec: dict) -> Project:
         from pathlib import Path as _P
         project.slug = str(spec["slug"])
         project.workdir = str(_P("work") / project.slug)
+        _P(project.workdir).mkdir(parents=True, exist_ok=True)
     # --- mods (embedded inline; no Nexus call needed) ---
     mods: list[Mod] = []
     for i, m in enumerate(spec.get("mods", []), 1):
