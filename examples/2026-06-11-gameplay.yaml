@@ -1,12 +1,12 @@
 slug: 2026-06-11-gameplay
-title: These 13 Skyrim Gameplay Mods Are INSANE! (2026)
+title: These 15 Skyrim Gameplay Mods Are INSANE! (2026)
 category_id: gameplay
 format: category_list
 hook_line: Best Gameplay Overhaul Mods
-description: 'These 13 Skyrim Gameplay Mods Are INSANE! (2026)
+description: 'These 15 Skyrim Gameplay Mods Are INSANE! (2026)
 
 
-  The very best gameplay mods you can play in 2026, counted down from 13 to 1. Every mod is linked below
+  The very best gameplay mods you can play in 2026, counted down from 15 to 1. Every mod is linked below
   with full credit to its author — go endorse them!'
 tags:
 - skyrim
@@ -17,116 +17,178 @@ tags:
 segments:
 - kind: hook
   narration: Skyrim is over a decade old, but thanks to its modding community it has never looked or played
-    better — especially when it comes to gameplay mods. Today I'm counting down 13 of the absolute best
+    better — especially when it comes to gameplay mods. Today I'm counting down 15 of the absolute best
     gameplay mods you can install right now, all of them free, all of them linked down below. Stick around
     to the end, because the number one pick is the one I genuinely couldn't play without. Let's jump in.
 - kind: intro
   narration: 'Quick note before we start: everything here is completely free on Nexus Mods, and every
     creator is credited in the description, so please go endorse their work — it''s the least we can do
-    for this much free content. We''re counting down from number thirteen all the way to number one, so
+    for this much free content. We''re counting down from number fifteen all the way to number one, so
     settle in. Here we go.'
 - kind: mod
   ref: 1
-  narration: 'Number thirteen: True Directional Movement - Modernized Third Person Gameplay by Ershin.
-    Overhauls the third person gameplay similarly to modern action RPGs, entirely through SKSE. Move and
-    attack in any direction. It''s one of those changes you won''t be able to play without once you''ve
-    felt the difference. Combined with the other picks on this list, it adds up to a dramatically better
-    Skyrim. With well over 60 thousand endorsements, the community clearly agrees this one''s special.'
-- kind: mod
-  ref: 2
-  narration: 'At number twelve: Realistic Lighting Overhaul by sydney666. Realistic Lighting Overhaul
-    is here! Ready for Skyrim Special Edition! This is a massive overhaul of Skyrim''s lighting. It fixes
-    something the base game got wrong in a way that feels completely natural, never intrusive. If you
-    somehow haven''t tried it yet, consider this your sign to fix that. With well over 60 thousand endorsements,
-    the community clearly agrees this one''s special.'
-- kind: mod
-  ref: 3
-  narration: 'Coming in at number eleven: Realistic Ragdolls and Force by dDefinder. (ESP plugin)Reduces
-    the extra force applied on ragdolls to a more reasonable level(MESH)Replaces ragdolls so that they
-    bend and twist realistically and fall at. It works beautifully with the other picks here, so together
-    they basically rebuild the moment-to-moment experience. It''s stable, well-supported, and beloved
-    for good reason. With well over 61 thousand endorsements, the community clearly agrees this one''s
-    special.'
-- kind: mod
-  ref: 4
-  narration: 'Next up, number ten: VioLens - A Killmove Mod by lRekol. SkyUI & SKSE64 Required. VioLens
-    - A Killmove Mod gives you in-game control over both Ranged and Melee Killmoves. JContainers SE only
-    required for use of the Profile System. If your last playthrough started to feel stale, this is the
-    mod that makes the world feel alive again. This is one of those installs you''ll keep in every single
-    playthrough. With well over 75 thousand endorsements, the community clearly agrees this one''s special.'
-- kind: mod
-  ref: 5
-  narration: 'Number nine on the list: Stones of Barenziah Quest Markers by toaDime. Adds quest markers
-    to all 24 of the Stones of Barenziah (Unusual Gems) that you need to find/collect for the "No Stone
-    Unturned" quest. It''s the kind of deep, systemic improvement that you stop noticing precisely because
-    it just feels right. It''s the kind of mod that quietly makes everything around it better. With well
-    over 81 thousand endorsements, the community clearly agrees this one''s special.'
-- kind: mod
-  ref: 6
-  narration: 'Then at number eight: Wet and Cold by StepModifications. This mod adds weather-dependent
-    visual effects and AI enhancements to the player and NPCs. Lightweight, stable, and endlessly compatible,
-    it''s an easy recommendation for any load order. It''s free, it''s polished, and it slots neatly into
-    almost any load order. With well over 81 thousand endorsements, the community clearly agrees this
-    one''s special.'
-- kind: mod
-  ref: 7
-  narration: 'Number seven: Run For Your Lives by Arthmoor. A small mod that makes citizens in a village
-    or city run indoors during a dragon attack. It''s one of those changes you won''t be able to play
-    without once you''ve felt the difference. Combined with the other picks on this list, it adds up to
-    a dramatically better Skyrim. With well over 83 thousand endorsements, the community clearly agrees
-    this one''s special.'
-- kind: mod
-  ref: 8
-  narration: 'At number six: Cutting Room Floor by Arthmoor. A mod to restore several pieces of cut content
-    in Skyrim Special Edition. It fixes something the base game got wrong in a way that feels completely
-    natural, never intrusive. If you somehow haven''t tried it yet, consider this your sign to fix that.
-    With well over 109 thousand endorsements, the community clearly agrees this one''s special.'
-- kind: mod
-  ref: 9
-  narration: 'Coming in at number five: Immersive Patrols SE by Scrabbulor. Immersive Patrols adds Stormcloak,
-    Thalmor, Imperial and Dawnguard patrols to Skyrim and a few roaming Skaal, Reaver and Rieklings to
-    Solstheim. These patrols can cross paths with eachother or the player creating new encounters. It
-    works beautifully with the other picks here, so together they basically rebuild the moment-to-moment
-    experience. It''s stable, well-supported, and beloved for good reason. With well over 124 thousand
+  narration: 'Number fifteen: Wildcat - Combat of Skyrim by EnaiSiaion. Wildcat is a streamlined, yet
+    full featured combat overhaul. It makes combat more dangerous and visceral by increasing lethality,
+    adding injuries and context sensitive stagger and making combat AI more responsive and aggressive.
+    It''s one of those changes you won''t be able to play without once you''ve felt the difference. Combined
+    with the other picks on this list, it adds up to a dramatically better Skyrim. If your last playthrough
+    started to feel stale, this is the mod that makes the world feel alive again. With well over 50 thousand
     endorsements, the community clearly agrees this one''s special.'
 - kind: mod
-  ref: 10
-  narration: 'Next up, number four: Relationship Dialogue Overhaul - RDO by cloudedtruth. Adds over 5,000
-    lines of completely voiced dialogue for NPCs using the original voices. Friends, followers, spouses,
-    rivals, and others have much more to say. All default voices now have follower dialogue. If your last
-    playthrough started to feel stale, this is the mod that makes the world feel alive again. This is
-    one of those installs you''ll keep in every single playthrough. With well over 137 thousand endorsements,
-    the community clearly agrees this one''s special.'
+  ref: 2
+  narration: 'At number fourteen: Hearthfire multiple adoptions - Now with custom home support for kids
+    and spouse by TMPhoenix. Allows adoption of up to 6 kids, instead of just 2Move your family into suitable
+    custom homesGives children a last. It fixes something the base game got wrong in a way that feels
+    completely natural, never intrusive. If you somehow haven''t tried it yet, consider this your sign
+    to fix that. It''s the kind of deep, systemic improvement that you stop noticing precisely because
+    it just feels right. With well over 52 thousand endorsements, the community clearly agrees this one''s
+    special.'
 - kind: mod
-  ref: 11
-  narration: 'Number three on the list: Ordinator - Perks of Skyrim by EnaiSiaion. Ordinator overhauls
-    the perk trees of Skyrim to increase the depth and fun of character building. It is highly compatible
-    with other mods and uses lightweight and clean scripting. It''s the kind of deep, systemic improvement
-    that you stop noticing precisely because it just feels right. It''s the kind of mod that quietly makes
-    everything around it better. With well over 187 thousand endorsements, the community clearly agrees
+  ref: 3
+  narration: 'Coming in at number thirteen: True Directional Movement - Modernized Third Person Gameplay
+    by Ershin. Overhauls the third person gameplay similarly to modern action RPGs, entirely through SKSE.
+    Move and attack in any direction. It works beautifully with the other picks here, so together they
+    basically rebuild the moment-to-moment experience. It''s stable, well-supported, and beloved for good
+    reason. Lightweight, stable, and endlessly compatible, it''s an easy recommendation for any load order.
+    With well over 60 thousand endorsements, the community clearly agrees this one''s special.'
+- kind: mod
+  ref: 4
+  narration: 'Next up, number twelve: Realistic Lighting Overhaul by sydney666. Realistic Lighting Overhaul
+    is here! Ready for Skyrim Special Edition! This is a massive overhaul of Skyrim''s lighting. Exteriors
+    also vastly overhauled! If your last playthrough started to feel stale, this is the mod that makes
+    the world feel alive again. This is one of those installs you''ll keep in every single playthrough.
+    It''s one of those changes you won''t be able to play without once you''ve felt the difference. With
+    well over 60 thousand endorsements, the community clearly agrees this one''s special.'
+- kind: mod
+  ref: 5
+  narration: 'Number eleven on the list: Realistic Ragdolls and Force by dDefinder. (ESP plugin)Reduces
+    the extra force applied on ragdolls to a more reasonable level(MESH)Replaces ragdolls so that they
+    bend and twist realistically and fall at. It''s the kind of deep, systemic improvement that you stop
+    noticing precisely because it just feels right. It''s the kind of mod that quietly makes everything
+    around it better. It fixes something the base game got wrong in a way that feels completely natural,
+    never intrusive. With well over 61 thousand endorsements, the community clearly agrees this one''s
+    special.'
+- kind: mod
+  ref: 6
+  narration: 'Then at number ten: VioLens - A Killmove Mod by lRekol. SkyUI & SKSE64 Required. VioLens
+    - A Killmove Mod gives you in-game control over both Ranged and Melee Killmoves. JContainers SE only
+    required for use of the Profile System. Lightweight, stable, and endlessly compatible, it''s an easy
+    recommendation for any load order. It''s free, it''s polished, and it slots neatly into almost any
+    load order. It works beautifully with the other picks here, so together they basically rebuild the
+    moment-to-moment experience. With well over 75 thousand endorsements, the community clearly agrees
     this one''s special.'
 - kind: mod
+  ref: 7
+  narration: 'Number nine: Stones of Barenziah Quest Markers by toaDime. Adds quest markers to all 24
+    of the Stones of Barenziah (Unusual Gems) that you need to find/collect for the "No Stone Unturned"
+    quest. It''s one of those changes you won''t be able to play without once you''ve felt the difference.
+    Combined with the other picks on this list, it adds up to a dramatically better Skyrim. If your last
+    playthrough started to feel stale, this is the mod that makes the world feel alive again. With well
+    over 81 thousand endorsements, the community clearly agrees this one''s special.'
+- kind: mod
+  ref: 8
+  narration: 'At number eight: Wet and Cold by StepModifications. This mod adds weather-dependent visual
+    effects and AI enhancements to the player and NPCs. It fixes something the base game got wrong in
+    a way that feels completely natural, never intrusive. If you somehow haven''t tried it yet, consider
+    this your sign to fix that. It''s the kind of deep, systemic improvement that you stop noticing precisely
+    because it just feels right. With well over 81 thousand endorsements, the community clearly agrees
+    this one''s special.'
+- kind: mod
+  ref: 9
+  narration: 'Coming in at number seven: Run For Your Lives by Arthmoor. A small mod that makes citizens
+    in a village or city run indoors during a dragon attack. It works beautifully with the other picks
+    here, so together they basically rebuild the moment-to-moment experience. It''s stable, well-supported,
+    and beloved for good reason. Lightweight, stable, and endlessly compatible, it''s an easy recommendation
+    for any load order. With well over 83 thousand endorsements, the community clearly agrees this one''s
+    special.'
+- kind: mod
+  ref: 10
+  narration: 'Next up, number six: Cutting Room Floor by Arthmoor. A mod to restore several pieces of
+    cut content in Skyrim Special Edition. If your last playthrough started to feel stale, this is the
+    mod that makes the world feel alive again. This is one of those installs you''ll keep in every single
+    playthrough. It''s one of those changes you won''t be able to play without once you''ve felt the difference.
+    With well over 109 thousand endorsements, the community clearly agrees this one''s special.'
+- kind: mod
+  ref: 11
+  narration: 'Number five on the list: Immersive Patrols SE by Scrabbulor. Immersive Patrols adds Stormcloak,
+    Thalmor, Imperial and Dawnguard patrols to Skyrim and a few roaming Skaal, Reaver and Rieklings to
+    Solstheim. These patrols can cross paths with eachother or the player creating new encounters. It''s
+    the kind of deep, systemic improvement that you stop noticing precisely because it just feels right.
+    It''s the kind of mod that quietly makes everything around it better. It fixes something the base
+    game got wrong in a way that feels completely natural, never intrusive. With well over 124 thousand
+    endorsements, the community clearly agrees this one''s special.'
+- kind: mod
   ref: 12
-  narration: 'Then at number two: Immersive Citizens - AI Overhaul by Shurah. Immersive Citizens - AI
-    Overhaul is a mod whose purpose is to increase player in-game immersion by greatly improving Artificial
-    Intelligence (AI) of friendly. Lightweight, stable, and endlessly compatible, it''s an easy recommendation
-    for any load order. It''s free, it''s polished, and it slots neatly into almost any load order. With
-    well over 202 thousand endorsements, the community clearly agrees this one''s special.'
+  narration: 'Then at number four: Relationship Dialogue Overhaul - RDO by cloudedtruth. Adds over 5,000
+    lines of completely voiced dialogue for NPCs using the original voices. Friends, followers, spouses,
+    rivals, and others have much more to say. All default voices now have follower dialogue. Lightweight,
+    stable, and endlessly compatible, it''s an easy recommendation for any load order. It''s free, it''s
+    polished, and it slots neatly into almost any load order. It works beautifully with the other picks
+    here, so together they basically rebuild the moment-to-moment experience. With well over 137 thousand
+    endorsements, the community clearly agrees this one''s special.'
 - kind: mod
   ref: 13
+  narration: 'Number three: Ordinator - Perks of Skyrim by EnaiSiaion. Ordinator overhauls the perk trees
+    of Skyrim to increase the depth and fun of character building. It is highly compatible with other
+    mods and uses lightweight and clean scripting. It''s one of those changes you won''t be able to play
+    without once you''ve felt the difference. Combined with the other picks on this list, it adds up to
+    a dramatically better Skyrim. If your last playthrough started to feel stale, this is the mod that
+    makes the world feel alive again. With well over 187 thousand endorsements, the community clearly
+    agrees this one''s special.'
+- kind: mod
+  ref: 14
+  narration: 'At number two: Immersive Citizens - AI Overhaul by Shurah. Immersive Citizens - AI Overhaul
+    is a mod whose purpose is to increase player in-game immersion by greatly improving Artificial Intelligence
+    (AI) of friendly. It fixes something the base game got wrong in a way that feels completely natural,
+    never intrusive. If you somehow haven''t tried it yet, consider this your sign to fix that. It''s
+    the kind of deep, systemic improvement that you stop noticing precisely because it just feels right.
+    With well over 202 thousand endorsements, the community clearly agrees this one''s special.'
+- kind: mod
+  ref: 15
   narration: 'And finally, the number one pick on the whole list: Alternate Start - Live Another Life
     by Arthmoor. Live Another Life provides an alternative means to start the game for those who do not
-    wish to go through the lengthy intro sequence at Helgen. It''s one of those changes you won''t be
-    able to play without once you''ve felt the difference. Combined with the other picks on this list,
-    it adds up to a dramatically better Skyrim. With well over 235 thousand endorsements, the community
-    clearly agrees this one''s special. Honestly, if you only install one mod from this entire video,
-    make it this one — it''s the perfect note to end on.'
+    wish to go through the lengthy intro sequence at Helgen. It works beautifully with the other picks
+    here, so together they basically rebuild the moment-to-moment experience. It''s stable, well-supported,
+    and beloved for good reason. Lightweight, stable, and endlessly compatible, it''s an easy recommendation
+    for any load order. With well over 235 thousand endorsements, the community clearly agrees this one''s
+    special. Honestly, if you only install one mod from this entire video, make it this one — it''s the
+    perfect note to end on.'
 - kind: outro
-  narration: And that's the list — 13 of the best gameplay mods in 2026. Every mod is linked below with
+  narration: And that's the list — 15 of the best gameplay mods in 2026. Every mod is linked below with
     full credit to the brilliant authors who made them, so go show them some love. If this helped you
     out, subscribe, because I put out two new Skyrim modding videos every single week. Thanks so much
     for watching, and I'll see you in the next one.
 mods:
+- mod_id: 1368
+  name: Wildcat - Combat of Skyrim
+  author: EnaiSiaion
+  endorsements: 50968
+  summary: Wildcat is a streamlined, yet full featured combat overhaul. It makes combat more dangerous
+    and visceral by increasing lethality, adding injuries and context sensitive stagger and making combat
+    AI more responsive and aggressive. It
+  page_url: https://www.nexusmods.com/skyrimspecialedition/mods/1368
+  media_ok: true
+  image_url: https://staticdelivery.nexusmods.com/mods/1704/images/76529-1-1466614069.jpg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/76529-0-1466614069.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/76529-0-1466614472.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/76529-2-1466614069.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/1368-0-1493082163.jpg
+- mod_id: 3862
+  name: Hearthfire multiple adoptions - Now with custom home support for kids and spouse
+  author: TMPhoenix
+  endorsements: 52493
+  summary: Allows adoption of up to 6 kids, instead of just 2Move your family into suitable custom homesGives
+    children a last name
+  page_url: https://www.nexusmods.com/skyrimspecialedition/mods/3862
+  media_ok: true
+  image_url: https://staticdelivery.nexusmods.com/mods/1704/images/29249-3-1382878251.jpg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/29249-2-1382878251.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/29249-1-1382878250.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/29249-2-1378504613.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/29249-1-1378504613.jpg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/29249-1-1357050589.jpg
 - mod_id: 51614
   name: True Directional Movement - Modernized Third Person Gameplay
   author: Ershin
@@ -156,7 +218,7 @@ mods:
 - mod_id: 1439
   name: Realistic Ragdolls and Force SE
   author: dDefinder
-  endorsements: 61247
+  endorsements: 61248
   summary: (ESP plugin)Reduces the extra force applied on ragdolls to a more reasonable level(MESH)Replaces
     ragdolls so that they bend and twist realistically and fall at a faster velocity, and increases friction
     to fix ice-like ragdoll sliding
@@ -183,7 +245,7 @@ mods:
 - mod_id: 684
   name: Stones of Barenziah Quest Markers
   author: toaDime
-  endorsements: 81194
+  endorsements: 81195
   summary: Adds quest markers to all 24 of the Stones of Barenziah (Unusual Gems) that you need to find/collect
     for the "No Stone Unturned" quest. For those like me who want to complete the quest, but don't like
     looking up all those locations
@@ -209,7 +271,7 @@ mods:
 - mod_id: 2272
   name: Run For Your Lives
   author: Arthmoor
-  endorsements: 83109
+  endorsements: 83110
   summary: A small mod that makes citizens in a village or city run indoors during a dragon attack.
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/2272
   media_ok: true
@@ -220,7 +282,7 @@ mods:
 - mod_id: 276
   name: Cutting Room Floor - SSE
   author: Arthmoor
-  endorsements: 109091
+  endorsements: 109095
   summary: A mod to restore several pieces of cut content in Skyrim Special Edition.
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/276
   media_ok: true
@@ -234,7 +296,7 @@ mods:
 - mod_id: 718
   name: Immersive Patrols SE AE
   author: Scrabbulor
-  endorsements: 124204
+  endorsements: 124208
   summary: Immersive Patrols adds Stormcloak, Thalmor, Imperial and Dawnguard patrols to Skyrim and a
     few roaming Skaal, Reaver and Rieklings to Solstheim. These patrols can cross paths with eachother
     or the player creating new encounters.
@@ -250,7 +312,7 @@ mods:
 - mod_id: 1187
   name: Relationship Dialogue Overhaul - RDO SE
   author: cloudedtruth
-  endorsements: 137853
+  endorsements: 137854
   summary: Adds over 5,000 lines of completely voiced dialogue for NPCs using the original voices. Friends,
     followers, spouses, rivals, and others have much more to say. All default voices now have follower
     dialogue. Also fixes dialogue bugs and
@@ -266,7 +328,7 @@ mods:
 - mod_id: 1137
   name: Ordinator - Perks of Skyrim
   author: EnaiSiaion
-  endorsements: 187052
+  endorsements: 187056
   summary: Ordinator overhauls the perk trees of Skyrim to increase the depth and fun of character building.
     It is highly compatible with other mods and uses lightweight and clean scripting.
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/1137
@@ -297,7 +359,7 @@ mods:
 - mod_id: 272
   name: Alternate Start - Live Another Life - SSE
   author: Arthmoor
-  endorsements: 235783
+  endorsements: 235788
   summary: Live Another Life provides an alternative means to start the game for those who do not wish
     to go through the lengthy intro sequence at Helgen.
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/272

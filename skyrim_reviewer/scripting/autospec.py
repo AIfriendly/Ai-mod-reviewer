@@ -142,12 +142,14 @@ def _clean_author(name: str) -> str:
 def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int) -> str:
     lead = _LEADS[idx % len(_LEADS)].format(o=_ORD.get(rank, str(rank)))
     author = _clean_author(mod.uploaded_by or mod.author)
-    desc = _sentences(mod.summary, 3)
+    desc = _sentences(mod.summary, 4)
     values = flavour.get("values", _GENERIC_VALUES)
-    # Two distinct value beats per entry (offset so neighbours don't echo) keeps each
-    # mod's segment substantial enough to clear the 8-minute video target.
+    # Three distinct value beats per entry (offset so neighbours don't echo). The F5
+    # voice narrates at ~176 wpm, so each mod needs ~90+ words to keep a 13-15 mod
+    # countdown comfortably over the 8-minute video target.
     v1 = values[idx % len(values)]
     v2 = _GENERIC_VALUES[(idx + 2) % len(_GENERIC_VALUES)]
+    v3 = values[(idx + 3) % len(values)]
     endo = getattr(mod, "endorsements", 0) or 0
     social = (f" With well over {endo // 1000} thousand endorsements, the community "
               f"clearly agrees this one's special." if endo >= 2000 else "")
@@ -156,13 +158,13 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int) -> 
         return _WS.sub(" ", (
             f"And finally, the number one pick on the whole list: {name} by {author}. "
             + (desc + " " if desc else "")
-            + v1 + " " + v2 + social
+            + v1 + " " + v2 + " " + v3 + social
             + " Honestly, if you only install one mod from this entire video, make it "
             f"this one — it's the perfect note to end on.")).strip()
     body = f"{lead} {name} by {author}. "
     if desc:
         body += desc + " "
-    body += v1 + " " + v2 + social
+    body += v1 + " " + v2 + " " + v3 + social
     return _WS.sub(" ", body).strip()
 
 
