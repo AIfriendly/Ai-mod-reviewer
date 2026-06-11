@@ -195,6 +195,28 @@ def draft(
 
 
 @app.command()
+def autospec(
+    category: str = typer.Argument(..., help="Category id (e.g. magic, gameplay, weapons)"),
+    count: int = typer.Option(12, help="How many mods (≥12 keeps the video over 8 min)"),
+    part: int = typer.Option(None, help="Mark as a 'Part N' follow-up video"),
+    out: str = typer.Option(None, help="Output spec path (default examples/<slug>.yaml)"),
+    game: str = typer.Option(None, help="Nexus game domain (default: configured game)"),
+    no_gallery: bool = typer.Option(False, help="Skip gallery scrape (1 image per mod)"),
+):
+    """Auto-generate a full, render-ready script spec for a category: discovers fresh
+    top mods (no repeats), bakes in image galleries, and writes templated countdown
+    narration sized for an 8+ minute video. Then: `make <category> --script <out>`."""
+    if game:
+        import os
+        os.environ["MODREVIEWER_GAME"] = game
+    from .scripting.autospec import write_autospec
+    path = write_autospec(category, out=out, count=count, part=part,
+                          with_gallery=not no_gallery)
+    typer.echo(f"Wrote {path}\n  Render it:  skyrim-reviewer make {category} "
+               f"--script {path} --voice kaggle")
+
+
+@app.command()
 def script(
     category: str,
     profile: str = typer.Option(None, help="test | full (default from config)"),
