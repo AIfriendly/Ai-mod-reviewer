@@ -58,3 +58,5 @@ _remux.py
 !branding/logo.png
 !branding/banner.png
 _build_nl45.py
+_render_three.py
+_render_three.log
