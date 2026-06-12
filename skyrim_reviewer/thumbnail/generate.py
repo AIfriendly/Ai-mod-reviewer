@@ -43,6 +43,45 @@ def _hero_images(project: Project) -> list[str]:
     return paths
 
 
+def _mod_main_image(mod) -> str | None:
+    """The author-curated main/splash image (media[0]) — the most striking shot, and
+    far less likely to be a stats table or UI screenshot than a random gallery pic."""
+    for a in mod.media:
+        if a.local_path and Path(a.local_path).suffix.lower() in {
+                ".png", ".jpg", ".jpeg", ".webp"}:
+            return a.local_path
+    return None
+
+
+def _brightness(path: str) -> float:
+    """Mean luminance (0-255) of an image, sampled small for speed. -1 on error."""
+    try:
+        im = Image.open(path).convert("L")
+        im.thumbnail((64, 64))
+        px = list(im.getdata())
+        return sum(px) / len(px) if px else -1
+    except Exception:
+        return -1
+
+
+def _best_hero(project: Project) -> str | None:
+    """Pick the best thumbnail hero: among the top-endorsed mods' main images, take the
+    first that isn't too dark/blown-out (clean, punchy shots read best as thumbnails);
+    fall back to the brightest available."""
+    ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
+                    reverse=True)
+    candidates = [img for mod in ranked[:8] if (img := _mod_main_image(mod))]
+    if not candidates:
+        candidates = _hero_images(project)
+    if not candidates:
+        return None
+    scored = [(img, _brightness(img)) for img in candidates]
+    well_lit = [img for img, b in scored if 55 <= b <= 215]
+    if well_lit:
+        return well_lit[0]                       # keeps the highest-endorsed well-lit one
+    return max(scored, key=lambda x: x[1])[0]    # else the brightest we have
+
+
 def make_thumbnail(project: Project, text: str | None = None,
                    accent: str = "#d4af37", category_title: str = "") -> str:
     """Channel-style thumbnail. Renders via Remotion when available (split panels,
@@ -53,21 +92,15 @@ def make_thumbnail(project: Project, text: str | None = None,
         from ..branding import thumbnail_text
         from ..edit.remotion_render import render_thumbnail
         title = (project.script.title if project.script else "") or "Best Skyrim Mods"
-        headline, keyword, banner = thumbnail_text(title, category_title or title)
-        # One image per mod (up to 3) so the split panels show different mods.
-        # Prefer a gallery screenshot (2nd image) over the splash/title-card main image.
-        panels = []
-        for mod in project.mods:
-            imgs = [a.local_path for a in mod.media if a.local_path and
-                    Path(a.local_path).suffix.lower() in
-                    {".png", ".jpg", ".jpeg", ".webp"}]
-            if imgs:
-                panels.append(imgs[1] if len(imgs) > 1 else imgs[0])
-            if len(panels) == 3:
-                break
+        cid = getattr(project, "category_id", "") or ""
+        headline, keyword, banner = thumbnail_text(title, category_title or title, cid)
+        # Single epic hero: the MAIN (author-curated) image of the most-endorsed mod —
+        # the most striking shot, and never a stats table / UI screenshot.
+        hero = _best_hero(project)
         from ..config import channel_config as _cc
         brand = _cc().get('channel', {}).get('name', '')
-        if render_thumbnail(headline, keyword, banner, panels or heroes, accent, out, brand=brand):
+        if render_thumbnail(headline, keyword, banner, [hero] if hero else heroes,
+                            accent, out, brand=brand, count=len(project.mods)):
             project.thumbnail_path = str(out)
             return str(out)
 
@@ -129,21 +162,21 @@ def make_thumbnail_variants(project, accent: str = "#d4af37",
     out_dir = Path(project.workdir) / "thumbs"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # One representative image per mod (prefer a gallery screenshot over splash art).
-    per_mod = []
-    for mod in project.mods:
-        imgs = [a.local_path for a in mod.media if a.local_path and
-                Path(a.local_path).suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}]
-        if imgs:
-            per_mod.append(imgs[1] if len(imgs) > 1 else imgs[0])
-    variants = thumbnail_variants_text(category_title or "", n)
+    # The author-curated main image of each mod, most-endorsed first (best-looking
+    # heroes; never stats tables). Each variant uses a different mod as its hero.
+    ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
+                    reverse=True)
+    heroes = [img for mod in ranked if (img := _mod_main_image(mod))]
+    cid = getattr(project, "category_id", "") or ""
+    variants = thumbnail_variants_text(category_title or "", n, cid)
+    count = len(project.mods)
     paths = []
+    from ..config import channel_config as _cc
+    brand = _cc().get('channel', {}).get('name', '')
     for i, (headline, keyword, banner) in enumerate(variants):
-        # Rotate which mods appear so each variant looks distinct.
-        panels = (per_mod[i:] + per_mod[:i])[:3] or per_mod[:3]
+        hero = heroes[i % len(heroes)] if heroes else None
         out = out_dir / f"thumb_v{i+1}.png"
-        from ..config import channel_config as _cc
-        brand = _cc().get('channel', {}).get('name', '')
-        if panels and render_thumbnail(headline, keyword, banner, panels, accent, out, brand=brand):
+        if hero and render_thumbnail(headline, keyword, banner, [hero], accent, out,
+                                     brand=brand, count=count):
             paths.append(str(out))
     return paths

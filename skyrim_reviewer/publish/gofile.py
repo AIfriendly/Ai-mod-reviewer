@@ -53,29 +53,32 @@ def upload_files(paths: list[str]) -> str | None:
         return page
 
 
-def publish_project(project) -> str | None:
-    """Upload the project's video, title, thumbnail and description to one GoFile
-    folder. Stores the link on project.gofile_url and returns it."""
+def publish_project(project, video_only: bool = True) -> str | None:
+    """Upload the project's video to a GoFile folder; returns the link.
+
+    By default ONLY the video is uploaded — titles and thumbnails are delivered in
+    chat instead. Pass video_only=False to also bundle the title, thumbnail,
+    description, subtitles and A/B variants into the same folder.
+    """
     if not project.output_path or not Path(project.output_path).exists():
         return None
     out_dir = Path(project.output_path).parent
     slug = project.slug
 
-    # Write a standalone title.txt so the title travels with the bundle.
-    title_path = out_dir / f"{slug}.title.txt"
-    title = project.script.title if project.script else slug
-    title_path.write_text(title + "\n", encoding="utf-8")
-
-    candidates = [
-        project.output_path,                       # the video
-        str(title_path),                           # the title
-        project.thumbnail_path,                    # the thumbnail
-        str(out_dir / f"{slug}.description.txt"),   # the description
-        str(out_dir / f"{slug}.srt"),              # subtitles (bonus)
-        str(out_dir / f"{slug}.variants.txt"),     # A/B title + thumbnail options
-    ]
-    # A/B thumbnail variants, so all options are in the one download.
-    candidates += list(getattr(project, "thumbnail_variants", []) or [])
+    candidates = [project.output_path]             # the video
+    if not video_only:
+        # Write a standalone title.txt so the title travels with the bundle.
+        title_path = out_dir / f"{slug}.title.txt"
+        title = project.script.title if project.script else slug
+        title_path.write_text(title + "\n", encoding="utf-8")
+        candidates += [
+            str(title_path),                           # the title
+            project.thumbnail_path,                    # the thumbnail
+            str(out_dir / f"{slug}.description.txt"),   # the description
+            str(out_dir / f"{slug}.srt"),              # subtitles (bonus)
+            str(out_dir / f"{slug}.variants.txt"),     # A/B title + thumbnail options
+        ]
+        candidates += list(getattr(project, "thumbnail_variants", []) or [])
     link = upload_files([p for p in candidates if p])
     project.gofile_url = link
     return link

@@ -11,6 +11,28 @@ from datetime import date
 
 POWER_WORDS = ["BEST", "INSANE", "ULTIMATE", "ESSENTIAL", "GAME-CHANGING", "MUST-HAVE"]
 
+# Clean, short thumbnail nouns keyed by category id (reliable — the video TITLE is too
+# messy to parse a noun out of, e.g. "These 15 Skyrim Magic Mods Are INSANE!").
+CATEGORY_NOUNS = {
+    "weapons": "WEAPON", "armor": "ARMOR", "new_lands": "NEW LANDS",
+    "graphics": "GRAPHICS", "gameplay": "GAMEPLAY", "magic": "MAGIC",
+    "followers": "FOLLOWER", "combat": "COMBAT",
+}
+
+# A scroll-stopping accent keyword per category (less generic than always "BEST").
+CATEGORY_HOOKS = {
+    "magic": "GOD-TIER", "weapons": "DEADLY", "gameplay": "GAME-CHANGING",
+    "graphics": "NEXT-GEN", "new_lands": "EPIC", "armor": "LEGENDARY",
+    "followers": "BEST",
+}
+
+
+def noun_for_category(category_id: str, fallback_title: str = "") -> str:
+    """Clean thumbnail noun from the category id, falling back to title parsing."""
+    if category_id in CATEGORY_NOUNS:
+        return CATEGORY_NOUNS[category_id]
+    return _short_noun(fallback_title).upper()
+
 
 def category_noun(category_title: str) -> str:
     """'Best Skyrim Weapon Mods' -> 'Weapon'."""
@@ -27,18 +49,20 @@ def _short_noun(category_title: str) -> str:
     return " ".join(words[:2]) if words else "Skyrim"
 
 
-def thumbnail_text(title: str, category_title: str) -> tuple[str, str, str]:
+def thumbnail_text(title: str, category_title: str,
+                   category_id: str = "") -> tuple[str, str, str]:
     """Return (headline, accent_keyword, top_banner) for the thumbnail.
 
-    Headline is kept to ~3 punchy words so it's legible at small sizes.
+    Headline is kept to ~3 punchy words so it's legible at small sizes. The noun comes
+    from the category id when available (the video title is too messy to parse).
     """
-    noun = _short_noun(category_title).upper()
-    # A power word: reuse one already in the title if present, else default to BEST.
-    kw = next((w for w in POWER_WORDS if w.split("-")[0] in title.upper()), "BEST")
+    noun = noun_for_category(category_id, category_title) if category_id \
+        else _short_noun(category_title).upper()
+    kw = CATEGORY_HOOKS.get(category_id, "BEST")
     headline = f"{kw} {noun} MODS" if noun and noun != "SKYRIM" else f"{kw} SKYRIM MODS"
     # Banner: a year mentioned in the title, otherwise the current year.
     m = re.search(r"\b(20\d{2})\b", title)
-    banner = m.group(1) if m else str(date.today().year)
+    banner = f"SKYRIM • {m.group(1) if m else date.today().year}"
     return headline, kw, banner
 
 
@@ -62,12 +86,15 @@ def title_variants(category_title: str, n_mods: int, fmt: str = "category_list",
     return seen[:limit] or [f"The BEST Skyrim {noun} Mods in {year}!"]
 
 
-def thumbnail_variants_text(category_title: str, limit: int = 3) -> list[tuple]:
+def thumbnail_variants_text(category_title: str, limit: int = 3,
+                            category_id: str = "") -> list[tuple]:
     """A/B thumbnail (headline, accent_keyword, banner) options."""
-    noun = _short_noun(category_title).upper()
+    noun = noun_for_category(category_id, category_title) if category_id \
+        else _short_noun(category_title).upper()
     year = str(date.today().year)
-    kws = ["BEST", "INSANE", "ULTIMATE", "ESSENTIAL"]
-    banners = [year, "MUST-HAVE", "RANKED", "TOP TIER"]
+    # Lead with the category's signature hook, then strong alternates.
+    kws = [CATEGORY_HOOKS.get(category_id, "BEST"), "INSANE", "ULTIMATE", "ESSENTIAL"]
+    banners = [f"SKYRIM • {year}", "MUST-HAVE", "RANKED", "TOP TIER"]
     out = []
     for i in range(limit):
         kw = kws[i % len(kws)]
