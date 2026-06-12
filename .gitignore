@@ -58,5 +58,6 @@ _remux.py
 !branding/logo.png
 !branding/banner.png
 _build_nl45.py
-_render_three.py
-_render_three.log
+# Scratch drivers/logs (underscore-prefixed) are throwaway — never commit them.
+_*.py
+_*.log
