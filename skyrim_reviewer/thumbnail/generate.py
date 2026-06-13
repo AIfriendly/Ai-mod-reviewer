@@ -65,9 +65,9 @@ def _brightness(path: str) -> float:
 
 
 def _best_hero(project: Project) -> str | None:
-    """Pick the best thumbnail hero: among the top-endorsed mods' main images, take the
-    first that isn't too dark/blown-out (clean, punchy shots read best as thumbnails);
-    fall back to the brightest available."""
+    """Pick the thumbnail hero editorially: the highest-endorsed mod's main image that
+    isn't too dark/blown-out. (Hero shots are punched up — auto-contrast, lifted
+    shadows, richer colour, sharpening — when staged for the thumbnail renderer.)"""
     ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
                     reverse=True)
     candidates = [img for mod in ranked[:8] if (img := _mod_main_image(mod))]
@@ -78,7 +78,7 @@ def _best_hero(project: Project) -> str | None:
     scored = [(img, _brightness(img)) for img in candidates]
     well_lit = [img for img, b in scored if 55 <= b <= 215]
     if well_lit:
-        return well_lit[0]                       # keeps the highest-endorsed well-lit one
+        return well_lit[0]                       # highest-endorsed well-lit shot
     return max(scored, key=lambda x: x[1])[0]    # else the brightest we have
 
 

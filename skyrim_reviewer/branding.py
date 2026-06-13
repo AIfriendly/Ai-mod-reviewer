@@ -103,6 +103,68 @@ def thumbnail_variants_text(category_title: str, limit: int = 3,
     return out
 
 
+# Category-specific search keywords (what people actually type on YouTube).
+SEO_KEYWORDS = {
+    "new_lands": ["skyrim new lands mods", "skyrim quest mods", "skyrim dlc mods",
+                  "skyrim adventure mods", "skyrim new worldspace", "skyrim expansion mods"],
+    "magic": ["skyrim magic mods", "skyrim spell mods", "skyrim best spells",
+              "skyrim mage build", "skyrim magic overhaul"],
+    "weapons": ["skyrim weapon mods", "skyrim best weapons", "skyrim sword mods",
+                "skyrim weapon pack"],
+    "armor": ["skyrim armor mods", "skyrim armor pack", "skyrim best armor",
+              "skyrim clothing mods"],
+    "graphics": ["skyrim graphics mods", "skyrim enb", "skyrim 4k textures",
+                 "skyrim next gen graphics", "skyrim visual mods"],
+    "gameplay": ["skyrim gameplay mods", "skyrim combat mods", "skyrim overhaul mods",
+                 "skyrim immersion mods"],
+    "followers": ["skyrim follower mods", "skyrim companion mods",
+                  "skyrim best followers", "skyrim custom follower"],
+}
+_HASHTAGS = {
+    "new_lands": ["#newlands", "#questmods"], "magic": ["#magic", "#spells"],
+    "weapons": ["#weapons"], "armor": ["#armor"], "graphics": ["#graphics", "#enb"],
+    "gameplay": ["#gameplay"], "followers": ["#followers"],
+}
+
+
+def seo_tags(category_id: str, project=None, limit_chars: int = 480) -> list[str]:
+    """A keyword-researched YouTube tag list (deduped, capped to YouTube's ~500-char
+    budget): evergreen Skyrim terms + category keywords + a few featured mod names."""
+    year = date.today().year
+    base = ["skyrim", "skyrim mods", f"skyrim mods {year}", "best skyrim mods",
+            "skyrim special edition", "skyrim anniversary edition", "skyrim se mods",
+            "skyrim ae mods", "modded skyrim", "skyrim mod list", "skyrim load order",
+            "skyrim xbox mods", "skyrim pc mods", "bethesda", "skyrim 2011"]
+    tags = SEO_KEYWORDS.get(category_id, []) + base
+    if project is not None:
+        ranked = sorted(getattr(project, "mods", []),
+                        key=lambda m: getattr(m, "endorsements", 0), reverse=True)
+        for m in ranked[:5]:
+            nm = (getattr(m, "name", "") or "").split(" - ")[0].strip().lower()
+            if 3 <= len(nm) <= 30:
+                tags.append(nm)
+    out, used = [], 0
+    for t in dict.fromkeys(tags):                 # dedupe, preserve order
+        if used + len(t) + 1 > limit_chars:
+            break
+        out.append(t)
+        used += len(t) + 1
+    return out
+
+
+def pinned_comment(project) -> str:
+    """A ready-to-paste pinned comment: every featured mod linked with credit, plus a
+    CTA. (Links in the pinned comment drive clicks the description often buries.)"""
+    lines = ["🔧 Every mod from the video (go endorse these legends!):", ""]
+    mods = [m for m in project.mods if getattr(m, "page_url", "")]
+    for m in mods:
+        author = getattr(m, "uploaded_by", "") or getattr(m, "author", "") or "Unknown"
+        lines.append(f"• {m.name} by {author} — {m.page_url}")
+    lines += ["", "👉 Which one's going in YOUR load order? Let me know below!",
+              "🔔 Subscribe for new Skyrim mod videos twice a week."]
+    return "\n".join(lines)
+
+
 def make_description(project, music_credit: str | None = None,
                      watermark: str = "", next_topic: str = "") -> str:
     """Build a channel-style YouTube description: hook, timestamps, mod links with
@@ -143,9 +205,9 @@ def make_description(project, music_credit: str | None = None,
     if music_credit:
         lines += ["🎵 Music", music_credit, ""]
 
-    noun = category_noun(getattr(project, "category_id", "") or "").lower()
+    cid = getattr(project, "category_id", "") or ""
     tags = ["#skyrim", "#skyrimmods", "#skyrimspecialedition", "#bethesda",
-            "#pcgaming", "#moddedskyrim"]
+            "#pcgaming", "#moddedskyrim"] + _HASHTAGS.get(cid, [])
     lines.append(" ".join(tags))
     if watermark:
         lines.append(watermark)

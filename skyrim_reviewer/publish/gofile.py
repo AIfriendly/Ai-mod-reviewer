@@ -74,6 +74,8 @@ def publish_project(project, include_thumbnails: bool = True) -> str | None:
         project.output_path,                        # the video
         str(title_path),                            # the title
         str(out_dir / f"{slug}.description.txt"),    # the description
+        str(out_dir / f"{slug}.tags.txt"),          # YouTube tags
+        str(out_dir / f"{slug}.pinned_comment.txt"),  # ready-to-paste pinned comment
         str(out_dir / f"{slug}.srt"),               # subtitles (bonus)
     ]
     if include_thumbnails:

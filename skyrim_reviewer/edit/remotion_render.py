@@ -34,6 +34,32 @@ def render_title_card(title: str, subtitle: str, accent: str, out_path: Path) ->
         return False
 
 
+def _stage_hero(src: Path, dest: Path) -> bool:
+    """Copy a hero image into Remotion's public/ dir, punched up for thumbnail use:
+    auto-contrast, lifted shadows on dark shots, richer colour and a touch of sharpening
+    so it reads boldly at small sizes instead of looking muddy. Falls back to a plain
+    copy if Pillow can't process it."""
+    try:
+        from PIL import Image, ImageEnhance, ImageOps
+        im = Image.open(src).convert("RGB")
+        im = ImageOps.autocontrast(im, cutoff=1)
+        mean = sum(im.convert("L").resize((32, 32)).getdata()) / 1024
+        if mean < 95:                                   # lift dark Skyrim interiors
+            im = ImageEnhance.Brightness(im).enhance(1.18)
+        im = ImageEnhance.Color(im).enhance(1.28)       # punchier colour
+        im = ImageEnhance.Contrast(im).enhance(1.12)
+        im = ImageEnhance.Sharpness(im).enhance(1.35)
+        dest = dest.with_suffix(".jpg")
+        im.save(dest, quality=92)
+        return dest.name
+    except Exception:
+        try:
+            shutil.copyfile(src, dest)
+            return dest.name
+        except Exception:
+            return None
+
+
 def render_thumbnail(headline: str, keyword: str, banner: str,
                      image_paths: list[str], accent: str, out_path: Path,
                      badge: bool = True, brand: str = "", count: int = 0) -> bool:
@@ -52,9 +78,9 @@ def render_thumbnail(headline: str, keyword: str, banner: str,
         src = Path(p)
         if not src.exists():
             continue
-        dest = public / f"thumb_{i}{src.suffix.lower()}"
-        shutil.copyfile(src, dest)
-        names.append(dest.name)
+        name = _stage_hero(src, public / f"thumb_{i}")
+        if name:
+            names.append(name)
     if not names:
         return False
     out_path.parent.mkdir(parents=True, exist_ok=True)

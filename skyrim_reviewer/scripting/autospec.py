@@ -519,6 +519,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
         spec_mods.append(m)
     segments.append({"kind": "outro", "narration": outro})
 
+    from ..branding import seo_tags
     slug = f"{date.today().isoformat()}-{category}"
     if part:
         slug += f"-pt{part}"
@@ -532,7 +533,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
         "description": (f"{title}\n\nThe very best {noun} you can play in {year}, "
                         f"counted down from {n} to 1. Every mod is linked below with "
                         f"full credit to its author — go endorse them!"),
-        "tags": ["skyrim", "skyrim mods", category, "best skyrim mods", str(year)],
+        "tags": seo_tags(category),
         "segments": segments,
         "mods": spec_mods,
     }
