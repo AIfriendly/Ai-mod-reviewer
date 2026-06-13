@@ -162,6 +162,18 @@ def run(category_id: str, *, profile_name: str | None = None,
     print(f"\nDone -> {project.output_path}")
     print(f"Thumbnail -> {project.thumbnail_path}")
 
+    # Pre-publish QA gate: validate the finished video; errors block the upload.
+    try:
+        from .qa import qa_project, format_report, has_errors
+        issues = qa_project(project)
+        print(format_report(issues))
+        if has_errors(issues) and publish:
+            print("Publish BLOCKED by QA errors above. Fix and re-run, or publish "
+                  "manually from output/. (Set publish=False to skip this gate.)")
+            publish = False
+    except Exception as e:
+        print(f"(QA gate skipped: {e})")
+
     # Bundle video + title + thumbnail + description to one GoFile link.
     if publish:
         print("Uploading bundle to GoFile...")

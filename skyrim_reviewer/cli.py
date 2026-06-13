@@ -251,6 +251,17 @@ def volume(
 
 
 @app.command()
+def qa(slug: str = typer.Argument(..., help="Project slug under work/ to QA-check")):
+    """Run the pre-publish quality gate on an already-rendered project."""
+    from .models import Project
+    from .qa import qa_project, format_report, has_errors
+    p = Project.model_validate_json(open(f"work/{slug}/state.json").read())
+    issues = qa_project(p)
+    typer.echo(format_report(issues))
+    raise typer.Exit(1 if has_errors(issues) else 0)
+
+
+@app.command()
 def script(
     category: str,
     profile: str = typer.Option(None, help="test | full (default from config)"),

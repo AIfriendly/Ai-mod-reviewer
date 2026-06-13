@@ -360,17 +360,29 @@ def _clean(text: str) -> str:
     return t
 
 
+# Sentences from a mod's summary that are NOT about the mod itself — author
+# dedications, donation/Discord begging, changelog/version chatter. Dropped so they
+# never reach the narration (the QA gate catches any that slip through).
+_OFFTOPIC_SENT = re.compile(
+    r"\b(dedicated to|in memory of|rest in peace|my (?:sister|brother|mother|father|"
+    r"wife|husband|son|daughter|dog|cat|friend)|patreon|ko-?fi|paypal|donat|"
+    r"discord|subscribe|please endorse|endorse if|leave a like|changelog|"
+    r"bug ?fix|hotfix|version \d|update \d|requires? )\b", re.I)
+
+
 def _sentences(text: str, n: int = 2) -> str:
-    """Return the first n *complete* sentences of cleaned text.
+    """Return the first n *complete*, on-topic sentences of cleaned text.
 
     Nexus summaries are themselves often truncated mid-sentence, so we keep only
     sentences that actually end on terminal punctuation — never invent an ending that
-    leaves a dangling fragment like "the arcane arts have now."
+    leaves a dangling fragment like "the arcane arts have now." Off-topic sentences
+    (dedications, donation links, changelog notes) are filtered out.
     """
     t = _clean(text)
     # Sentences that end on ./!/? (the regex requires the terminator be present).
-    complete = re.findall(r".+?[.!?](?=\s|$)", t)
-    out = " ".join(s.strip() for s in complete[:n]).strip()
+    complete = [s.strip() for s in re.findall(r".+?[.!?](?=\s|$)", t)
+                if not _OFFTOPIC_SENT.search(s)]
+    out = " ".join(complete[:n]).strip()
     if not out:                                     # no full sentence -> take the lead
         out = t[:160].rsplit(" ", 1)[0].strip()
         if out and out[-1] not in ".!?":

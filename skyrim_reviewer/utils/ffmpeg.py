@@ -23,6 +23,16 @@ def ffmpeg_path() -> str:
         ) from exc
 
 
+def ffprobe_path() -> str:
+    """Locate ffprobe (sits next to ffmpeg). Falls back to 'ffprobe' on PATH."""
+    system = shutil.which("ffprobe")
+    if system:
+        return system
+    ff = ffmpeg_path()
+    cand = os.path.join(os.path.dirname(ff), "ffprobe")
+    return cand if os.path.exists(cand) else "ffprobe"
+
+
 def configure_moviepy() -> None:
     """Point moviepy at whichever ffmpeg we resolved."""
     os.environ.setdefault("IMAGEIO_FFMPEG_EXE", ffmpeg_path())
