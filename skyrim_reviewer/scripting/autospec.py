@@ -489,10 +489,13 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
             "kind": "mod", "ref": idx + 1,
             "narration": _mod_narration(mod, rank, idx, fl, n, category, rng),
         })
+        gal = galleries.get(mod.mod_id) or {}
+        if isinstance(gal, list):                 # back-compat: bare image list
+            gal = {"images": gal, "videos": []}
         urls = []
         if getattr(mod, "picture_url", ""):
             urls.append(mod.picture_url)
-        for u in galleries.get(mod.mod_id, []) or []:
+        for u in gal.get("images", []) or []:
             if u not in urls:
                 urls.append(u)
         m = {
@@ -508,6 +511,11 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
             m["image_url"] = urls[0]
             if len(urls) > 1:
                 m["image_urls"] = urls[1:6]
+        vids = gal.get("videos", []) or []
+        if vids:                                  # real author B-roll, when it exists
+            m["video_url"] = vids[0]
+            if len(vids) > 1:
+                m["video_urls"] = vids[1:3]
         spec_mods.append(m)
     segments.append({"kind": "outro", "narration": outro})
 
@@ -570,7 +578,6 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     """
     from ..config import channel_config
     from ..history import seen_mod_ids
-    from ..research.gallery import fetch_gallery
     from ..research.graphql import discover_mods, graphql_categories_for
 
     domain = domain or channel_config()["channel"]["game_domain"]
@@ -592,13 +599,15 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     # Endorsement DESC means the first item is the strongest; reverse so the
     # countdown climaxes on the single best mod at number one.
     chosen = list(reversed(chosen))
-    galleries: dict[int, list[str]] = {}
+    galleries: dict[int, dict] = {}
     if with_gallery:
+        from ..research.gallery import fetch_gallery_media
         for m in chosen:
             try:
-                galleries[m.mod_id] = fetch_gallery(m.mod_id, domain, max_images=6)
+                galleries[m.mod_id] = fetch_gallery_media(
+                    m.mod_id, domain, max_images=6, max_videos=1)
             except Exception:
-                galleries[m.mod_id] = []
+                galleries[m.mod_id] = {"images": [], "videos": []}
     return build_spec(category, chosen, part=part, galleries=galleries)
 
 

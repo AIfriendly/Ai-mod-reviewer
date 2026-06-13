@@ -28,6 +28,27 @@ _IMG = re.compile(
     r"https://staticdelivery\.nexusmods\.com/mods/\d+/images/"
     r"(?!thumbnails/|headers/|avatars/)[^\s\"<>\\]+?\.(?:jpe?g|png|webp)", re.I)
 
+# Author-uploaded gallery videos on the Nexus CDN (mp4/webm). Many mods have none
+# (they embed YouTube instead); we only ever use these self-hosted files.
+_VID = re.compile(
+    r"https://staticdelivery\.nexusmods\.com/mods/\d+/(?:videos|images)/"
+    r"[^\s\"<>\\]+?\.(?:mp4|webm)", re.I)
+
+
+def _fetch_html(mod_id: int, domain: str, tries: int, pause: float) -> str:
+    url = f"https://www.nexusmods.com/{domain}/mods/{mod_id}?tab=images"
+    for attempt in range(tries):
+        try:
+            r = httpx.get(url, headers={"User-Agent": _UA, "Accept": "text/html",
+                                        "Accept-Language": "en-US,en;q=0.9"},
+                          timeout=30.0, follow_redirects=True)
+            if r.text:
+                return r.text
+        except Exception:
+            pass
+        time.sleep(pause * (attempt + 1))  # backoff through Cloudflare flakiness
+    return ""
+
 
 def fetch_gallery(mod_id: int, domain: str, max_images: int = 6,
                   tries: int = 4, pause: float = 1.0) -> list[str]:
@@ -36,17 +57,26 @@ def fetch_gallery(mod_id: int, domain: str, max_images: int = 6,
     Returns [] on persistent failure (e.g. Cloudflare bot challenge or the website
     being unreachable) — the caller falls back to the single API image.
     """
-    url = f"https://www.nexusmods.com/{domain}/mods/{mod_id}?tab=images"
-    for attempt in range(tries):
-        try:
-            r = httpx.get(url, headers={"User-Agent": _UA, "Accept": "text/html",
-                                        "Accept-Language": "en-US,en;q=0.9"},
-                          timeout=30.0, follow_redirects=True)
-            urls = list(dict.fromkeys(_IMG.findall(r.text)))
-            if urls:
-                time.sleep(pause)          # be polite between mods
-                return urls[:max_images]
-        except Exception:
-            pass
-        time.sleep(pause * (attempt + 1))  # backoff through Cloudflare flakiness
-    return []
+    html = _fetch_html(mod_id, domain, tries, pause)
+    urls = list(dict.fromkeys(_IMG.findall(html)))
+    if urls:
+        time.sleep(pause)                  # be polite between mods
+    return urls[:max_images]
+
+
+def fetch_gallery_media(mod_id: int, domain: str, max_images: int = 6,
+                        max_videos: int = 1, tries: int = 4,
+                        pause: float = 1.0) -> dict:
+    """Return {'images': [...], 'videos': [...]} from a SINGLE page fetch.
+
+    Videos are author-uploaded files hosted on the Nexus CDN only — usually absent,
+    in which case 'videos' is empty and the renderer falls back to the still gallery.
+    """
+    html = _fetch_html(mod_id, domain, tries, pause)
+    if not html:
+        return {"images": [], "videos": []}
+    images = list(dict.fromkeys(_IMG.findall(html)))[:max_images]
+    videos = list(dict.fromkeys(_VID.findall(html)))[:max_videos]
+    if images or videos:
+        time.sleep(pause)                  # be polite between mods
+    return {"images": images, "videos": videos}

@@ -54,6 +54,7 @@ def _hook_heroes(project: Project, limit: int = 10) -> list[str]:
 
 
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".webp"}
+_VID_EXT = {".mp4", ".webm", ".mov", ".mkv"}
 
 
 def _kenburns_segment(images: list[str], dur: float, size, fps: int,
@@ -97,6 +98,32 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
     chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[vc];"
     if lower_third:
         chain += f"[vc][{lt_idx}:v]overlay=0:0[vo];"
+    else:
+        chain += "[vc]copy[vo];"
+    if fade_in > 0:
+        chain += f"[vo]fade=t=in:st=0:d={fade_in:.2f}[v]"
+    else:
+        chain += "[vo]copy[v]"
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+             "-preset", "veryfast", str(out)]
+    _run(args)
+
+
+def _video_segment(video: str, dur: float, size, fps: int,
+                   lower_third: str | None, out: Path, fade_in: float = 0.0):
+    """Render one mod segment from REAL author B-roll: cover-fill the clip to frame,
+    loop if it's shorter than the segment, drop its audio, overlay the lower-third."""
+    W, H = size
+    ff = _ff()
+    args = [ff, "-y", "-v", "error",
+            "-stream_loop", "-1", "-t", f"{dur:.3f}", "-i", video]
+    if lower_third:
+        args += ["-loop", "1", "-i", lower_third]
+    chain = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+             f"setsar=1,fps={fps},eq=brightness=-0.04:saturation=1.05[vc];")
+    if lower_third:
+        chain += "[vc][1:v]overlay=0:0[vo];"
     else:
         chain += "[vc]copy[vo];"
     if fade_in > 0:
@@ -225,13 +252,20 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         mod = _mod_by_id(project.mods, seg.mod_id) if seg.mod_id else None
         images = [a.local_path for a in (mod.media if mod else [])
                   if a and a.local_path and Path(a.local_path).suffix.lower() in _IMG_EXT]
-        if mod and images:
+        videos = [a.local_path for a in (mod.media if mod else [])
+                  if a and a.local_path and getattr(a, "kind", "") == "video"
+                  and Path(a.local_path).suffix.lower() in _VID_EXT
+                  and Path(a.local_path).exists()]
+        if mod and (images or videos):
             mod_seen += 1
             rank = (n_mods - mod_seen + 1) if n_mods >= 3 else None
             lt = seg_dir / f"lt_{i:02d}.png"
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank)
-            _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3)
+            if videos:                       # real author B-roll beats Ken Burns stills
+                _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
+            else:
+                _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3)
         else:
             kind = getattr(seg, "kind", "")
             if kind == "outro":
@@ -255,7 +289,27 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     video_only = seg_dir / "_video.mp4"
     _concat_videos(seg_videos, video_only)
 
-    # Build narration (concat) + ducked music, then mux over the copied video.
+    # Animated captions (burned in) + a whoosh sting at each mod reveal.
+    total_dur = sum(durations)
+    mod_starts, acc = [], 0.0
+    for seg, d in zip(spoken, durations):
+        if getattr(seg, "kind", "") == "mod":
+            mod_starts.append(acc)
+        acc += d
+    ass_path = None
+    if cfg.get("captions", True):
+        from .captions import build_ass
+        ass_path = build_ass(spoken, durations, size, seg_dir / "captions.ass", accent)
+    sfx_path = None
+    if cfg.get("sfx", True):
+        try:
+            from .sfx import build_sfx_track
+            sfx_path = build_sfx_track(mod_starts, total_dur, seg_dir / "sfx.wav")
+        except Exception:
+            sfx_path = None
+
+    # Build narration (concat) + ducked music (+ SFX), then mux over the video,
+    # burning captions in if enabled.
     ff = _ff()
     args = [ff, "-y", "-v", "error", "-i", str(video_only)]
     for a in seg_audios:
@@ -267,30 +321,52 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     for j in range(n_a):
         fc += f"[{j+1}:a]aresample=44100,aformat=channel_layouts=stereo[na{j}];"
     fc += "".join(f"[na{j}]" for j in range(n_a)) + f"concat=n={n_a}:v=0:a=1[narr];"
+    next_idx = n_a + 1
     if track:
         args += ["-stream_loop", "-1", "-i", track]
-        mi = n_a + 1
+        mi = next_idx
+        next_idx += 1
         # Music bed sits well UNDER the narration: normalise to a quiet target, then
         # duck further under the voice via sidechain compression (no makeup gain). The
-        # baseline level is configurable (video.music_lufs, default -30 LUFS).
+        # baseline level is configurable (video.music_lufs, default -26 LUFS).
         music_lufs = cfg.get("music_lufs", -26)
         fc += (f"[narr]asplit=2[narrA][narrB];"
                f"[{mi}:a]aresample=44100,aformat=channel_layouts=stereo,"
                f"loudnorm=I={music_lufs}:TP=-3:LRA=11[mbase];"
                f"[mbase][narrB]sidechaincompress=threshold=0.05:ratio=12:attack=5:"
                f"release=350:makeup=1[mduck];"
-               f"[narrA][mduck]amix=inputs=2:duration=first:normalize=0[aout]")
-        amap = "[aout]"
+               f"[narrA][mduck]amix=inputs=2:duration=first:normalize=0[premix]")
     else:
-        fc += "[narr]anull[aout]"
-        amap = "[aout]"
+        fc += "[narr]anull[premix]"
+    if sfx_path:
+        args += ["-i", str(sfx_path)]
+        si = next_idx
+        fc += (f";[{si}:a]aresample=44100,aformat=channel_layouts=stereo[sfxa];"
+               f"[premix][sfxa]amix=inputs=2:duration=first:normalize=0[aout]")
+    else:
+        fc += ";[premix]anull[aout]"
+    amap = "[aout]"
+    # Video chain: burn captions, else pass through (re-encode either way once captions
+    # are on; without captions we copy for speed).
+    if ass_path:
+        esc = str(ass_path).replace("\\", "/").replace(":", "\\:")
+        fc += f";[0:v]subtitles='{esc}'[vout]"
+        vmap, vcopy = "[vout]", False
+    else:
+        vmap, vcopy = "0:v", True
     from .assemble import _encode_opts
     codec, preset, threads, extra = _encode_opts()
     out_dir = Path("output")
     out_dir.mkdir(exist_ok=True)
     out_path = out_dir / f"{project.slug}.mp4"
-    args += ["-filter_complex", fc, "-map", "0:v", "-map", amap,
-             "-c:v", "copy", "-c:a", "aac", "-shortest", str(out_path)]
+    args += ["-filter_complex", fc, "-map", vmap, "-map", amap]
+    if vcopy:
+        args += ["-c:v", "copy"]
+    else:
+        args += ["-c:v", codec, "-preset", preset, *extra, "-pix_fmt", "yuv420p"]
+        if threads:
+            args += ["-threads", str(threads)]
+    args += ["-c:a", "aac", "-shortest", str(out_path)]
     _run(args)
 
     # Sidecar artefacts (same as moviepy path).

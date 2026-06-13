@@ -119,6 +119,14 @@ def apply_spec(project: Project, spec: dict) -> Project:
         urls.extend(m.get("image_urls", []) or [])
         for u in dict.fromkeys(urls):
             mod.media.append(MediaAsset(url=u, kind="image"))
+        # Optional real author B-roll (Nexus-hosted video), used as the segment visual
+        # when present; falls back to the still gallery otherwise.
+        vids = []
+        if m.get("video_url"):
+            vids.append(m["video_url"])
+        vids.extend(m.get("video_urls", []) or [])
+        for u in dict.fromkeys(vids):
+            mod.media.append(MediaAsset(url=u, kind="video"))
         mods.append(mod)
     project.mods = mods
 
