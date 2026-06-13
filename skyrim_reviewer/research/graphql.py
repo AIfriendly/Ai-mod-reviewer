@@ -34,18 +34,20 @@ query Discover($domain: String!, $category: String!, $count: Int!) {
               categoryName: {value: $category, op: EQUALS} }
     sort: [{ endorsements: { direction: DESC } }]
     count: $count
-  ) { nodes { modId name summary endorsements uploader { name } pictureUrl
-              adultContent createdAt } }
+  ) { nodes { modId name summary endorsements downloads version uploader { name }
+              pictureUrl adultContent createdAt updatedAt } }
 }"""
+
+
+def _date(v) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except Exception:
+        return None
 
 
 def _to_mod(n: dict, domain: str) -> Mod:
     uploader = (n.get("uploader") or {}).get("name", "") or ""
-    created = None
-    try:
-        created = datetime.fromisoformat(str(n["createdAt"]).replace("Z", "+00:00"))
-    except Exception:
-        created = None
     mid = int(n["modId"])
     return Mod(
         mod_id=mid,
@@ -54,7 +56,10 @@ def _to_mod(n: dict, domain: str) -> Mod:
         author=uploader,
         uploaded_by=uploader,
         endorsements=int(n.get("endorsements", 0) or 0),
-        updated_at=created,
+        downloads=int(n.get("downloads", 0) or 0),
+        version=str(n.get("version", "") or ""),
+        created_at=_date(n.get("createdAt")),
+        updated_at=_date(n.get("updatedAt")) or _date(n.get("createdAt")),
         page_url=f"https://www.nexusmods.com/{domain}/mods/{mid}",
         picture_url=n.get("pictureUrl", "") or "",
     )

@@ -39,6 +39,7 @@ class Mod(BaseModel):
     endorsements: int = 0
     downloads: int = 0
     updated_at: Optional[datetime] = None
+    created_at: Optional[datetime] = None
     page_url: str = ""
     picture_url: str = ""
     # Footage policy fields:

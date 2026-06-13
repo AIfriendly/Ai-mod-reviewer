@@ -16,22 +16,27 @@ or rewrite any line by hand afterwards — it's just a spec file.
 """
 from __future__ import annotations
 
+import random
 import re
 from datetime import date
 from pathlib import Path
 
 from ..models import Mod
 
+_MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+           "August", "September", "October", "November", "December"]
+
 # Spoken ordinals for the countdown ("Number twelve", ... "number one").
 _ORD = {
     1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven",
     8: "eight", 9: "nine", 10: "ten", 11: "eleven", 12: "twelve", 13: "thirteen",
-    14: "fourteen", 15: "fifteen",
+    14: "fourteen", 15: "fifteen", 16: "sixteen", 17: "seventeen", 18: "eighteen",
 }
 
 # Lead-ins so consecutive entries don't all start "Number N:".
 _LEADS = ["Number {o}:", "At number {o}:", "Coming in at number {o}:",
-          "Next up, number {o}:", "Number {o} on the list:", "Then at number {o}:"]
+          "Next up, number {o}:", "Number {o} on the list:", "Then at number {o}:",
+          "Sliding in at number {o}:", "Kicking off number {o}:"]
 
 # Category-specific flavour: hook line, what the video is "about", and a pool of
 # value sentences rotated through the entries to add variety and pad to length.
@@ -88,6 +93,45 @@ _FLAVOUR = {
             "It's a must-have for anyone who's tired of swinging the same handful of vanilla weapons for the hundredth time.",
         ],
     },
+    "graphics": {
+        "title": "Best Skyrim Graphics & Visual Mods",
+        "noun": "graphics mods",
+        "subject": "how Skyrim looks",
+        "values": [
+            "The difference is night and day — screenshots genuinely start looking like concept art.",
+            "It's the kind of upgrade you notice every few steps as you explore.",
+            "It's surprisingly performance-friendly, so you don't need a monster rig to run it.",
+            "It plays nicely with ENB and the other visual mods on this list.",
+            "Once you've seen Skyrim like this, going back to vanilla is genuinely painful.",
+            "Subtle where it should be subtle, dramatic exactly where it counts.",
+        ],
+    },
+    "armor": {
+        "title": "Best Skyrim Armor & Clothing Mods",
+        "noun": "armor mods",
+        "subject": "your character's look",
+        "values": [
+            "Every piece is lore-friendly, so nothing here breaks the fantasy.",
+            "The textures and meshes are detailed enough to stand toe-to-toe with official content.",
+            "It fits naturally into the world through leveled lists, so you'll find it as you play.",
+            "Heavy-armor tank or light-footed sneak, there's a look here for your build.",
+            "It's fantastic for screenshots and roleplay alike.",
+            "It's the kind of gear that makes you want to roll a whole new character.",
+        ],
+    },
+    "followers": {
+        "title": "Best Skyrim Follower & Companion Mods",
+        "noun": "follower mods",
+        "subject": "your companions",
+        "values": [
+            "Fully voiced and genuinely well-written, this is a companion you'll actually want around.",
+            "No more silent, lifeless tagalongs — this one has real personality.",
+            "They fit seamlessly into the world and react to what's happening around them.",
+            "If you usually adventure solo, this might be the mod that changes your mind.",
+            "Great banter, genuinely useful in a fight, and not constantly blocking doorways.",
+            "It's the kind of companion that makes the long journeys feel a lot less lonely.",
+        ],
+    },
 }
 
 _GENERIC_VALUES = [
@@ -98,6 +142,141 @@ _GENERIC_VALUES = [
     "It's stable, well-supported, and beloved for good reason.",
     "This is one of those installs you'll keep in every single playthrough.",
 ]
+
+# "Who it's for" lines add a concrete, opinionated recommendation angle per entry —
+# the kind of editorial substance YouTube's inauthentic-content policy looks for.
+_WHO_FOR = {
+    "magic": [
+        "If you main a battlemage or you've always wanted a real spellsword fantasy, this is for you.",
+        "Honestly, if you've only ever played a stealth archer, this is the mod that'll finally convert you to magic.",
+        "Pure-mage players are going to get the most out of this one, but it's strong for any build that touches a spell.",
+    ],
+    "gameplay": [
+        "If your hundredth playthrough is starting to feel like muscle memory, this is the reset button.",
+        "This is aimed squarely at players who want Skyrim to feel like a modern RPG, not a 2011 one.",
+        "Roleplayers and immersion fans especially are going to love what this does.",
+    ],
+    "new_lands": [
+        "If you've already cleared every vanilla dungeon twice, this is exactly the fresh content you're craving.",
+        "This one's for the explorers — the players who fast-travel the least and wander the most.",
+        "Anyone who plays Skyrim mainly for the questing and the stories is going to be thrilled with this.",
+    ],
+    "weapons": [
+        "Melee builds will get the most mileage here, but there's something for archers and mages too.",
+        "If you're the type who reloads a save just to get better loot, this one's calling your name.",
+        "This is for anyone tired of swinging the same five vanilla weapons for the hundredth hour.",
+    ],
+    "graphics": [
+        "If you're building a screenshot-worthy setup, this one is non-negotiable.",
+        "Anyone chasing that next-gen look is going to get a ton out of this.",
+        "Even on modest hardware, this is worth finding room for in your load order.",
+    ],
+    "armor": [
+        "Roleplayers and fashion-souls types are going to love this one.",
+        "If you actually care how your character looks, this is for you.",
+        "It's a great pick whether you fight up close, at range, or with magic.",
+    ],
+    "followers": [
+        "If you hate adventuring alone, this is exactly what you've been missing.",
+        "Perfect for players who care about story and companionship.",
+        "Anyone who found the vanilla followers forgettable will be won over.",
+    ],
+}
+_WHO_FOR_GENERIC = [
+    "If that sounds like your kind of thing, you're going to want this in your load order.",
+    "It's an easy recommendation for just about any playthrough.",
+]
+
+# Hook / intro / outro variants — picked per video so different uploads don't open
+# with the exact same script (a key anti-"mass-produced template" signal).
+_HOOKS_FIRST = [
+    "Skyrim is over a decade old, but thanks to its modding community it has never "
+    "looked or played better — especially when it comes to {noun}. Today I'm counting "
+    "down {n} of the absolute best {noun} you can install right now, all of them free, "
+    "all of them linked below. Stick around to the end, because the number one pick is "
+    "the one I genuinely couldn't play without. Let's jump in.",
+    "I've spent way too many hours digging through Nexus so you don't have to, and I've "
+    "narrowed it down to the {n} best {noun} worth your time in {year}. Every single one "
+    "is free, every author is credited below, and trust me — the top of this list is "
+    "special. Let's get straight into it.",
+    "If your Skyrim is starting to feel a little stale, the {n} {noun} on this list are "
+    "the fix. These are the mods I'd reinstall first on any fresh setup — all free, all "
+    "linked down below, ranked from good to absolutely essential. Let's count them down.",
+]
+_HOOKS_PART = [
+    "We're back — and this time it's part {part}. You loved the last round so much that "
+    "I went digging for {n} more of the very best {noun} Skyrim has to offer, and honestly, "
+    "some of these might be even better than before. Every one is free, every author is "
+    "linked below, and the number one pick is a must-have. Let's get into it.",
+    "You asked for more, so here's part {part}: {n} more of the best {noun} I could find, "
+    "with zero repeats from the earlier videos. All free, all credited below. Let's dive "
+    "straight back in.",
+]
+_INTROS = [
+    "Quick note before we start: everything here is completely free on Nexus Mods, and "
+    "every creator is credited in the description, so please go endorse their work — it's "
+    "the least we can do for this much free content. We're counting down from number "
+    "{nord} all the way to number one, so settle in. Here we go.",
+    "Before we dive in — every mod is free, every author is linked below, and a quick "
+    "endorsement on Nexus genuinely helps these creators keep going. Alright, counting "
+    "down from {nord} to one. Let's do it.",
+    "One thing up front: I'm ranking these from number {nord} down to my personal number "
+    "one, and reasonable people will absolutely disagree on the order — let me know yours "
+    "in the comments. Everything's free and linked below. Let's get started.",
+]
+_OUTROS = [
+    "And that's the list — {n} of the best {noun} in {year}. Every mod is linked below "
+    "with full credit to the brilliant authors who made them, so go show them some love. "
+    "If this helped you out, subscribe, because I put out two new Skyrim videos every "
+    "single week. Thanks so much for watching, and I'll see you in the next one.",
+    "So there you go — {n} {noun} that'll seriously transform your game, all free and all "
+    "linked below. Drop a comment with the one you'd have put at number one, hit subscribe "
+    "for two new Skyrim videos a week, and I'll catch you in the next one.",
+    "That wraps up {n} of my favourite {noun} right now. Go endorse the authors down in "
+    "the description — they've earned it — and if you want more lists like this, subscribe; "
+    "there's a new one every few days. Thanks for watching, see you next time.",
+]
+
+
+def _data_facts(mod: Mod) -> list[str]:
+    """Real, verifiable stat fragments about a mod (downloads, endorsements, recency,
+    age). Only facts we actually have — never invented."""
+    facts = []
+    dl = getattr(mod, "downloads", 0) or 0
+    if dl >= 1_000_000:
+        facts.append(f"it's been downloaded over {dl // 1_000_000} million times")
+    elif dl >= 100_000:
+        facts.append(f"it's pulled in more than {dl // 1000} thousand downloads")
+    en = getattr(mod, "endorsements", 0) or 0
+    if en >= 2000:
+        facts.append(f"more than {en // 1000} thousand players have endorsed it")
+    u = getattr(mod, "updated_at", None)
+    if u:
+        months = (date.today().year - u.year) * 12 + (date.today().month - u.month)
+        if 0 <= months <= 16:
+            facts.append(f"the author is still actively updating it, with a patch as "
+                         f"recent as {_MONTHS[u.month - 1]} {u.year}")
+    c = getattr(mod, "created_at", None)
+    if c and (date.today().year - c.year) >= 8:
+        facts.append(f"it's a genuine classic that's been going strong since {c.year}")
+    return facts
+
+
+def _proof_sentence(mod: Mod, rng: random.Random) -> str:
+    """One varied, data-driven 'proof' sentence built from real stats (or '')."""
+    facts = _data_facts(mod)
+    if not facts:
+        return ""
+    rng.shuffle(facts)
+    pick = facts[:2] if len(facts) >= 2 and rng.random() < 0.5 else facts[:1]
+    joined = pick[0] if len(pick) == 1 else f"{pick[0]}, and {pick[1]}"
+    frame = rng.choice([
+        "To put that in perspective, {f}.",
+        "The numbers back it up: {f}.",
+        "And it's not just me who rates it — {f}.",
+        "For what it's worth, {f}.",
+    ])
+    return frame.format(f=joined)
 
 _BBCODE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 _URL = re.compile(r"https?://\S+")
@@ -152,32 +331,46 @@ def _clean_author(name: str) -> str:
     return name
 
 
-def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int) -> str:
-    lead = _LEADS[idx % len(_LEADS)].format(o=_ORD.get(rank, str(rank)))
+def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
+                   category: str, rng: random.Random) -> str:
+    """Compose one entry: rank lead-in + name/author + real summary + an editorial
+    'who it's for' take + a data-driven proof line. The mix and phrasing are drawn from
+    a per-video RNG so segments vary within a video and across videos (anti-template)."""
     author = _clean_author(mod.uploaded_by or mod.author)
+    name = _spoken_name(mod.name)
     desc = _sentences(mod.summary, 4)
     values = flavour.get("values", _GENERIC_VALUES)
-    # Three distinct value beats per entry (offset so neighbours don't echo). The F5
-    # voice narrates at ~176 wpm, so each mod needs ~90+ words to keep a 13-15 mod
-    # countdown comfortably over the 8-minute video target.
-    v1 = values[idx % len(values)]
-    v2 = _GENERIC_VALUES[(idx + 2) % len(_GENERIC_VALUES)]
-    v3 = values[(idx + 3) % len(values)]
-    endo = getattr(mod, "endorsements", 0) or 0
-    social = (f" With well over {endo // 1000} thousand endorsements, the community "
-              f"clearly agrees this one's special." if endo >= 2000 else "")
-    name = _spoken_name(mod.name)
+    who = _WHO_FOR.get(category, _WHO_FOR_GENERIC)
+    # Editorial beats: one category value + one "who it's for", phrased from the pools
+    # at offsets seeded per video so different uploads don't reuse the same lines.
+    value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
+    who_line = who[(idx + rng.randint(0, len(who) - 1)) % len(who)]
+    proof = _proof_sentence(mod, rng)
+
+    # Editorial beats, de-duplicated so no sentence repeats inside one entry.
+    extras = []
+    for s in [value, who_line] + ([proof] if proof else []):
+        if s and s not in extras:
+            extras.append(s)
+
     if rank == 1:
-        return _WS.sub(" ", (
-            f"And finally, the number one pick on the whole list: {name} by {author}. "
-            + (desc + " " if desc else "")
-            + v1 + " " + v2 + " " + v3 + social
-            + " Honestly, if you only install one mod from this entire video, make it "
-            f"this one — it's the perfect note to end on.")).strip()
-    body = f"{lead} {name} by {author}. "
-    if desc:
-        body += desc + " "
-    body += v1 + " " + v2 + " " + v3 + social
+        body = (f"And finally, my number one pick on the whole list: {name} by {author}. "
+                + (desc + " " if desc else "") + " ".join(extras)
+                + " If you install one single mod from this entire video, make it this "
+                "one — it earns the top spot.")
+        return _WS.sub(" ", body).strip()
+
+    lead = _LEADS[(idx + rng.randint(0, len(_LEADS) - 1)) % len(_LEADS)].format(
+        o=_ORD.get(rank, str(rank)))
+    rng.shuffle(extras)              # vary ordering so the structure isn't identical
+    body = f"{lead} {name} by {author}. " + (desc + " " if desc else "") + " ".join(extras)
+    # Keep each entry substantial enough to clear the 8-minute target (~176 wpm),
+    # padding with a generic line not already used in this entry.
+    if len(body.split()) < 85:
+        for cand in rng.sample(_GENERIC_VALUES, len(_GENERIC_VALUES)):
+            if cand not in body:
+                body += " " + cand
+                break
     return _WS.sub(" ", body).strip()
 
 
@@ -191,35 +384,21 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     noun = fl.get("noun", f"{category} mods")
     n = len(mods)
     year = date.today().year
+    nord = _ORD.get(n, str(n))
+    # Per-video RNG seeded from the category + part + date, so a given video is stable
+    # but different uploads draw different openings, orderings, and phrasings.
+    rng = random.Random(f"{category}|{part}|{date.today().isoformat()}|{n}")
 
+    short = noun.replace(" mods", "").title()
     if part and part > 1:
-        title = f"{n} MORE Skyrim {noun.replace(' mods','').title()} Mods You NEED! (Part {part})"
-        hook = (f"We're back — and this time it's part {part}. You loved the last "
-                f"round so much that I went digging for {n} more of the very best "
-                f"{noun} Skyrim has to offer, and honestly, some of these might be "
-                f"even better than before. Every single one is free, every author is "
-                f"linked below, and the number one pick is an absolute must-have. "
-                f"Let's get straight into it.")
+        title = f"{n} MORE Skyrim {short} Mods You NEED! (Part {part})"
+        hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year)
     else:
-        title = f"These {n} Skyrim {noun.replace(' mods','').title()} Mods Are INSANE! ({year})"
-        hook = (f"Skyrim is over a decade old, but thanks to its modding community it "
-                f"has never looked or played better — especially when it comes to "
-                f"{noun}. Today I'm counting down {n} of the absolute best {noun} you "
-                f"can install right now, all of them free, all of them linked down "
-                f"below. Stick around to the end, because the number one pick is the "
-                f"one I genuinely couldn't play without. Let's jump in.")
+        title = f"These {n} Skyrim {short} Mods Are INSANE! ({year})"
+        hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year)
 
-    intro = (f"Quick note before we start: everything here is completely free on "
-             f"Nexus Mods, and every creator is credited in the description, so please "
-             f"go endorse their work — it's the least we can do for this much free "
-             f"content. We're counting down from number {_ORD.get(n, str(n))} all the "
-             f"way to number one, so settle in. Here we go.")
-
-    outro = (f"And that's the list — {n} of the best {noun} in {year}. Every mod is "
-             f"linked below with full credit to the brilliant authors who made them, "
-             f"so go show them some love. If this helped you out, subscribe, because I "
-             f"put out two new Skyrim modding videos every single week. Thanks so much "
-             f"for watching, and I'll see you in the next one.")
+    intro = rng.choice(_INTROS).format(nord=nord)
+    outro = rng.choice(_OUTROS).format(n=n, noun=noun, year=year)
 
     segments = [
         {"kind": "hook", "narration": hook},
@@ -230,7 +409,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
         rank = n - idx                       # countdown: first shown is number n
         segments.append({
             "kind": "mod", "ref": idx + 1,
-            "narration": _mod_narration(mod, rank, idx, fl, n),
+            "narration": _mod_narration(mod, rank, idx, fl, n, category, rng),
         })
         urls = []
         if getattr(mod, "picture_url", ""):
