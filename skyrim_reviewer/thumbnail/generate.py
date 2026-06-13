@@ -64,22 +64,67 @@ def _brightness(path: str) -> float:
         return -1
 
 
+def _contrast(path: str) -> float:
+    """Std-dev of luminance — low values mean a flat/hazy shot that reads as muddy."""
+    try:
+        im = Image.open(path).convert("L")
+        im.thumbnail((96, 96))
+        px = list(im.getdata())
+        n = len(px) or 1
+        mean = sum(px) / n
+        return (sum((p - mean) ** 2 for p in px) / n) ** 0.5
+    except Exception:
+        return -1
+
+
+def _subject_score(path: str) -> float:
+    """How strongly an image features a character/face subject (0 = none).
+
+    Uses OpenCV Haar cascades when available — character close-ups make far stronger
+    thumbnails (faces lift CTR ~20-30%). Degrades to 0.0 if OpenCV isn't installed,
+    so selection simply falls back to the editorial/well-lit logic."""
+    try:
+        import os
+        import cv2
+        import numpy as np
+        im = Image.open(path).convert("L")
+        im.thumbnail((480, 480))
+        arr = np.asarray(im)
+        data = os.path.join(os.path.dirname(cv2.__file__), "data")
+        best = 0.0
+        for name in ("haarcascade_frontalface_alt2.xml",
+                     "haarcascade_profileface.xml"):
+            c = cv2.CascadeClassifier(os.path.join(data, name))
+            if c.empty():
+                continue
+            faces = c.detectMultiScale(arr, scaleFactor=1.1, minNeighbors=5,
+                                       minSize=(40, 40))
+            for (x, y, w, h) in faces:
+                # Bigger faces (close-ups) score higher; relative to frame area.
+                best = max(best, (w * h) / float(arr.shape[0] * arr.shape[1]))
+        return best
+    except Exception:
+        return 0.0
+
+
 def _best_hero(project: Project) -> str | None:
-    """Pick the thumbnail hero editorially: the highest-endorsed mod's main image that
-    isn't too dark/blown-out. (Hero shots are punched up — auto-contrast, lifted
-    shadows, richer colour, sharpening — when staged for the thumbnail renderer.)"""
+    """Pick the thumbnail hero: prefer a clear character/face subject (close-ups make
+    the strongest thumbnails) among the top-endorsed mods' well-lit images; otherwise
+    fall back to the highest-endorsed well-lit shot. Hero is punched up at stage time."""
     ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
                     reverse=True)
-    candidates = [img for mod in ranked[:8] if (img := _mod_main_image(mod))]
+    candidates = [img for mod in ranked[:10] if (img := _mod_main_image(mod))]
     if not candidates:
         candidates = _hero_images(project)
     if not candidates:
         return None
-    scored = [(img, _brightness(img)) for img in candidates]
-    well_lit = [img for img, b in scored if 55 <= b <= 215]
-    if well_lit:
-        return well_lit[0]                       # highest-endorsed well-lit shot
-    return max(scored, key=lambda x: x[1])[0]    # else the brightest we have
+    well_lit = [img for img in candidates if 55 <= _brightness(img) <= 215] or candidates
+    # Prefer a prominent subject/face if one is clearly present (>~4% of the frame).
+    subjects = [(img, _subject_score(img)) for img in well_lit]
+    strong = [(img, s) for img, s in subjects if s >= 0.04]
+    if strong:
+        return max(strong, key=lambda x: x[1])[0]
+    return well_lit[0]                            # else highest-endorsed well-lit shot
 
 
 def make_thumbnail(project: Project, text: str | None = None,

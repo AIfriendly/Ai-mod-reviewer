@@ -18,6 +18,7 @@ moviepy>=1.0.3,<2.0  # timeline assembly (1.x API: set_duration/resize/set_posit
 imageio-ffmpeg>=0.4.9  # bundled ffmpeg binary (portable fallback)
 Pillow>=10.0         # Ken Burns frames, thumbnails
 numpy>=1.24          # frame math
+opencv-python-headless>=4.8  # face/subject detection for thumbnail hero selection (optional; degrades gracefully)
 
 # --- Captions / subtitles ---
 # (srt is generated in-house; no extra dep required)

@@ -34,6 +34,24 @@ def render_title_card(title: str, subtitle: str, accent: str, out_path: Path) ->
         return False
 
 
+def _vignette(im, strength: float = 0.55):
+    """Darken the edges with a soft radial gradient so the central subject pops — the
+    cheap, faceless-friendly way to get subject/background separation."""
+    try:
+        from PIL import Image, ImageDraw, ImageFilter
+        w, h = im.size
+        mask = Image.new("L", (w, h), 0)
+        d = ImageDraw.Draw(mask)
+        d.ellipse([-w * 0.25, -h * 0.25, w * 1.25, h * 1.25], fill=255)
+        mask = mask.filter(ImageFilter.GaussianBlur(radius=min(w, h) * 0.12))
+        dark = Image.new("RGB", (w, h), (0, 0, 0))
+        # Blend toward black at the edges by `strength` where the mask is dark.
+        faded = Image.composite(im, Image.blend(im, dark, strength), mask)
+        return faded
+    except Exception:
+        return im
+
+
 def _stage_hero(src: Path, dest: Path) -> bool:
     """Copy a hero image into Remotion's public/ dir, punched up for thumbnail use:
     auto-contrast, lifted shadows on dark shots, richer colour and a touch of sharpening
@@ -46,9 +64,10 @@ def _stage_hero(src: Path, dest: Path) -> bool:
         mean = sum(im.convert("L").resize((32, 32)).getdata()) / 1024
         if mean < 95:                                   # lift dark Skyrim interiors
             im = ImageEnhance.Brightness(im).enhance(1.18)
-        im = ImageEnhance.Color(im).enhance(1.28)       # punchier colour
-        im = ImageEnhance.Contrast(im).enhance(1.12)
+        im = ImageEnhance.Color(im).enhance(1.30)       # punchier, cinematic colour
+        im = ImageEnhance.Contrast(im).enhance(1.14)
         im = ImageEnhance.Sharpness(im).enhance(1.35)
+        im = _vignette(im)                              # subject-background separation
         dest = dest.with_suffix(".jpg")
         im.save(dest, quality=92)
         return dest.name
