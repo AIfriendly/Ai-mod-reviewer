@@ -270,13 +270,15 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     if track:
         args += ["-stream_loop", "-1", "-i", track]
         mi = n_a + 1
-        # Normalise music to a clearly audible level, then DUCK it under the narration
-        # via sidechain compression so the voice stays clear but music is present.
+        # Music bed sits well UNDER the narration: normalise to a quiet target, then
+        # duck further under the voice via sidechain compression (no makeup gain). The
+        # baseline level is configurable (video.music_lufs, default -30 LUFS).
+        music_lufs = cfg.get("music_lufs", -26)
         fc += (f"[narr]asplit=2[narrA][narrB];"
                f"[{mi}:a]aresample=44100,aformat=channel_layouts=stereo,"
-               f"loudnorm=I=-24:TP=-2:LRA=11[mbase];"
-               f"[mbase][narrB]sidechaincompress=threshold=0.04:ratio=8:attack=5:"
-               f"release=400:makeup=2[mduck];"
+               f"loudnorm=I={music_lufs}:TP=-3:LRA=11[mbase];"
+               f"[mbase][narrB]sidechaincompress=threshold=0.05:ratio=12:attack=5:"
+               f"release=350:makeup=1[mduck];"
                f"[narrA][mduck]amix=inputs=2:duration=first:normalize=0[aout]")
         amap = "[aout]"
     else:

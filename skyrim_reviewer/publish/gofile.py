@@ -53,12 +53,12 @@ def upload_files(paths: list[str]) -> str | None:
         return page
 
 
-def publish_project(project, include_thumbnails: bool = False) -> str | None:
-    """Upload the project's video + title + description (+ subtitles) to one GoFile
-    folder; returns the link.
+def publish_project(project, include_thumbnails: bool = True) -> str | None:
+    """Upload the project's video + title + description + thumbnail (+ subtitles) to one
+    GoFile folder; returns the link.
 
-    Thumbnails are NOT uploaded by default — they're delivered in chat. Pass
-    include_thumbnails=True to also bundle the main thumbnail and A/B variants.
+    The thumbnail is bundled by default (it's also delivered in chat). Pass
+    include_thumbnails=False to upload just the video + text files.
     """
     if not project.output_path or not Path(project.output_path).exists():
         return None
