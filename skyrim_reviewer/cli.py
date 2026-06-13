@@ -217,6 +217,40 @@ def autospec(
 
 
 @app.command()
+def volume(
+    category: str = typer.Argument("new_lands", help="Series category (default new_lands)"),
+    count: int = typer.Option(16, help="Mods per volume"),
+    vol: int = typer.Option(None, help="Volume number (default: next in the series)"),
+    render: bool = typer.Option(True, help="Render+publish now (else just write the spec)"),
+    voice: str = typer.Option("kaggle", help="TTS provider for the render"),
+    game: str = typer.Option(None, help="Nexus game domain (default: configured game)"),
+):
+    """Produce the next VOLUME of a numbered series (e.g. the New Lands & Quest 'Vol. N'
+    run). Auto-picks the next volume number, pulls fresh mods (no repeats, paging deep
+    into the catalogue), titles it 'Vol. N', then renders + publishes."""
+    if game:
+        import os
+        os.environ["MODREVIEWER_GAME"] = game
+    from .scripting.autospec import autospec, next_volume
+    from .scripting.manual import write_spec
+    n = vol or next_volume(category)
+    typer.echo(f"Building {category} Vol. {n} ({count} fresh mods)...")
+    spec = autospec(category, count=count, part=n)
+    spec["slug"] = f"{__import__('datetime').date.today().isoformat()}-{category}-vol{n}"
+    path = f"examples/{spec['slug']}.yaml"
+    write_spec(spec, path)
+    typer.echo(f"  Title:  {spec['title']}")
+    typer.echo(f"  Spec:   {path}")
+    if not render:
+        typer.echo(f"  Render later:  skyrim-reviewer make {category} --script {path} --voice {voice}")
+        return
+    from .pipeline import run
+    p = run(category, profile_name="standard", fmt="category_list",
+            script_spec=path, publish=True, voice_override=voice)
+    typer.echo(f"  Done -> {p.output_path}\n  GoFile -> {p.gofile_url}")
+
+
+@app.command()
 def script(
     category: str,
     profile: str = typer.Option(None, help="test | full (default from config)"),

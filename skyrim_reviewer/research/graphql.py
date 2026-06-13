@@ -20,7 +20,8 @@ _V2 = "https://api.nexusmods.com/v2/graphql"
 DEFAULT_GRAPHQL_CATEGORIES = {
     "weapons": ["Weapons", "Weapons and Armour"],
     "armor": ["Armour", "Weapons and Armour"],
-    "new_lands": ["Quests and Adventures", "Dungeons"],
+    "new_lands": ["Quests and Adventures", "Dungeons", "Guilds/Factions",
+                  "Locations - Vanilla", "Player homes"],
     "graphics": ["Visuals and Graphics", "Models and Textures", "Environmental"],
     "gameplay": ["Gameplay", "Overhauls", "Combat", "Immersion"],
     "followers": ["Followers & Companions"],
@@ -28,15 +29,18 @@ DEFAULT_GRAPHQL_CATEGORIES = {
 }
 
 _QUERY = """
-query Discover($domain: String!, $category: String!, $count: Int!) {
+query Discover($domain: String!, $category: String!, $count: Int!, $offset: Int!) {
   mods(
     filter: { gameDomainName: {value: $domain, op: EQUALS},
               categoryName: {value: $category, op: EQUALS} }
     sort: [{ endorsements: { direction: DESC } }]
     count: $count
+    offset: $offset
   ) { nodes { modId name summary endorsements downloads version uploader { name }
               pictureUrl adultContent createdAt updatedAt } }
 }"""
+
+_PAGE = 80   # the v2 API caps a single page at ~80 nodes
 
 
 def _date(v) -> datetime | None:
@@ -66,28 +70,38 @@ def _to_mod(n: dict, domain: str) -> Mod:
 
 
 def discover_mods(domain: str, category_names: list[str], count: int = 60,
-                  include_adult: bool = False) -> list[Mod]:
-    """Return mods across the given v2 categories, merged + deduped, by endorsements."""
+                  include_adult: bool = False, pages: int = 1) -> list[Mod]:
+    """Return mods across the given v2 categories, merged + deduped, by endorsements.
+
+    `pages` walks the catalogue deeper (each page ≈80 mods by descending endorsements).
+    pages=1 keeps the top slice; a long numbered series uses many pages to reach the
+    thousands of quest/dungeon mods past the popular front page.
+    """
     key = require_env("NEXUS_API_KEY")
     hdr = {"apikey": key, "User-Agent": "skyrim-reviewer/0.1"}
+    page_size = _PAGE if pages > 1 else min(count, _PAGE)
     by_id: dict[int, Mod] = {}
     with httpx.Client(timeout=30.0, headers=hdr) as c:
         for cat in category_names:
-            try:
-                r = c.post(_V2, json={"query": _QUERY, "variables": {
-                    "domain": domain, "category": cat, "count": count}})
-                nodes = r.json().get("data", {}).get("mods", {}).get("nodes", []) or []
-            except Exception:
-                continue
-            for n in nodes:
-                if n.get("adultContent") and not include_adult:
-                    continue
+            for p in range(max(1, pages)):
                 try:
-                    m = _to_mod(n, domain)
+                    r = c.post(_V2, json={"query": _QUERY, "variables": {
+                        "domain": domain, "category": cat, "count": page_size,
+                        "offset": p * page_size}})
+                    nodes = r.json().get("data", {}).get("mods", {}).get("nodes", []) or []
                 except Exception:
-                    continue
-                if m.mod_id not in by_id:
-                    by_id[m.mod_id] = m
+                    break
+                if not nodes:
+                    break                       # past the end of this category
+                for n in nodes:
+                    if n.get("adultContent") and not include_adult:
+                        continue
+                    try:
+                        m = _to_mod(n, domain)
+                    except Exception:
+                        continue
+                    if m.mod_id not in by_id:
+                        by_id[m.mod_id] = m
     return sorted(by_id.values(), key=lambda m: m.endorsements, reverse=True)
 
 

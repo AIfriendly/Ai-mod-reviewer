@@ -279,17 +279,23 @@ _TITLE_CAT = {
 }
 
 
+# Canonical sequel title — the consistent "Vol. N" branding for a numbered series.
+_SERIES_TITLE = "{n} Skyrim {short} Mods You Probably Missed (Vol. {part})"
+
+
 def _unique_titles(category: str, short: str, n: int, year: int,
                    part: int | None, rng: random.Random) -> list[str]:
-    """Return [main_title, alt1, alt2] — varied, non-generic titles for the video."""
+    """Return [main_title, alt1, alt2]. Sequels (part>1) lead with the canonical
+    'Vol. N' series title for consistent branding, then offer varied alternates."""
     key = "part" if part and part > 1 else "first"
     pool = list(_TITLE_CAT.get(category, {}).get(key, [])) + list(_TITLE_FRAMES[key])
     rng.shuffle(pool)
-    seen, out = set(), []
+    out = []
+    if key == "part":
+        out.append(_SERIES_TITLE.format(n=n, short=short, year=year, part=part))
     for t in pool:
         title = t.format(n=n, short=short, year=year, part=part or 1)
-        if title not in seen:
-            seen.add(title)
+        if title not in out:
             out.append(title)
         if len(out) == 3:
             break
@@ -525,6 +531,20 @@ def _is_showcase(mod: Mod) -> bool:
     return not _JUNK.search(mod.name or "")
 
 
+def next_volume(category: str, domain: str | None = None) -> int:
+    """Next volume number for a category's series = highest 'Vol. N'/'Part N' already
+    published in that category + 1 (falls back to the video count)."""
+    from ..config import channel_config
+    from ..history import _load
+    domain = domain or channel_config()["channel"]["game_domain"]
+    entries = [e for e in _load().get(domain, []) if (e.get("category") or "") == category]
+    highest = 0
+    for e in entries:
+        for m in re.finditer(r"\b(?:vol\.?|part)\s*(\d+)", e.get("title", ""), re.I):
+            highest = max(highest, int(m.group(1)))
+    return (highest or len(entries)) + 1
+
+
 def autospec(category: str, count: int = 12, *, domain: str | None = None,
              part: int | None = None, with_gallery: bool = True,
              exclude_ids: set[int] | None = None) -> dict:
@@ -532,6 +552,9 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
 
     `exclude_ids` skips additional mods on top of the no-repeat history — useful for
     generating two back-to-back videos (the second excludes the first's picks).
+
+    Discovery pages deeper automatically until it finds enough *fresh* mods, so a long
+    numbered series keeps surfacing new content as the earlier picks fill up history.
     """
     from ..config import channel_config
     from ..history import seen_mod_ids
@@ -543,12 +566,17 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     if not names:
         raise ValueError(f"No GraphQL categories mapped for '{category}'.")
     seen = set(seen_mod_ids(domain)) | set(exclude_ids or set())
-    pool = discover_mods(domain, names, count=max(count * 6, 60))
-    fresh = [m for m in pool if m.mod_id not in seen and _is_showcase(m)]
+    fresh: list[Mod] = []
+    for pages in (1, 3, 6, 10, 16):
+        pool = discover_mods(domain, names, count=max(count * 6, 60), pages=pages)
+        fresh = [m for m in pool if m.mod_id not in seen and _is_showcase(m)]
+        if len(fresh) >= count:
+            break
     chosen = fresh[:count]
     if len(chosen) < count:
         raise ValueError(
-            f"Only {len(chosen)} fresh '{category}' mods available (wanted {count}).")
+            f"Only {len(chosen)} fresh '{category}' mods available (wanted {count}). "
+            f"The series has likely exhausted this category's catalogue.")
     # Endorsement DESC means the first item is the strongest; reverse so the
     # countdown climaxes on the single best mod at number one.
     chosen = list(reversed(chosen))
