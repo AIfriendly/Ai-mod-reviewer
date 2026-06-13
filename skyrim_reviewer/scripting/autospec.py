@@ -62,6 +62,19 @@ _FLAVOUR = {
             "Lightweight, stable, and endlessly compatible, it's an easy recommendation for any load order.",
         ],
     },
+    "new_lands": {
+        "title": "Best Skyrim New Lands & Quest Mods",
+        "noun": "new lands mods",
+        "subject": "exploration",
+        "values": [
+            "It's the kind of adventure that makes Skyrim feel enormous all over again.",
+            "Whole new places to explore means dozens of fresh hours added to your playthrough.",
+            "The world-building and atmosphere here genuinely rival the base game's best moments.",
+            "If you've explored every inch of vanilla Skyrim, this is exactly the fix you need.",
+            "It drops in seamlessly, so you can stumble into the adventure right in your current save.",
+            "For anyone who plays Skyrim for the journey and the discovery, this is essential.",
+        ],
+    },
     "weapons": {
         "title": "Best Skyrim Weapon Mods",
         "noun": "weapon mods",
@@ -259,9 +272,27 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     }
 
 
+# High-endorsement entries that are NOT showcase-worthy in a "best of" countdown:
+# translations, patches, trackers, markers — they pad the top of the list but make
+# for weak video segments. Matched case-insensitively against the mod name.
+_JUNK = re.compile(
+    r"\b(translation|delayed start|alternate routes?|bugfix|hotfix|"
+    r"completion tracker|quest markers?|patch|cleaned|tweak|unofficial|"
+    r"add-?on)\b", re.I)
+
+
+def _is_showcase(mod: Mod) -> bool:
+    return not _JUNK.search(mod.name or "")
+
+
 def autospec(category: str, count: int = 12, *, domain: str | None = None,
-             part: int | None = None, with_gallery: bool = True) -> dict:
-    """Discover fresh mods for a category and return a render-ready spec dict."""
+             part: int | None = None, with_gallery: bool = True,
+             exclude_ids: set[int] | None = None) -> dict:
+    """Discover fresh mods for a category and return a render-ready spec dict.
+
+    `exclude_ids` skips additional mods on top of the no-repeat history — useful for
+    generating two back-to-back videos (the second excludes the first's picks).
+    """
     from ..config import channel_config
     from ..history import seen_mod_ids
     from ..research.gallery import fetch_gallery
@@ -271,9 +302,9 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     names = graphql_categories_for(category)
     if not names:
         raise ValueError(f"No GraphQL categories mapped for '{category}'.")
-    seen = seen_mod_ids(domain)
-    pool = discover_mods(domain, names, count=max(count * 4, 40))
-    fresh = [m for m in pool if m.mod_id not in seen]
+    seen = set(seen_mod_ids(domain)) | set(exclude_ids or set())
+    pool = discover_mods(domain, names, count=max(count * 6, 60))
+    fresh = [m for m in pool if m.mod_id not in seen and _is_showcase(m)]
     chosen = fresh[:count]
     if len(chosen) < count:
         raise ValueError(
