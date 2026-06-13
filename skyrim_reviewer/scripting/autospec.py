@@ -238,6 +238,64 @@ _OUTROS = [
 ]
 
 
+# Title frames — curiosity/opinion-driven and varied, so uploads don't all read
+# "N MORE Skyrim X Mods You NEED! (Part N)". {short} is the noun ("New Lands").
+_TITLE_FRAMES = {
+    "first": [
+        "I Tested {n} Skyrim {short} Mods — These Are the Best ({year})",
+        "These {n} Skyrim {short} Mods Feel Illegal to Have for Free",
+        "{n} Skyrim {short} Mods That Completely Changed My Game ({year})",
+        "Skyrim {short} Mods Are Out of Control — My Top {n} for {year}",
+        "{n} {short} Mods Every Skyrim Player Should Try at Least Once",
+    ],
+    "part": [
+        "I Found {n} MORE Hidden Skyrim {short} Mods ({year})",
+        "{n} Skyrim {short} Mods You Probably Missed (Vol. {part})",
+        "Even MORE Insane Skyrim {short} Mods — My Top {n} (Part {part})",
+        "{n} More Skyrim {short} Mods That Feel Like Free DLC",
+        "The Skyrim {short} Mods Nobody Talks About — {n} Gems (Part {part})",
+    ],
+}
+_TITLE_CAT = {
+    "new_lands": {
+        "first": [
+            "Skyrim Has Secret Continents — {n} New Lands Mods Worth Playing",
+            "{n} Skyrim Quest Mods That Feel Like Official Expansions ({year})",
+        ],
+        "part": [
+            "{n} More Skyrim Adventures That Feel Like Full DLC (Part {part})",
+            "I Played {n} More Skyrim New Lands Mods So You Don't Have To",
+            "{n} Skyrim Quest Mods Hiding in Plain Sight (Vol. {part})",
+        ],
+    },
+    "magic": {
+        "first": ["{n} Skyrim Magic Mods That Make You Feel Like a God ({year})"],
+        "part": ["{n} More Skyrim Magic Mods That Break the Game (Part {part})"],
+    },
+    "weapons": {
+        "first": ["{n} Skyrim Weapon Mods That Make Combat Actually Fun ({year})"],
+        "part": ["{n} More Skyrim Weapon Mods Worth Re-rolling For (Part {part})"],
+    },
+}
+
+
+def _unique_titles(category: str, short: str, n: int, year: int,
+                   part: int | None, rng: random.Random) -> list[str]:
+    """Return [main_title, alt1, alt2] — varied, non-generic titles for the video."""
+    key = "part" if part and part > 1 else "first"
+    pool = list(_TITLE_CAT.get(category, {}).get(key, [])) + list(_TITLE_FRAMES[key])
+    rng.shuffle(pool)
+    seen, out = set(), []
+    for t in pool:
+        title = t.format(n=n, short=short, year=year, part=part or 1)
+        if title not in seen:
+            seen.add(title)
+            out.append(title)
+        if len(out) == 3:
+            break
+    return out
+
+
 def _data_facts(mod: Mod) -> list[str]:
     """Real, verifiable stat fragments about a mod (downloads, endorsements, recency,
     age). Only facts we actually have — never invented."""
@@ -320,6 +378,8 @@ def _spoken_name(name: str) -> str:
     n = re.sub(r"\s*[-–]\s*(SSE|SE|AE|LE|Special Edition)\b.*$", "", n, flags=re.I)
     n = re.sub(r"\b(SSE|SE|AE|LE)\b\s*$", "", n).strip()
     n = re.sub(r"\s{2,}", " ", n).strip(" -–")
+    # Drop a dangling connector left behind by edition-tag removal ("Temple of Agmer for").
+    n = re.sub(r"\s+(for|the|of|a|an|and|to|with)$", "", n, flags=re.I).strip(" -–")
     return n or (name or "").strip()
 
 
@@ -390,11 +450,11 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     rng = random.Random(f"{category}|{part}|{date.today().isoformat()}|{n}")
 
     short = noun.replace(" mods", "").title()
+    title_options = _unique_titles(category, short, n, year, part, rng)
+    title = title_options[0]
     if part and part > 1:
-        title = f"{n} MORE Skyrim {short} Mods You NEED! (Part {part})"
         hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year)
     else:
-        title = f"These {n} Skyrim {short} Mods Are INSANE! ({year})"
         hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year)
 
     intro = rng.choice(_INTROS).format(nord=nord)
@@ -439,6 +499,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     return {
         "slug": slug,
         "title": title,
+        "title_options": title_options,
         "category_id": category,
         "format": "category_list",
         "hook_line": title_base.replace("Best Skyrim ", "Best "),
