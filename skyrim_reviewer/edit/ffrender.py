@@ -38,13 +38,31 @@ def _mod_by_id(mods, mid):
     return next((m for m in mods if m.mod_id == mid), None)
 
 
+def _hook_heroes(project: Project, limit: int = 10) -> list[str]:
+    """One striking main image per mod (most-endorsed first) for the cold-open montage."""
+    out = []
+    ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
+                    reverse=True)
+    for mod in ranked:
+        for a in mod.media:
+            if a and a.local_path and Path(a.local_path).suffix.lower() in _IMG_EXT:
+                out.append(a.local_path)
+                break
+        if len(out) >= limit:
+            break
+    return out
+
+
 _IMG_EXT = {".png", ".jpg", ".jpeg", ".webp"}
 
 
 def _kenburns_segment(images: list[str], dur: float, size, fps: int,
-                      lower_third: str | None, out: Path):
+                      lower_third: str | None, out: Path, fade_in: float = 0.0):
     """Render one mod segment: N fit-over-blur zoompan shots concatenated, with an
-    optional lower-third overlay, sized to the frame, lasting exactly `dur`."""
+    optional lower-third overlay, sized to the frame, lasting exactly `dur`.
+
+    `fade_in` adds a short fade-from-black at the segment start — a clean pattern
+    interrupt that marks each new countdown entry (retention)."""
     W, H = size
     fw, fh = int(W * 0.92), int(H * 0.92)
     imgs = images or []
@@ -78,13 +96,56 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
         labels.append(f"[s{k}]")
     chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[vc];"
     if lower_third:
-        chain += f"[vc][{lt_idx}:v]overlay=0:0[v]"
+        chain += f"[vc][{lt_idx}:v]overlay=0:0[vo];"
     else:
-        chain += "[vc]copy[v]"
+        chain += "[vc]copy[vo];"
+    if fade_in > 0:
+        chain += f"[vo]fade=t=in:st=0:d={fade_in:.2f}[v]"
+    else:
+        chain += "[vo]copy[v]"
     args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
              "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
              "-preset", "veryfast", str(out)]
     _run(args)
+
+
+def _hook_montage(images: list[str], dur: float, size, fps: int,
+                  title_png: str, out: Path):
+    """Cold open: a fast-cut, full-bleed montage of the actual best mod shots with the
+    title overlaid for the first 5s. Real content + motion in the first seconds is the
+    single biggest early-retention lever (most viewers leave in the first 60s)."""
+    W, H = size
+    imgs = [i for i in (images or []) if i][:10]
+    if not imgs:
+        return False
+    n = len(imgs)
+    per = max(0.45, dur / n)            # snappy cuts (~0.5s) for energy up front
+    frames = max(1, round(per * fps))
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    for img in imgs:
+        args += ["-loop", "1", "-t", f"{per:.3f}", "-i", img]
+    args += ["-loop", "1", "-i", title_png]
+    title_idx = n
+    parts, labels = [], []
+    for k in range(n):
+        z0, z1 = (1.0, 1.08) if k % 2 == 0 else (1.08, 1.0)
+        zexpr = f"{z0}+({z1-z0})*on/{frames}"
+        parts.append(
+            f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
+            f"crop={W}:{H},eq=brightness=-0.04:saturation=1.08,setsar=1[c{k}];"
+            f"[c{k}]zoompan=z='{zexpr}':d={frames}:x='iw/2-(iw/zoom/2)':"
+            f"y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={fps},"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS[s{k}];")
+        labels.append(f"[s{k}]")
+    chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[mont];"
+    chain += (f"[{title_idx}:v]format=rgba,fade=t=out:st=4.4:d=0.6:alpha=1[tt];"
+              f"[mont][tt]overlay=0:0:enable='lt(t,5)',"
+              f"fade=t=in:st=0:d=0.3,format=yuv420p[v]")
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", str(out)]
+    _run(args)
+    return True
 
 
 def _title_segment(text_png: str, dur: float, size, fps: int, out: Path,
@@ -150,6 +211,11 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         footage = []
 
     spoken = [s for s in script.segments if (s.audio_path and Path(s.audio_path).exists())]
+    # Countdown ranks: mod segments run from #N down to #1 in order.
+    n_mods = sum(1 for s in spoken if getattr(s, "kind", "") == "mod")
+    # Best hero shots (brightest first) for the cold-open montage.
+    hook_heroes = _hook_heroes(project)
+    mod_seen = 0
     seg_videos, seg_audios, durations = [], [], []
     for i, seg in enumerate(spoken):
         dur = _audio_dur(seg.audio_path)
@@ -160,10 +226,12 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         images = [a.local_path for a in (mod.media if mod else [])
                   if a and a.local_path and Path(a.local_path).suffix.lower() in _IMG_EXT]
         if mod and images:
+            mod_seen += 1
+            rank = (n_mods - mod_seen + 1) if n_mods >= 3 else None
             lt = seg_dir / f"lt_{i:02d}.png"
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
-                               size, lt, accent=accent)
-            _kenburns_segment(images, dur, size, fps, str(lt), out)
+                               size, lt, accent=accent, rank=rank)
+            _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3)
         else:
             kind = getattr(seg, "kind", "")
             if kind == "outro":
@@ -174,8 +242,13 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
                 title, sub = (getattr(script, "hook_line", "") or script.title), ""
             png = seg_dir / f"title_{i:02d}.png"
             _save_overlay_png(title, sub, size, accent, png)
-            _title_segment(str(png), dur, size, fps, out,
-                           footage if kind in ("hook", "intro") else None)
+            # Cold open (hook): fast montage of real mod footage; fall back to trailer.
+            if kind == "hook" and hook_heroes and \
+                    _hook_montage(hook_heroes, dur, size, fps, str(png), out):
+                pass
+            else:
+                _title_segment(str(png), dur, size, fps, out,
+                               footage if kind in ("hook", "intro") else None)
         seg_videos.append(out)
 
     # Concat visuals (no re-encode).
