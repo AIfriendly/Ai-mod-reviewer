@@ -60,6 +60,7 @@ video:
   music_lufs: -26           # background music loudness (lower = quieter under narration)
   captions: true            # burn animated word-chunk captions into the video
   sfx: true                 # whoosh sting at each mod reveal
+  color_grade: true         # consistent cinematic grade across the whole video
   # threads: 8              # default: all CPU cores
   # Multi-shot Ken Burns: one mod image becomes a new "camera move" every
   # ~shot_seconds, so a single permitted screenshot plays like b-roll.

@@ -57,45 +57,73 @@ _IMG_EXT = {".png", ".jpg", ".jpeg", ".webp"}
 _VID_EXT = {".mp4", ".webm", ".mov", ".mkv"}
 
 
+# A stronger Ken Burns: ~10-15% zoom with gentle pan drift, varied per shot, so the
+# eye always has motion to follow (research: visuals should change every 3-5s).
+_MOVES = [
+    (1.00, 1.13, "0", "0"),                                   # push in, centred
+    (1.13, 1.00, "0", "0"),                                   # pull out, centred
+    (1.00, 1.12, "(iw-iw/zoom)", "0"),                        # push + pan right
+    (1.12, 1.00, "0", "(ih-ih/zoom)"),                        # pull + pan down
+    (1.00, 1.14, "(iw-iw/zoom)", "(ih-ih/zoom)"),             # push + pan to corner
+    (1.11, 1.00, "(iw-iw/zoom)/2", "0"),                      # pull, drift up
+]
+
+
 def _kenburns_segment(images: list[str], dur: float, size, fps: int,
-                      lower_third: str | None, out: Path, fade_in: float = 0.0):
-    """Render one mod segment: N fit-over-blur zoompan shots concatenated, with an
+                      lower_third: str | None, out: Path, fade_in: float = 0.0,
+                      xfade: float = 0.35, target_shot: float = 3.8):
+    """Render one mod segment: fit-over-blur zoompan shots CROSS-FADED together, with an
     optional lower-third overlay, sized to the frame, lasting exactly `dur`.
 
-    `fade_in` adds a short fade-from-black at the segment start — a clean pattern
-    interrupt that marks each new countdown entry (retention)."""
+    Shots are kept short (~`target_shot`s, cycling the available images) with a strong
+    pushed zoom + pan, and dissolved into each other (`xfade`) instead of hard-cut, for
+    a smoother, more dynamic feel. `fade_in` adds a fade-from-black at the segment start
+    (a clean pattern interrupt marking each new countdown entry)."""
     W, H = size
     fw, fh = int(W * 0.92), int(H * 0.92)
-    imgs = images or []
-    n = max(1, min(len(imgs), 6)) if imgs else 1   # use up to 6 images per mod
-    imgs = (imgs[:n] if imgs else [])
-    per = dur / n
+    imgs = images or [images[0]] if images else []
+    n = max(len(imgs), min(10, round(dur / target_shot)))   # ~3.8s/shot, cycle images
+    xf = xfade if n > 1 else 0.0
+    # With (n-1) overlaps of xf seconds, per-shot length to land exactly on `dur`.
+    per = (dur + (n - 1) * xf) / n
     frames = max(1, round(per * fps))
+    shot_imgs = [imgs[k % len(imgs)] for k in range(n)]
 
     ff = _ff()
     args = [ff, "-y", "-v", "error"]
-    for img in imgs:
-        args += ["-loop", "1", "-t", f"{per:.3f}", "-i", img]
+    for img in shot_imgs:
+        args += ["-loop", "1", "-t", f"{per + 0.05:.3f}", "-i", img]
     if lower_third:
         args += ["-i", lower_third]
-    lt_idx = len(imgs)
+    lt_idx = len(shot_imgs)
 
     parts, labels = [], []
-    moves = [(1.0, 1.05), (1.05, 1.0), (1.0, 1.04), (1.04, 1.0)]
     for k in range(n):
-        z0, z1 = moves[k % len(moves)]
+        z0, z1, xexpr, yexpr = _MOVES[k % len(_MOVES)]
         zexpr = f"{z0}+({z1-z0})*on/{frames}"
         parts.append(
             f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
             f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.08,setsar=1,"
             f"trim=end_frame={frames},setpts=PTS-STARTPTS[bg{k}];"
             f"[{k}:v]scale={fw}:{fh}:force_original_aspect_ratio=decrease,setsar=1[ff{k}];"
-            f"[ff{k}]zoompan=z='{zexpr}':d={frames}:x='iw/2-(iw/zoom/2)':"
-            f"y='ih/2-(ih/zoom/2)':s={fw}x{fh}:fps={fps},"
+            f"[ff{k}]zoompan=z='{zexpr}':d={frames}:x='{xexpr}':y='{yexpr}':"
+            f"s={fw}x{fh}:fps={fps},"
             f"trim=end_frame={frames},setpts=PTS-STARTPTS[fz{k}];"
-            f"[bg{k}][fz{k}]overlay=(W-w)/2:(H-h)/2:shortest=1[s{k}];")
+            f"[bg{k}][fz{k}]overlay=(W-w)/2:(H-h)/2:shortest=1,"
+            f"format=yuv420p[s{k}];")
         labels.append(f"[s{k}]")
-    chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[vc];"
+    chain = "".join(parts)
+    if n == 1:
+        chain += "[s0]copy[vc];"
+    else:
+        # Cross-dissolve the shots: xfade_k starts at k*(per-xf).
+        prev = "[s0]"
+        for k in range(1, n):
+            off = k * (per - xf)
+            outl = "[vc]" if k == n - 1 else f"[x{k}]"
+            chain += (f"{prev}[s{k}]xfade=transition=fade:duration={xf:.3f}:"
+                      f"offset={off:.3f}{outl};")
+            prev = outl
     if lower_third:
         chain += f"[vc][{lt_idx}:v]overlay=0:0[vo];"
     else:
@@ -346,11 +374,18 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     else:
         fc += ";[premix]anull[aout]"
     amap = "[aout]"
-    # Video chain: burn captions, else pass through (re-encode either way once captions
-    # are on; without captions we copy for speed).
+    # Video chain: a consistent cinematic grade (cool shadows, warm highlights, a touch
+    # more contrast/vibrance) + burned captions. Re-encode once if either is on; else
+    # copy the concatenated video for speed.
+    vf = []
+    if cfg.get("color_grade", True):
+        vf.append("eq=contrast=1.06:saturation=1.12:gamma=0.98,"
+                  "colorbalance=rs=-0.03:bs=0.05:rh=0.05:bh=-0.04")
     if ass_path:
         esc = str(ass_path).replace("\\", "/").replace(":", "\\:")
-        fc += f";[0:v]subtitles='{esc}'[vout]"
+        vf.append(f"subtitles='{esc}'")
+    if vf:
+        fc += ";[0:v]" + ",".join(vf) + "[vout]"
         vmap, vcopy = "[vout]", False
     else:
         vmap, vcopy = "0:v", True

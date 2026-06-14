@@ -26,7 +26,8 @@ class TTSProvider(abc.ABC):
             if not seg.narration.strip():
                 continue
             out = out_dir / f"{seg.segment_id}.mp3"
-            self.synth(seg.narration, out)
+            from .pronounce import speakable
+            self.synth(speakable(seg.narration), out)   # fix pronunciation for audio only
             if do_enhance:               # master to close-mic'd, broadcast level
                 from .enhance import enhance_file
                 enhance_file(out)
