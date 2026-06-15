@@ -20,8 +20,8 @@ _V2 = "https://api.nexusmods.com/v2/graphql"
 DEFAULT_GRAPHQL_CATEGORIES = {
     "weapons": ["Weapons", "Weapons and Armour"],
     "armor": ["Armour", "Weapons and Armour"],
-    "new_lands": ["Quests and Adventures", "Dungeons", "Guilds/Factions",
-                  "Locations - Vanilla", "Player homes"],
+    "new_lands": ["Quests and Adventures"],   # filtered to true new lands in autospec
+    "quests": ["Quests and Adventures"],       # filtered to pure quest mods in autospec
     "graphics": ["Visuals and Graphics", "Models and Textures", "Environmental"],
     "gameplay": ["Gameplay", "Overhauls", "Combat", "Immersion"],
     "followers": ["Followers & Companions"],

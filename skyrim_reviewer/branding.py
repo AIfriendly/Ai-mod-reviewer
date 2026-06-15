@@ -16,14 +16,14 @@ POWER_WORDS = ["BEST", "INSANE", "ULTIMATE", "ESSENTIAL", "GAME-CHANGING", "MUST
 CATEGORY_NOUNS = {
     "weapons": "WEAPON", "armor": "ARMOR", "new_lands": "NEW LANDS",
     "graphics": "GRAPHICS", "gameplay": "GAMEPLAY", "magic": "MAGIC",
-    "followers": "FOLLOWER", "combat": "COMBAT",
+    "followers": "FOLLOWER", "combat": "COMBAT", "quests": "QUEST",
 }
 
 # A scroll-stopping accent keyword per category (less generic than always "BEST").
 CATEGORY_HOOKS = {
     "magic": "GOD-TIER", "weapons": "DEADLY", "gameplay": "GAME-CHANGING",
     "graphics": "NEXT-GEN", "new_lands": "EPIC", "armor": "LEGENDARY",
-    "followers": "BEST",
+    "followers": "BEST", "quests": "EPIC",
 }
 
 
@@ -105,8 +105,10 @@ def thumbnail_variants_text(category_title: str, limit: int = 3,
 
 # Category-specific search keywords (what people actually type on YouTube).
 SEO_KEYWORDS = {
-    "new_lands": ["skyrim new lands mods", "skyrim quest mods", "skyrim dlc mods",
-                  "skyrim adventure mods", "skyrim new worldspace", "skyrim expansion mods"],
+    "new_lands": ["skyrim new lands mods", "skyrim new worldspace", "skyrim dlc mods",
+                  "skyrim exploration mods", "skyrim new island", "skyrim expansion mods"],
+    "quests": ["skyrim quest mods", "skyrim best quest mods", "skyrim story mods",
+               "skyrim questline mods", "skyrim adventure mods", "skyrim dlc sized quest"],
     "magic": ["skyrim magic mods", "skyrim spell mods", "skyrim best spells",
               "skyrim mage build", "skyrim magic overhaul"],
     "weapons": ["skyrim weapon mods", "skyrim best weapons", "skyrim sword mods",
@@ -121,7 +123,8 @@ SEO_KEYWORDS = {
                   "skyrim best followers", "skyrim custom follower"],
 }
 _HASHTAGS = {
-    "new_lands": ["#newlands", "#questmods"], "magic": ["#magic", "#spells"],
+    "new_lands": ["#newlands", "#exploration"], "quests": ["#questmods", "#skyrimquests"],
+    "magic": ["#magic", "#spells"],
     "weapons": ["#weapons"], "armor": ["#armor"], "graphics": ["#graphics", "#enb"],
     "gameplay": ["#gameplay"], "followers": ["#followers"],
 }

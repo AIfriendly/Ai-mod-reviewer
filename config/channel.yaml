@@ -21,9 +21,13 @@ categories:
     nexus_category_ids: [54, 60, 103, 36]  # Armour; Clothing & Accessories; Shields; Weapons+Armour
     search_terms: ["armor", "armour", "clothing", "outfit"]
   - id: new_lands
-    title: "Best Skyrim New Lands & Quest Mods"
-    nexus_category_ids: [89, 35, 88]     # Locations - New; Quests and Adventures; Dungeons
-    search_terms: ["new lands", "worldspace", "quest", "expansion"]
+    title: "Best Skyrim New Lands Mods"
+    nexus_category_ids: [89, 35]         # Locations - New; Quests and Adventures (filtered to lands)
+    search_terms: ["new lands", "worldspace", "island", "explore"]
+  - id: quests
+    title: "Best Skyrim Quest Mods"
+    nexus_category_ids: [35]             # Quests and Adventures (filtered to pure quests)
+    search_terms: ["quest", "questline", "story", "adventure"]
   - id: graphics
     title: "Best Skyrim Graphics & Visual Mods"
     nexus_category_ids: [62, 29, 97, 74]  # Visuals & Graphics; Models & Textures; ENB/ReShade; Environmental

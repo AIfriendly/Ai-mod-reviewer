@@ -68,16 +68,29 @@ _FLAVOUR = {
         ],
     },
     "new_lands": {
-        "title": "Best Skyrim New Lands & Quest Mods",
+        "title": "Best Skyrim New Lands Mods",
         "noun": "new lands mods",
         "subject": "exploration",
         "values": [
-            "It's the kind of adventure that makes Skyrim feel enormous all over again.",
+            "It's a whole new worldspace to explore that makes Skyrim feel enormous all over again.",
             "Whole new places to explore means dozens of fresh hours added to your playthrough.",
             "The world-building and atmosphere here genuinely rival the base game's best moments.",
-            "If you've explored every inch of vanilla Skyrim, this is exactly the fix you need.",
-            "It drops in seamlessly, so you can stumble into the adventure right in your current save.",
+            "If you've explored every inch of vanilla Skyrim, this new land is exactly the fix you need.",
+            "It drops in seamlessly, so you can sail or wander off to somewhere brand new from your current save.",
             "For anyone who plays Skyrim for the journey and the discovery, this is essential.",
+        ],
+    },
+    "quests": {
+        "title": "Best Skyrim Quest Mods",
+        "noun": "quest mods",
+        "subject": "questing",
+        "values": [
+            "It's a properly written questline with real choices and consequences, not just a fetch quest.",
+            "The voice acting and storytelling here punch well above what you'd expect from a free mod.",
+            "It weaves into the world so naturally you'll swear it shipped with the base game.",
+            "If the main quest left you wanting more, this scratches exactly that itch.",
+            "Hours of fresh story content, all of it lore-friendly and lovingly made.",
+            "For anyone who plays Skyrim for the stories, this one belongs in your load order.",
         ],
     },
     "weapons": {
@@ -157,9 +170,14 @@ _WHO_FOR = {
         "Roleplayers and immersion fans especially are going to love what this does.",
     ],
     "new_lands": [
-        "If you've already cleared every vanilla dungeon twice, this is exactly the fresh content you're craving.",
+        "If you've already explored every inch of vanilla Skyrim, this brand-new land is what you're craving.",
         "This one's for the explorers — the players who fast-travel the least and wander the most.",
-        "Anyone who plays Skyrim mainly for the questing and the stories is going to be thrilled with this.",
+        "Anyone who lives for that 'what's over the next hill' feeling is going to love this.",
+    ],
+    "quests": [
+        "If you play Skyrim mainly for the stories, this questline is right up your alley.",
+        "This is for anyone who finished the main quest wishing there were more like it.",
+        "Roleplayers and lore nerds especially are going to get a lot out of this one.",
     ],
     "weapons": [
         "Melee builds will get the most mileage here, but there's something for archers and mages too.",
@@ -552,6 +570,71 @@ def _is_showcase(mod: Mod) -> bool:
     return not _JUNK.search(mod.name or "")
 
 
+def _base_key(name: str) -> str:
+    """Normalised title used to dedupe variants of the same mod (base vs. patch/edition/
+    'navmeshed'/translation), so a countdown never features the same content twice."""
+    n = re.sub(r"\(.*?\)", " ", name or "").lower()
+    n = n.split(" - ")[0]                              # drop "- Navmeshed", "- Reboot"
+    n = re.sub(r"\b(sse|se|ae|le|special edition)\b", " ", n)
+    return re.sub(r"[^a-z0-9]+", "", n)
+
+
+def _dedupe(mods: list[Mod]) -> list[Mod]:
+    """Keep the first (highest-endorsed) mod per normalised base title."""
+    seen, out = set(), []
+    for m in mods:
+        k = _base_key(m.name)
+        if k and k not in seen:
+            seen.add(k)
+            out.append(m)
+    return out
+
+
+# Nexus has no separate "New Lands" category — new explorable worldspaces and pure
+# quest mods both live under "Quests and Adventures". These filters split them so a
+# "new lands" video is genuinely new lands (islands/regions/worldspaces), and a
+# "quests" video is genuinely quests.
+_LAND_NAME = re.compile(
+    r"\b(island|isle|isles|lands?|region|realm|continent|shores?|vale|expanse|reach|"
+    r"moor|coast|peninsula|archipelago|province|valley|frontier|borderlands|wilds|"
+    r"midwood|elsweyr|cyrodiil|morrowind|solstheim|bruma|atmora|akavir)\b", re.I)
+_LAND_SUMM = re.compile(
+    r"\b(new lands?|worldspace|world space|explorable (?:world|land|island|region)|"
+    r"dlc-?sized|adds a (?:new )?(?:land|worldspace|island)|"
+    r"brand new (?:land|world|island|region))\b", re.I)
+_LAND_EXCL = re.compile(
+    r"(\b(quest|questline|murder|contract|dilemma|brotherhood|chapter|tale of|"
+    r"prince of|story|romance|mystery|dungeon|barrow|crypt|tomb|cave|ruin|encounter|"
+    r"encounters|patch|fix|less rude|navmesh|navmeshed|addon|add-on)\b"
+    # language / translation versions of a mod — never feature these:
+    r"|\b(spanish|german|russian|french|italian|polish|portuguese|chinese|japanese|"
+    r"korean|czech|deutsch|espanol|francais|francaise|italiano|polski|portugues|"
+    r"insel|corregido|traduccion|traduzione|traducao|translation|vostfr|"
+    r"ru|rus|chs|cht|esp|ger|ita|pol|pl|fra|jp|kr|cz|de|dv|ptbr|nl|tr|hu)\b"
+    r"|pt[\s._-]?br|spolszczenie|polski|nederlands|turkce|magyar|"
+    r"\bSE-\d|\d+\.\d+)", re.I)        # version numbers ~= reuploads/translations
+_QUEST_SIG = re.compile(
+    r"\b(quest|questline|adventure|story|mystery|murder|investigat|dark brotherhood|"
+    r"thieves guild|companions|college|daedric|questing|side quest|main quest)\b", re.I)
+
+
+def _is_new_land(mod: Mod) -> bool:
+    nm, sm = mod.name or "", mod.summary or ""
+    if not nm.isascii() or _LAND_EXCL.search(nm):     # skip foreign-title translations
+        return False
+    return bool(_LAND_NAME.search(nm) or _LAND_SUMM.search(nm + " " + sm))
+
+
+def _is_quest(mod: Mod) -> bool:
+    nm, sm = mod.name or "", mod.summary or ""
+    if _LAND_EXCL.search(nm) or _is_new_land(mod):
+        return False                              # pure quests only (not new lands)
+    return bool(_QUEST_SIG.search(nm + " " + sm))
+
+
+_CONTENT_FILTERS = {"new_lands": _is_new_land, "quests": _is_quest}
+
+
 def next_volume(category: str, domain: str | None = None) -> int:
     """Next volume number for a category's series = highest 'Vol. N'/'Part N' already
     published in that category + 1 (falls back to the video count)."""
@@ -586,10 +669,12 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     if not names:
         raise ValueError(f"No GraphQL categories mapped for '{category}'.")
     seen = set(seen_mod_ids(domain)) | set(exclude_ids or set())
+    cfilter = _CONTENT_FILTERS.get(category)      # e.g. new-lands-only / quests-only
     fresh: list[Mod] = []
     for pages in (1, 3, 6, 10, 16):
         pool = discover_mods(domain, names, count=max(count * 6, 60), pages=pages)
-        fresh = [m for m in pool if m.mod_id not in seen and _is_showcase(m)]
+        fresh = _dedupe([m for m in pool if m.mod_id not in seen and _is_showcase(m)
+                         and (cfilter is None or cfilter(m))])
         if len(fresh) >= count:
             break
     chosen = fresh[:count]
