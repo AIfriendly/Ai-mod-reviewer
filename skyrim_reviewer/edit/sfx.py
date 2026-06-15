@@ -34,21 +34,43 @@ def make_whoosh(out: Path, dur: float = 0.45) -> Path:
     return out
 
 
+def make_riser(out: Path, dur: float = 3.5) -> Path:
+    """Synthesize a build-up 'riser': pink noise that swells from near-silence to a peak,
+    opening up its top end — placed so it crests right as the #1 pick is revealed."""
+    if out.exists():
+        return out
+    out.parent.mkdir(parents=True, exist_ok=True)
+    af = (f"highpass=f=300,"
+          f"volume='0.5*pow(min(t/{dur:.3f},1),3)':eval=frame,"
+          f"afade=t=out:st={dur-0.15:.3f}:d=0.15,"
+          f"aformat=channel_layouts=stereo:sample_rates=44100")
+    _run([_ff(), "-y", "-v", "error", "-f", "lavfi", "-t", f"{dur:.3f}",
+          "-i", "anoisesrc=color=pink:amplitude=0.8", "-af", af, str(out)])
+    return out
+
+
 def build_sfx_track(starts: list[float], total: float, out: Path,
-                    whoosh: Path | None = None) -> Path | None:
-    """Render a full-length silent track with a whoosh at each start time (seconds).
-    Returns the track path, or None if there are no cues."""
-    if not starts:
+                    whoosh: Path | None = None, riser_end: float | None = None,
+                    riser_dur: float = 3.5) -> Path | None:
+    """Render a full-length silent track with a whoosh at each start time (seconds) and,
+    optionally, a build-up riser that crests at `riser_end` (the #1 reveal). Returns the
+    track path, or None if there are no cues."""
+    if not starts and riser_end is None:
         return None
     wh = whoosh or make_whoosh(out.parent / "whoosh.wav")
-    n = len(starts)
     args = [_ff(), "-y", "-v", "error"]
-    for _ in range(n):
+    delays = []
+    for st in starts:
         args += ["-i", str(wh)]
-    parts = []
-    for i, st in enumerate(starts):
-        ms = max(0, int(st * 1000))
-        parts.append(f"[{i}:a]adelay={ms}|{ms}[d{i}];")
+        delays.append(max(0, int(st * 1000)))
+    riser_idx = None
+    if riser_end is not None:
+        riser = make_riser(out.parent / "riser.wav", riser_dur)
+        riser_idx = len(delays)
+        args += ["-i", str(riser)]
+        delays.append(max(0, int((riser_end - riser_dur) * 1000)))
+    n = len(delays)
+    parts = [f"[{i}:a]adelay={ms}|{ms}[d{i}];" for i, ms in enumerate(delays)]
     mix = "".join(f"[d{i}]" for i in range(n))
     chain = ("".join(parts) + mix +
              f"amix=inputs={n}:duration=longest:normalize=0,"

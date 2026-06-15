@@ -332,7 +332,10 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     if cfg.get("sfx", True):
         try:
             from .sfx import build_sfx_track
-            sfx_path = build_sfx_track(mod_starts, total_dur, seg_dir / "sfx.wav")
+            # Build a riser that crests on the #1 reveal (the last mod segment).
+            riser_end = mod_starts[-1] if len(mod_starts) >= 3 else None
+            sfx_path = build_sfx_track(mod_starts, total_dur, seg_dir / "sfx.wav",
+                                       riser_end=riser_end)
         except Exception:
             sfx_path = None
 
@@ -370,9 +373,13 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         args += ["-i", str(sfx_path)]
         si = next_idx
         fc += (f";[{si}:a]aresample=44100,aformat=channel_layouts=stereo[sfxa];"
-               f"[premix][sfxa]amix=inputs=2:duration=first:normalize=0[aout]")
+               f"[premix][sfxa]amix=inputs=2:duration=first:normalize=0[amix]")
     else:
-        fc += ";[premix]anull[aout]"
+        fc += ";[premix]anull[amix]"
+    # Master the final mix to YouTube's loudness target (-14 LUFS) so it isn't quieter
+    # than competitors after the platform's normalisation.
+    master_lufs = cfg.get("master_lufs", -14)
+    fc += f";[amix]loudnorm=I={master_lufs}:TP=-1.5:LRA=11[aout]"
     amap = "[aout]"
     # Video chain: a consistent cinematic grade (cool shadows, warm highlights, a touch
     # more contrast/vibrance) + burned captions. Re-encode once if either is on; else

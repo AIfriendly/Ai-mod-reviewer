@@ -62,6 +62,7 @@ video:
   # codec: h264_nvenc       # force GPU encode (or libx264 to force CPU)
   preset: "faster"          # x264 speed/quality; veryfast < faster < medium < slow
   music_lufs: -26           # background music loudness (lower = quieter under narration)
+  master_lufs: -14          # final mix loudness (YouTube's normalization target)
   captions: true            # burn animated word-chunk captions into the video
   sfx: true                 # whoosh sting at each mod reveal
   color_grade: true         # consistent cinematic grade across the whole video
