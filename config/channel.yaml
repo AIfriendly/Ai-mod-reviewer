@@ -66,6 +66,15 @@ video:
   captions: true            # burn animated word-chunk captions into the video
   sfx: true                 # whoosh sting at each mod reveal
   color_grade: true         # consistent cinematic grade across the whole video
+  # AI image-to-video: turn the still mod screenshots into real MOTION clips with
+  # LTX-Video on Kaggle's free GPU (same KAGGLE_* creds as the voice path). Each unique
+  # image becomes a short clip, stitched in place of Ken Burns pans; any image without a
+  # clip falls back to Ken Burns, so a GPU hiccup never breaks a render. Clips are cached
+  # under work/<slug>/i2v/. Heavier on GPU quota — opt-in.
+  i2v: false                # enable AI image-to-video motion (else Ken Burns pans)
+  i2v_max_clips: 0          # 0 = no cap (maximise coverage); else clips/video to save quota
+  i2v_steps: 30             # LTX denoising steps (higher = nicer + slower)
+  i2v_frames: 97            # frames per clip (8k+1); 97 ≈ 4s @ 24fps
   # threads: 8              # default: all CPU cores
   # Multi-shot Ken Burns: one mod image becomes a new "camera move" every
   # ~shot_seconds, so a single permitted screenshot plays like b-roll.

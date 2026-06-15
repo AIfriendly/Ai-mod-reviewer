@@ -164,6 +164,61 @@ def _video_segment(video: str, dur: float, size, fps: int,
     _run(args)
 
 
+def _i2v_segment(clips: list[str], dur: float, size, fps: int,
+                 lower_third: str | None, out: Path, fade_in: float = 0.0,
+                 xfade: float = 0.4, target_shot: float = 3.8):
+    """Render one mod segment from AI image-to-video MOTION clips: cover-fill each clip
+    to frame, loop if short, cross-dissolve the shots and overlay the lower-third — the
+    live-motion counterpart to `_kenburns_segment`. The clips already move, so no zoompan
+    is added (that would compound into queasy motion)."""
+    W, H = size
+    clips = [c for c in clips if c]
+    n = max(len(clips), min(10, round(dur / target_shot)))
+    xf = xfade if n > 1 else 0.0
+    per = (dur + (n - 1) * xf) / n
+    frames = max(1, round(per * fps))
+    shot_clips = [clips[k % len(clips)] for k in range(n)]
+
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    for clip in shot_clips:
+        args += ["-stream_loop", "-1", "-t", f"{per + 0.1:.3f}", "-i", clip]
+    if lower_third:
+        args += ["-loop", "1", "-i", lower_third]
+    lt_idx = len(shot_clips)
+
+    parts, labels = [], []
+    for k in range(n):
+        parts.append(
+            f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"setsar=1,fps={fps},eq=brightness=-0.04:saturation=1.05,"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS,format=yuv420p[s{k}];")
+        labels.append(f"[s{k}]")
+    chain = "".join(parts)
+    if n == 1:
+        chain += "[s0]copy[vc];"
+    else:
+        prev = "[s0]"
+        for k in range(1, n):
+            off = k * (per - xf)
+            outl = "[vc]" if k == n - 1 else f"[x{k}]"
+            chain += (f"{prev}[s{k}]xfade=transition=fade:duration={xf:.3f}:"
+                      f"offset={off:.3f}{outl};")
+            prev = outl
+    if lower_third:
+        chain += f"[vc][{lt_idx}:v]overlay=0:0[vo];"
+    else:
+        chain += "[vc]copy[vo];"
+    if fade_in > 0:
+        chain += f"[vo]fade=t=in:st=0:d={fade_in:.2f}[v]"
+    else:
+        chain += "[vo]copy[v]"
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+             "-preset", "veryfast", str(out)]
+    _run(args)
+
+
 def _hook_montage(images: list[str], dur: float, size, fps: int,
                   title_png: str, out: Path):
     """Cold open: a fast-cut, full-bleed montage of the actual best mod shots with the
@@ -266,6 +321,15 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         footage = []
 
     spoken = [s for s in script.segments if (s.audio_path and Path(s.audio_path).exists())]
+    # AI image-to-video motion clips (optional; Kaggle GPU). Maps image path -> clip.
+    # Generated once for the whole video; any image without a clip falls back to Ken Burns.
+    i2v_clips: dict[str, str] = {}
+    if cfg.get("i2v"):
+        try:
+            from .i2v import plan_and_generate
+            i2v_clips = plan_and_generate(project, seg_dir.parent, cfg)
+        except Exception:
+            i2v_clips = {}
     # Countdown ranks: mod segments run from #N down to #1 in order.
     n_mods = sum(1 for s in spoken if getattr(s, "kind", "") == "mod")
     # Best hero shots (brightest first) for the cold-open montage.
@@ -290,8 +354,13 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             lt = seg_dir / f"lt_{i:02d}.png"
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank)
-            if videos:                       # real author B-roll beats Ken Burns stills
+            # Prefer real author B-roll; then AI motion clips of the stills; then Ken Burns.
+            mod_clips = [i2v_clips[p] for p in images
+                         if p in i2v_clips and Path(i2v_clips[p]).exists()]
+            if videos:                       # real author B-roll beats everything
                 _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
+            elif mod_clips:                  # AI image-to-video motion of the screenshots
+                _i2v_segment(mod_clips, dur, size, fps, str(lt), out, fade_in=0.3)
             else:
                 _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3)
         else:
