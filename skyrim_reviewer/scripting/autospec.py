@@ -26,6 +26,10 @@ from ..models import Mod
 _MONTHS = ["January", "February", "March", "April", "May", "June", "July",
            "August", "September", "October", "November", "December"]
 
+# Per-mod narration length target. At ~176 wpm, ~120 words x ~16 mods + intro/outro
+# lands the video in the channel's 10-15 minute band.
+_MIN_WORDS_PER_MOD = 120
+
 # Spoken ordinals for the countdown ("Number twelve", ... "number one").
 _ORD = {
     1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven",
@@ -439,35 +443,41 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
     who = _WHO_FOR.get(category, _WHO_FOR_GENERIC)
     # Editorial beats: one category value + one "who it's for", phrased from the pools
     # at offsets seeded per video so different uploads don't reuse the same lines.
+    # Two distinct category "value" beats + a "who it's for" + a data-proof line, all
+    # phrased from per-video-seeded offsets so uploads don't reuse the same lines.
     value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
+    value2 = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
     who_line = who[(idx + rng.randint(0, len(who) - 1)) % len(who)]
     proof = _proof_sentence(mod, rng)
 
     # Editorial beats, de-duplicated so no sentence repeats inside one entry.
     extras = []
-    for s in [value, who_line] + ([proof] if proof else []):
+    for s in [value, who_line, value2] + ([proof] if proof else []):
         if s and s not in extras:
             extras.append(s)
+
+    def _pad(text: str, target: int) -> str:
+        """Top up to ~target words with generic lines not already used (keeps each
+        entry long enough to land the video in the 10-15 min band at ~176 wpm)."""
+        for cand in rng.sample(_GENERIC_VALUES, len(_GENERIC_VALUES)):
+            if len(text.split()) >= target:
+                break
+            if cand not in text:
+                text += " " + cand
+        return text
 
     if rank == 1:
         body = (f"And finally, my number one pick on the whole list: {name} by {author}. "
                 + (desc + " " if desc else "") + " ".join(extras)
                 + " If you install one single mod from this entire video, make it this "
                 "one — it earns the top spot.")
-        return _WS.sub(" ", body).strip()
+        return _WS.sub(" ", _pad(body, _MIN_WORDS_PER_MOD + 15)).strip()
 
     lead = _LEADS[(idx + rng.randint(0, len(_LEADS) - 1)) % len(_LEADS)].format(
         o=_ORD.get(rank, str(rank)))
     rng.shuffle(extras)              # vary ordering so the structure isn't identical
     body = f"{lead} {name} by {author}. " + (desc + " " if desc else "") + " ".join(extras)
-    # Keep each entry substantial enough to clear the 8-minute target (~176 wpm),
-    # padding with a generic line not already used in this entry.
-    if len(body.split()) < 85:
-        for cand in rng.sample(_GENERIC_VALUES, len(_GENERIC_VALUES)):
-            if cand not in body:
-                body += " " + cand
-                break
-    return _WS.sub(" ", body).strip()
+    return _WS.sub(" ", _pad(body, _MIN_WORDS_PER_MOD)).strip()
 
 
 def build_spec(category: str, mods: list[Mod], *, part: int | None = None,

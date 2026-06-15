@@ -48,123 +48,162 @@ segments:
   ref: 1
   narration: 'Next up, number sixteen: The Lonely Island by fdp8383. Go to the docks at Windhelm to hear
     rumors of an island where people are disappearing. Travel to the island and uncover the mystery surrounding
-    the disappearings and be handsomely rewarded! Anyone who lives for that ''what''s over the next hill''
-    feeling is going to love this. The world-building and atmosphere here genuinely rival the base game''s
-    best moments. Combined with the other picks on this list, it adds up to a dramatically better Skyrim.'
+    the disappearings and be handsomely rewarded! It drops in seamlessly, so you can sail or wander off
+    to somewhere brand new from your current save. The world-building and atmosphere here genuinely rival
+    the base game''s best moments. If you''ve already explored every inch of vanilla Skyrim, this brand-new
+    land is what you''re craving. Combined with the other picks on this list, it adds up to a dramatically
+    better Skyrim. If you somehow haven''t tried it yet, consider this your sign to fix that. It''s free,
+    it''s polished, and it slots neatly into almost any load order.'
 - kind: mod
   ref: 2
   narration: 'Number fifteen: Bleakrock Isle by WMDBloodHunter. The infamous starting island for the Ebonheart
-    Pact reimagined 949 years later! It drops in seamlessly, so you can sail or wander off to somewhere
-    brand new from your current save. And it''s not just me who rates it — the author is still actively
-    updating it, with a patch as recent as June 2026. This one''s for the explorers — the players who
-    fast-travel the least and wander the most. It''s free, it''s polished, and it slots neatly into almost
-    any load order.'
+    Pact reimagined 949 years later! Whole new places to explore means dozens of fresh hours added to
+    your playthrough. If you''ve explored every inch of vanilla Skyrim, this new land is exactly the fix
+    you need. For what it''s worth, the author is still actively updating it, with a patch as recent as
+    June 2026. Anyone who lives for that ''what''s over the next hill'' feeling is going to love this.
+    It''s the kind of mod that quietly makes everything around it better. If you somehow haven''t tried
+    it yet, consider this your sign to fix that. It''s free, it''s polished, and it slots neatly into
+    almost any load order.'
 - kind: mod
   ref: 3
-  narration: 'Then at number fourteen: Anomaly - Lingering Darkness by kylefas. Enter a hidden valley
-    in search of a lost Dwemer power. Enter the zone. This mod adds a new world space to traverse, with
-    deadly enemies to contend with. If you''ve already explored every inch of vanilla Skyrim, this brand-new
-    land is what you''re craving. It''s a whole new worldspace to explore that makes Skyrim feel enormous
-    all over again. It''s stable, well-supported, and beloved for good reason.'
+  narration: 'At number fourteen: Anomaly - Lingering Darkness by kylefas. Enter a hidden valley in search
+    of a lost Dwemer power. Enter the zone. This mod adds a new world space to traverse, with deadly enemies
+    to contend with. It''s a whole new worldspace to explore that makes Skyrim feel enormous all over
+    again. The world-building and atmosphere here genuinely rival the base game''s best moments. Anyone
+    who lives for that ''what''s over the next hill'' feeling is going to love this. It''s stable, well-supported,
+    and beloved for good reason. This is one of those installs you''ll keep in every single playthrough.
+    If you somehow haven''t tried it yet, consider this your sign to fix that. It''s the kind of mod that
+    quietly makes everything around it better.'
 - kind: mod
   ref: 4
-  narration: 'Next up, number thirteen: The Island at the Edge of Nirn by Hronnoss. An atmospheric adventure
-    that takes inspiration from games like Myst, as well as the Thief series. It will see the player explore
-    an obscure mysterious island while slowly trying to uncover it''s history. It drops in seamlessly,
-    so you can sail or wander off to somewhere brand new from your current save. This one''s for the explorers
-    — the players who fast-travel the least and wander the most. And it''s not just me who rates it —
-    the author is still actively updating it, with a patch as recent as February 2026.'
-- kind: mod
-  ref: 5
-  narration: 'Kicking off number twelve: More to do in the Harthstone Isles by Betalille. Head back to
-    the Harthstone Isles to help the East Empire Company again. Whole new places to explore means dozens
-    of fresh hours added to your playthrough. And it''s not just me who rates it — the author is still
-    actively updating it, with a patch as recent as February 2025. If you''ve already explored every inch
-    of vanilla Skyrim, this brand-new land is what you''re craving. If you somehow haven''t tried it yet,
+  narration: 'Kicking off number thirteen: The Island at the Edge of Nirn by Hronnoss. An atmospheric
+    adventure that takes inspiration from games like Myst, as well as the Thief series. It will see the
+    player explore an obscure mysterious island while slowly trying to uncover it''s history. If you''ve
+    explored every inch of vanilla Skyrim, this new land is exactly the fix you need. Whole new places
+    to explore means dozens of fresh hours added to your playthrough. For what it''s worth, the author
+    is still actively updating it, with a patch as recent as February 2026. This one''s for the explorers
+    — the players who fast-travel the least and wander the most. If you somehow haven''t tried it yet,
     consider this your sign to fix that.'
 - kind: mod
+  ref: 5
+  narration: 'Then at number twelve: More to do in the Harthstone Isles by Betalille. Head back to the
+    Harthstone Isles to help the East Empire Company again. It drops in seamlessly, so you can sail or
+    wander off to somewhere brand new from your current save. The numbers back it up: the author is still
+    actively updating it, with a patch as recent as February 2025. The world-building and atmosphere here
+    genuinely rival the base game''s best moments. If you''ve already explored every inch of vanilla Skyrim,
+    this brand-new land is what you''re craving. It''s the kind of mod that quietly makes everything around
+    it better. It''s stable, well-supported, and beloved for good reason. If you somehow haven''t tried
+    it yet, consider this your sign to fix that.'
+- kind: mod
   ref: 6
-  narration: 'Number eleven: Isle of Storm by omnijxs. Defeat the foes and solve the puzzles of Isle of
-    Storm to unlock powers of ancient Nords. Anyone who lives for that ''what''s over the next hill''
-    feeling is going to love this. If you''ve explored every inch of vanilla Skyrim, this new land is
-    exactly the fix you need. It''s free, it''s polished, and it slots neatly into almost any load order.'
+  narration: 'Coming in at number eleven: Isle of Storm by omnijxs. Defeat the foes and solve the puzzles
+    of Isle of Storm to unlock powers of ancient Nords. It drops in seamlessly, so you can sail or wander
+    off to somewhere brand new from your current save. Anyone who lives for that ''what''s over the next
+    hill'' feeling is going to love this. It''s a whole new worldspace to explore that makes Skyrim feel
+    enormous all over again. It''s free, it''s polished, and it slots neatly into almost any load order.
+    It''s the kind of mod that quietly makes everything around it better. Combined with the other picks
+    on this list, it adds up to a dramatically better Skyrim. If you somehow haven''t tried it yet, consider
+    this your sign to fix that.'
 - kind: mod
   ref: 7
-  narration: 'Number ten: The Frontier to Cyrodiil - Fight Against The Thalmor II EN by Dalarin. The Thalmor
-    closed the Frontier to Cyrodiil. For you to discover why ! Reach the Thalmor Checkpoint, discover
-    why the Thalmor are here and why they closed the frontier to Cyrodiil. This one''s for the explorers
-    — the players who fast-travel the least and wander the most. It drops in seamlessly, so you can sail
-    or wander off to somewhere brand new from your current save. Combined with the other picks on this
-    list, it adds up to a dramatically better Skyrim.'
+  narration: 'Next up, number ten: The Frontier to Cyrodiil - Fight Against The Thalmor II EN by Dalarin.
+    The Thalmor closed the Frontier to Cyrodiil. For you to discover why ! Reach the Thalmor Checkpoint,
+    discover why the Thalmor are here and why they closed the frontier to Cyrodiil. Whole new places to
+    explore means dozens of fresh hours added to your playthrough. This one''s for the explorers — the
+    players who fast-travel the least and wander the most. It''s a whole new worldspace to explore that
+    makes Skyrim feel enormous all over again. This is one of those installs you''ll keep in every single
+    playthrough. If you somehow haven''t tried it yet, consider this your sign to fix that. It''s stable,
+    well-supported, and beloved for good reason.'
 - kind: mod
   ref: 8
-  narration: 'Kicking off number nine: Borderlands of Skyrim by salvadorc17. The imperial have open all
+  narration: 'Number nine on the list: Borderlands of Skyrim by salvadorc17. The imperial have open all
     Border Gates of Skyrim, now explorers can travel to new areas looking for new misteries and chest.
-    For what it''s worth, it''s a genuine classic that''s been going strong since 2017. This one''s for
-    the explorers — the players who fast-travel the least and wander the most. For anyone who plays Skyrim
-    for the journey and the discovery, this is essential. Combined with the other picks on this list,
-    it adds up to a dramatically better Skyrim.'
+    And it''s not just me who rates it — it''s a genuine classic that''s been going strong since 2017.
+    The world-building and atmosphere here genuinely rival the base game''s best moments. This one''s
+    for the explorers — the players who fast-travel the least and wander the most. Combined with the other
+    picks on this list, it adds up to a dramatically better Skyrim. It''s the kind of mod that quietly
+    makes everything around it better. It''s stable, well-supported, and beloved for good reason. It''s
+    free, it''s polished, and it slots neatly into almost any load order.'
 - kind: mod
   ref: 9
-  narration: 'Coming in at number eight: Bloodmoon - Call of Solstheim Werebeasts by salvadorc17. Revive
-    the Bloodmoon story with similar elements from Morrowind in the isle of Solstheim. Anyone who lives
-    for that ''what''s over the next hill'' feeling is going to love this. And it''s not just me who rates
-    it — it''s a genuine classic that''s been going strong since 2017. For anyone who plays Skyrim for
-    the journey and the discovery, this is essential. This is one of those installs you''ll keep in every
-    single playthrough.'
+  narration: 'Number eight on the list: Bloodmoon - Call of Solstheim Werebeasts by salvadorc17. Revive
+    the Bloodmoon story with similar elements from Morrowind in the isle of Solstheim. The world-building
+    and atmosphere here genuinely rival the base game''s best moments. It''s a whole new worldspace to
+    explore that makes Skyrim feel enormous all over again. Anyone who lives for that ''what''s over the
+    next hill'' feeling is going to love this. To put that in perspective, it''s a genuine classic that''s
+    been going strong since 2017. Combined with the other picks on this list, it adds up to a dramatically
+    better Skyrim. This is one of those installs you''ll keep in every single playthrough. If you somehow
+    haven''t tried it yet, consider this your sign to fix that.'
 - kind: mod
   ref: 10
   narration: 'Number seven: The Forgotten Island by Aragorn58. One of the last inhabitants of a small
     island off the coast has asked the Dragonborn for help to stop a group of Necromancers that are kidnapping
-    people to use for their experiments. If you''ve explored every inch of vanilla Skyrim, this new land
-    is exactly the fix you need. Anyone who lives for that ''what''s over the next hill'' feeling is going
-    to love this. To put that in perspective, it''s a genuine classic that''s been going strong since
-    2016.'
+    people to use for their experiments. If you''ve already explored every inch of vanilla Skyrim, this
+    brand-new land is what you''re craving. It drops in seamlessly, so you can sail or wander off to somewhere
+    brand new from your current save. The numbers back it up: it''s a genuine classic that''s been going
+    strong since 2016. It''s the kind of mod that quietly makes everything around it better. It''s free,
+    it''s polished, and it slots neatly into almost any load order. If you somehow haven''t tried it yet,
+    consider this your sign to fix that.'
 - kind: mod
   ref: 11
-  narration: 'Next up, number six: Undaunted by kaosnyrb. Adds Dynamic repeatable quest/encounter chains
-    to any world space with a lootbox reward system. This one''s for the explorers — the players who fast-travel
-    the least and wander the most. It''s a whole new worldspace to explore that makes Skyrim feel enormous
-    all over again. It''s stable, well-supported, and beloved for good reason.'
+  narration: 'At number six: Undaunted by kaosnyrb. Adds Dynamic repeatable quest/encounter chains to
+    any world space with a lootbox reward system. If you''ve already explored every inch of vanilla Skyrim,
+    this brand-new land is what you''re craving. If you''ve explored every inch of vanilla Skyrim, this
+    new land is exactly the fix you need. The world-building and atmosphere here genuinely rival the base
+    game''s best moments. This is one of those installs you''ll keep in every single playthrough. It''s
+    the kind of mod that quietly makes everything around it better. It''s stable, well-supported, and
+    beloved for good reason. If you somehow haven''t tried it yet, consider this your sign to fix that.
+    Combined with the other picks on this list, it adds up to a dramatically better Skyrim.'
 - kind: mod
   ref: 12
-  narration: 'Next up, number five: A Witcher''s Adventure by Gardden. Bring elements from The Witcher
-    to Skyrim! Signs, Potions, more than 40 Swords, new Ingredients, new Monsters, a new Worldspace, a
-    new Skill Tree with 33 Perks and lots of new mechanics to use! If you''ve already explored every inch
-    of vanilla Skyrim, this brand-new land is what you''re craving. Whole new places to explore means
-    dozens of fresh hours added to your playthrough. It''s free, it''s polished, and it slots neatly into
-    almost any load order.'
+  narration: 'Number five: A Witcher''s Adventure by Gardden. Bring elements from The Witcher to Skyrim!
+    Signs, Potions, more than 40 Swords, new Ingredients, new Monsters, a new Worldspace, a new Skill
+    Tree with 33 Perks and lots of new mechanics to use! For anyone who plays Skyrim for the journey and
+    the discovery, this is essential. Anyone who lives for that ''what''s over the next hill'' feeling
+    is going to love this. This is one of those installs you''ll keep in every single playthrough. If
+    you somehow haven''t tried it yet, consider this your sign to fix that. It''s free, it''s polished,
+    and it slots neatly into almost any load order. It''s stable, well-supported, and beloved for good
+    reason. Combined with the other picks on this list, it adds up to a dramatically better Skyrim.'
 - kind: mod
   ref: 13
-  narration: 'Then at number four: Isle of Artaeum by Pyromanius. Contains ALL seasons of Isle of Artaeum.
-    A DLC-sized mod adding vast amounts of new content. The story is centered around the Psijic Order
-    and their long awaited return to Tamriel. For what it''s worth, it''s pulled in more than 114 thousand
-    downloads. If you''ve already explored every inch of vanilla Skyrim, this brand-new land is what you''re
-    craving. It''s a whole new worldspace to explore that makes Skyrim feel enormous all over again. It''s
-    the kind of mod that quietly makes everything around it better.'
+  narration: 'Kicking off number four: Isle of Artaeum by Pyromanius. Contains ALL seasons of Isle of
+    Artaeum. A DLC-sized mod adding vast amounts of new content. The story is centered around the Psijic
+    Order and their long awaited return to Tamriel. For anyone who plays Skyrim for the journey and the
+    discovery, this is essential. To put that in perspective, it''s pulled in more than 114 thousand downloads.
+    The world-building and atmosphere here genuinely rival the base game''s best moments. If you''ve already
+    explored every inch of vanilla Skyrim, this brand-new land is what you''re craving. If you somehow
+    haven''t tried it yet, consider this your sign to fix that. It''s the kind of mod that quietly makes
+    everything around it better.'
 - kind: mod
   ref: 14
   narration: 'Sliding in at number three: Valley of Outcasts by Roadhouse699. A freeform adventure centered
     around a large citadel in the Jerall Mountains. Over 1000 lines of voiced Dialogue and 12 quests oriented
-    for all playstyles and made to integrate well with the base game. To put that in perspective, it''s
-    a genuine classic that''s been going strong since 2018. This one''s for the explorers — the players
-    who fast-travel the least and wander the most. The world-building and atmosphere here genuinely rival
-    the base game''s best moments.'
+    for all playstyles and made to integrate well with the base game. This one''s for the explorers —
+    the players who fast-travel the least and wander the most. Whole new places to explore means dozens
+    of fresh hours added to your playthrough. The numbers back it up: it''s a genuine classic that''s
+    been going strong since 2018. It''s free, it''s polished, and it slots neatly into almost any load
+    order. This is one of those installs you''ll keep in every single playthrough. It''s stable, well-supported,
+    and beloved for good reason.'
 - kind: mod
   ref: 15
-  narration: 'Number two: Voyage to the Dreamborne Isles by mnikjom. Embark on a grand quest to strange
-    new lands, help people in need, and conquer your nightmares. For anyone who plays Skyrim for the journey
-    and the discovery, this is essential. For what it''s worth, it''s a genuine classic that''s been going
-    strong since 2018. This one''s for the explorers — the players who fast-travel the least and wander
-    the most. Combined with the other picks on this list, it adds up to a dramatically better Skyrim.'
+  narration: 'At number two: Voyage to the Dreamborne Isles by mnikjom. Embark on a grand quest to strange
+    new lands, help people in need, and conquer your nightmares. It drops in seamlessly, so you can sail
+    or wander off to somewhere brand new from your current save. For what it''s worth, it''s a genuine
+    classic that''s been going strong since 2018. Anyone who lives for that ''what''s over the next hill''
+    feeling is going to love this. For anyone who plays Skyrim for the journey and the discovery, this
+    is essential. It''s the kind of mod that quietly makes everything around it better. It''s stable,
+    well-supported, and beloved for good reason. Combined with the other picks on this list, it adds up
+    to a dramatically better Skyrim.'
 - kind: mod
   ref: 16
   narration: 'And finally, my number one pick on the whole list: Depths of the Reach by Kittytail. 10
     new spells, a new world event system, and a 2 hours long adventure that takes you to iconic locations
-    from ESO! It drops in seamlessly, so you can sail or wander off to somewhere brand new from your current
-    save. This one''s for the explorers — the players who fast-travel the least and wander the most. To
-    put that in perspective, it''s pulled in more than 344 thousand downloads. If you install one single
-    mod from this entire video, make it this one — it earns the top spot.'
+    from ESO! If you''ve explored every inch of vanilla Skyrim, this new land is exactly the fix you need.
+    This one''s for the explorers — the players who fast-travel the least and wander the most. It''s a
+    whole new worldspace to explore that makes Skyrim feel enormous all over again. And it''s not just
+    me who rates it — it''s pulled in more than 344 thousand downloads. If you install one single mod
+    from this entire video, make it this one — it earns the top spot. It''s stable, well-supported, and
+    beloved for good reason. It''s the kind of mod that quietly makes everything around it better.'
 - kind: outro
   narration: That wraps up 16 of my favourite new lands mods right now. Go endorse the authors down in
     the description — they've earned it — and if you want more lists like this, subscribe; there's a new
