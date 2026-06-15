@@ -204,6 +204,49 @@ def _wait_dataset_ready(api, dataset_id: str, timeout: int = 300):
             time.sleep(10)
 
 
+def _split_for_tts(text: str, max_words: int = 50) -> list[str]:
+    """Sentence-aware split into ≤~max_words pieces so each F5 generation stays well
+    under its ~30s output cap (longer calls truncate/rush). Falls back to hard word
+    splits for any single over-long sentence."""
+    import re
+    sents = re.findall(r".+?[.!?](?=\s|$)", text.strip()) or [text.strip()]
+    chunks: list[str] = []
+    cur = ""
+    for s in sents:
+        s = s.strip()
+        if not s:
+            continue
+        if len(s.split()) > max_words:               # very long sentence -> hard split
+            if cur:
+                chunks.append(cur); cur = ""
+            words = s.split()
+            for i in range(0, len(words), max_words):
+                chunks.append(" ".join(words[i:i + max_words]))
+        elif cur and len((cur + " " + s).split()) > max_words:
+            chunks.append(cur); cur = s
+        else:
+            cur = (cur + " " + s).strip()
+    if cur:
+        chunks.append(cur)
+    return chunks or [text.strip()]
+
+
+def _concat_wavs(parts: list[Path], out: Path) -> None:
+    """Concatenate chunk wavs into one segment wav (ffmpeg concat filter)."""
+    import subprocess
+    from ..utils.ffmpeg import ffmpeg_path
+    if len(parts) == 1:
+        shutil.copyfile(parts[0], out)
+        return
+    args = [ffmpeg_path(), "-y", "-v", "error"]
+    for p in parts:
+        args += ["-i", str(p)]
+    fc = "".join(f"[{i}:a]" for i in range(len(parts))) + \
+        f"concat=n={len(parts)}:v=0:a=1[a]"
+    args += ["-filter_complex", fc, "-map", "[a]", str(out)]
+    subprocess.run(args, check=True, capture_output=True, text=True)
+
+
 class KaggleF5Provider(TTSProvider):
     """Batch provider: renders all segments on Kaggle's GPU in one job."""
 
@@ -223,10 +266,23 @@ class KaggleF5Provider(TTSProvider):
         if not Path(self.ref_audio).exists():
             raise FileNotFoundError(
                 f"Voice reference {self.ref_audio} missing — run `voice-prep` first.")
-        segments = [(s.segment_id, s.narration.strip())
-                    for s in script.segments if s.narration.strip()]
-        print(f"      Offloading {len(segments)} segments to Kaggle GPU (F5)...")
-        run_kaggle_f5(segments, self.ref_audio, self.ref_text, self.nfe_step,
+        from .pronounce import speakable
+        # Split each segment into short chunks: F5 truncates/rushes a single long
+        # generation (~30s cap), so we synth ≤~50-word pieces and concatenate them.
+        # speakable() also fixes pronunciation here (this path bypasses base.narrate).
+        expanded: list[tuple[str, str]] = []
+        seg_chunks: dict[str, list[str]] = {}
+        for s in script.segments:
+            t = (s.narration or "").strip()
+            if not t:
+                continue
+            chunks = _split_for_tts(speakable(t))
+            ids = [f"{s.segment_id}__{i:02d}" for i in range(len(chunks))]
+            seg_chunks[s.segment_id] = ids
+            expanded += list(zip(ids, chunks))
+        print(f"      Offloading {len(seg_chunks)} segments "
+              f"({len(expanded)} chunks) to Kaggle GPU (F5)...")
+        run_kaggle_f5(expanded, self.ref_audio, self.ref_text, self.nfe_step,
                       out_dir, timeout=self.timeout)
         try:
             from ..config import voice_config
@@ -234,11 +290,21 @@ class KaggleF5Provider(TTSProvider):
         except Exception:
             do_enhance = True
         for s in script.segments:
+            ids = seg_chunks.get(s.segment_id)
+            if not ids:
+                continue
+            parts = [out_dir / f"{cid}.wav" for cid in ids
+                     if (out_dir / f"{cid}.wav").exists()]
+            if not parts:
+                continue
             wav = out_dir / f"{s.segment_id}.wav"
-            if wav.exists():
-                if do_enhance:           # close-mic mastering, same as other providers
-                    from .enhance import enhance_file
-                    enhance_file(wav)
-                s.audio_path = str(wav)
-                s.audio_seconds = _audio_duration(wav)
+            _concat_wavs(parts, wav)
+            for p in parts:                          # tidy the chunk files
+                if p != wav:
+                    p.unlink(missing_ok=True)
+            if do_enhance:               # close-mic mastering, same as other providers
+                from .enhance import enhance_file
+                enhance_file(wav)
+            s.audio_path = str(wav)
+            s.audio_seconds = _audio_duration(wav)
         return script
