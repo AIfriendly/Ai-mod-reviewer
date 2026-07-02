@@ -9,6 +9,9 @@ tenacity>=8.2        # retry/backoff for network calls
 # --- Script generation ---
 anthropic>=0.40      # Claude API (script writer, prompt caching)
 
+# --- Channel analytics feedback loop (`learn`) ---
+yt-dlp>=2025.1.1     # public channel stats + transcripts, NO YouTube API key needed
+
 # --- Voice (text-to-speech) ---
 # ElevenLabs cloned-voice provider (optional, only needed for that provider)
 elevenlabs>=1.0 ; python_version >= "3.9"

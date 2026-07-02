@@ -134,6 +134,32 @@ def ideas(
 
 
 @app.command()
+def learn(
+    handle: str = typer.Option(None, help="YouTube handle/URL (default: channel.youtube_handle)"),
+    comments: bool = typer.Option(False, help="Also pull top comments of the best videos"),
+):
+    """Pull this channel's OWN YouTube performance (public stats via yt-dlp — no
+    YouTube API key) plus any Studio CSV exports dropped in analytics/, and distil
+    them into config/performance_insights.yaml. `ideas` then samples winning
+    categories more often and the script writer receives the audience guidance.
+    """
+    handle = handle or channel_config()["channel"].get("youtube_handle", "")
+    if not handle:
+        typer.echo("No handle. Pass --handle @yourchannel or set channel.youtube_handle.")
+        raise typer.Exit(1)
+    from .analytics import learn as _learn
+    typer.echo(f"Studying {handle} ...")
+    ins = _learn(handle, with_comments=comments)
+    typer.echo(f"\nAnalyzed {ins.get('videos_analyzed', 0)} video(s)"
+               + (f" (+{ins['studio_csv_videos']} with Studio CSV metrics)"
+                  if ins.get("studio_csv_videos") else "") + ":")
+    for note in ins.get("notes", []):
+        typer.echo(f"  • {note}")
+    typer.echo(f"\nWrote config/performance_insights.yaml — `ideas` and the script "
+               f"writer now use it automatically.")
+
+
+@app.command()
 def history(game: str = typer.Option(None, help="Nexus game domain (default: configured game)")):
     """Show videos already made (so they're never repeated). The 'no repeats' rule
     excludes these mods from future automated selections."""

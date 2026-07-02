@@ -146,6 +146,16 @@ def _build_user_prompt(category_title: str, fmt: VideoFormat, profile: VideoProf
         "",
         f"Tease this as NEXT week's topic in the outro: {next_topic}.",
     ]
+    # AUDIENCE INSIGHTS from the channel's own analytics (`skyrim-reviewer learn`).
+    # Volatile, so it lives in the user turn — the cached system prompt stays frozen.
+    try:
+        from ..analytics import load_insights
+        guidance = load_insights().get("script_guidance") or []
+    except Exception:
+        guidance = []
+    if guidance:
+        lines += ["", "AUDIENCE INSIGHTS (measured on this channel's own videos):"]
+        lines += [f"- {g}" for g in guidance]
     return "\n".join(lines)
 
 

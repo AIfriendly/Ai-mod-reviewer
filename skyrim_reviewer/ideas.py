@@ -39,7 +39,17 @@ def generate_ideas(n: int = 8, live: bool = False, seed: int | None = None) -> l
         else:
             for cat in cats:
                 combos.append((fmt, cat))
-    rng.shuffle(combos)
+    # Weighted shuffle: categories the channel's own analytics say perform get
+    # sampled first (Efraimidis–Spirakis; weight 1.0 when `learn` has never run).
+    from .analytics import load_insights
+    cat_w = load_insights().get("category_weights") or {}
+
+    def _weight(combo) -> float:
+        _, ctx = combo
+        return cat_w.get((ctx or {}).get("id", ""), 1.0)
+
+    combos.sort(key=lambda c: rng.random() ** (1.0 / max(_weight(c), 0.01)),
+                reverse=True)
 
     ideas, seen_titles, used_formats = [], set(), {}
     for fmt, ctx in combos:

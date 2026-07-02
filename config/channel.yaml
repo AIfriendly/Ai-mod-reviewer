@@ -4,6 +4,7 @@
 channel:
   name: "ModVault"
   game_domain: "skyrimspecialedition"   # NexusMods domain slug (game)
+  youtube_handle: "@modvault666"        # for `learn` (public stats via yt-dlp, no API key)
   # Hybrid strategy: evergreen category lists are the backbone, thematic specials
   # are the viral spikes. The pipeline tags each project with its format.
   default_format: "category_list"        # category_list | transformation | weekly_roundup
