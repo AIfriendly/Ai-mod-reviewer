@@ -191,8 +191,9 @@ def _i2v_segment(clips: list[str], dur: float, size, fps: int,
     for k in range(n):
         parts.append(
             f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-            f"setsar=1,fps={fps},eq=brightness=-0.04:saturation=1.05,"
-            f"trim=end_frame={frames},setpts=PTS-STARTPTS,format=yuv420p[s{k}];")
+            f"setsar=1,eq=brightness=-0.04:saturation=1.05,"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS,fps={fps},"
+            f"format=yuv420p[s{k}];")
         labels.append(f"[s{k}]")
     chain = "".join(parts)
     if n == 1:
