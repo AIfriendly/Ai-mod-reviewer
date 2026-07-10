@@ -12,6 +12,11 @@ anthropic>=0.40      # Claude API (script writer, prompt caching)
 # --- Channel analytics feedback loop (`learn`) ---
 yt-dlp>=2025.1.1     # public channel stats + transcripts, NO YouTube API key needed
 
+# --- Local image-to-video motion (video.i2v_backend: local) ---
+# Optional, installed on demand like f5-tts. CPU depth-parallax needs:
+#   pip install torch transformers imageio-ffmpeg
+# (kept out of the base install so a plain `pip install -e .` stays light)
+
 # --- Voice (text-to-speech) ---
 # ElevenLabs cloned-voice provider (optional, only needed for that provider)
 elevenlabs>=1.0 ; python_version >= "3.9"

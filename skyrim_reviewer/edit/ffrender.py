@@ -321,14 +321,26 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         footage = []
 
     spoken = [s for s in script.segments if (s.audio_path and Path(s.audio_path).exists())]
-    # AI image-to-video motion clips (optional; Kaggle GPU). Maps image path -> clip.
-    # Generated once for the whole video; any image without a clip falls back to Ken Burns.
+    # Image-to-video motion clips (optional). Maps image path -> clip; generated once
+    # for the whole video. Any image without a clip falls back to Ken Burns.
+    #   backend "local" (default): CPU depth-parallax, free, no GPU/token;
+    #   backend "kaggle"/"ltx":    generative LTX-Video on the free Kaggle GPU.
     i2v_clips: dict[str, str] = {}
     if cfg.get("i2v"):
+        backend = str(cfg.get("i2v_backend", "local")).lower()
         try:
-            from .i2v import plan_and_generate
+            if backend in ("kaggle", "ltx", "gpu"):
+                from .i2v import plan_and_generate
+            else:
+                from .parallax import plan_and_generate
             i2v_clips = plan_and_generate(project, seg_dir.parent, cfg)
-        except Exception:
+        except ImportError as exc:
+            print(f"      i2v backend '{backend}' unavailable ({exc}); "
+                  f"install its deps (local: `pip install torch transformers "
+                  f"imageio-ffmpeg`). Using Ken Burns.")
+            i2v_clips = {}
+        except Exception as exc:
+            print(f"      i2v generation failed ({exc}); using Ken Burns.")
             i2v_clips = {}
     # Countdown ranks: mod segments run from #N down to #1 in order.
     n_mods = sum(1 for s in spoken if getattr(s, "kind", "") == "mod")
