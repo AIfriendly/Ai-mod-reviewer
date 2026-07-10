@@ -2,8 +2,8 @@
 # The narration stage is provider-pluggable. Set `provider` and fill the matching
 # section. Your CLONED VOICE plugs in here.
 
-# provider: elevenlabs | openai | piper | f5tts | prerecorded
-provider: f5tts
+# provider: elevenlabs | openai | piper | f5tts | chatterbox | kaggle | prerecorded
+provider: chatterbox
 
 elevenlabs:
   # voice_id of YOUR cloned voice. Either set it here or via ELEVENLABS_VOICE_ID env.
@@ -31,6 +31,13 @@ f5tts:
   speed: 1.0                # <1.0 = slower / more deliberate delivery
   nfe_step: 32              # 32 = best quality (clarity); GPU handles it fast
   # seed: 42                # set for reproducible takes
+
+chatterbox:
+  # YOUR cloned voice via Chatterbox (Resemble AI, MIT) on Kaggle's free GPU —
+  # zero-shot cloning from ONE reference clip, no transcript needed (unlike F5).
+  # Beat ElevenLabs 65.3% vs 24.5% in blind listening tests; the channel default.
+  ref_audio: "voices/clone/ref_primary.wav"
+  timeout: 2400             # seconds to wait for the Kaggle kernel
 
 prerecorded:
   # Use audio you (or your cloned voice) rendered yourself.
