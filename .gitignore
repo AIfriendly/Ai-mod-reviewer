@@ -35,8 +35,13 @@ Thumbs.db
 # CLI draft outputs (work-in-progress scripts)
 scripts/
 
-# Local Piper voice models (large; downloaded on demand)
-voices/
+# Local Piper voice models (large; downloaded on demand) — but NOT voices/clone/,
+# your cloned-voice reference: it's irreplaceable and small, so it IS committed
+# (a directory exclusion must be un-excluded before file negation can reach inside it).
+voices/*
+!voices/clone/
+!voices/clone/*.wav
+!voices/clone/*.txt
 *.onnx
 *.onnx.json
 
