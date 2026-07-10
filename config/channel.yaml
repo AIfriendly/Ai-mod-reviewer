@@ -74,10 +74,10 @@ video:
   #            or token. Needs torch+transformers (installed on first use). DEFAULT.
   #   kaggle — generative LTX-Video on Kaggle's free GPU (water flows, fire flickers).
   #            Higher ceiling; needs KAGGLE_* creds + GPU quota.
-  i2v: false                # enable image-to-video motion (else Ken Burns pans)
+  i2v: true                 # enable image-to-video motion (else Ken Burns pans)
   i2v_backend: local        # local (CPU depth-parallax) | kaggle (LTX GPU)
   i2v_max_clips: 0          # 0 = no cap (maximise coverage); else clips/video to save cost
-  parallax_shift: 12        # local: camera sweep amplitude in px (higher = more motion)
+  parallax_shift: 22        # local: camera sweep amplitude in px (higher = more motion)
   i2v_steps: 30             # kaggle/LTX: denoising steps (higher = nicer + slower)
   i2v_frames: 97            # kaggle/LTX: frames per clip (8k+1); 97 ≈ 4s @ 24fps
   # threads: 8              # default: all CPU cores
