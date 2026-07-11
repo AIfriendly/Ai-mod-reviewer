@@ -14,6 +14,7 @@ remotion/out/
 work/
 output/
 assets_cache/
+logs/
 *.mp4
 *.mov
 *.mkv

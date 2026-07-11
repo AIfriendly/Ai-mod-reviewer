@@ -20,7 +20,12 @@ _V2 = "https://api.nexusmods.com/v2/graphql"
 DEFAULT_GRAPHQL_CATEGORIES = {
     "weapons": ["Weapons", "Weapons and Armour"],
     "armor": ["Armour", "Weapons and Armour"],
-    "new_lands": ["Quests and Adventures"],   # filtered to true new lands in autospec
+    # "Locations -  New" (sic, double space — official Nexus category name) is where
+    # dedicated new-worldspace mods actually live (Falskaar, Wyrmstooth, etc.) — the
+    # single biggest source of real new-lands content. Missing it silently starved
+    # this bucket to a handful of leftovers found only via Quests and Adventures.
+    "new_lands": ["Locations -  New", "Quests and Adventures"],
+    # filtered to true new lands / pure quests respectively in autospec.py
     "quests": ["Quests and Adventures"],       # filtered to pure quest mods in autospec
     "graphics": ["Visuals and Graphics", "Models and Textures", "Environmental"],
     "gameplay": ["Gameplay", "Overhauls", "Combat", "Immersion"],
