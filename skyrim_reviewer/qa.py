@@ -41,15 +41,41 @@ _URLISH = re.compile(r"https?://|www\.|\[/?[a-z]|&nbsp;|\bn/a\b", re.I)
 
 
 def _probe(path: Path) -> dict:
+    """Duration + stream codec types, shaped like `ffprobe -of json`. Some
+    environments (this container included) ship ffmpeg without a separate ffprobe
+    binary — fall back to parsing plain ffmpeg's stderr banner in that case, so the
+    QA gate can't silently no-op just because ffprobe is absent."""
     from .utils.ffmpeg import ffprobe_path
-    out = subprocess.run(
-        [ffprobe_path(), "-v", "error", "-show_entries",
-         "format=duration:stream=codec_type", "-of", "json", str(path)],
-        capture_output=True, text=True)
     try:
-        return json.loads(out.stdout or "{}")
+        out = subprocess.run(
+            [ffprobe_path(), "-v", "error", "-show_entries",
+             "format=duration:stream=codec_type", "-of", "json", str(path)],
+            capture_output=True, text=True)
+        data = json.loads(out.stdout or "{}")
+        if data:
+            return data
     except Exception:
-        return {}
+        pass
+    return _probe_via_ffmpeg(path)
+
+
+def _probe_via_ffmpeg(path: Path) -> dict:
+    from .utils.ffmpeg import ffmpeg_path
+    res = subprocess.run([ffmpeg_path(), "-i", str(path)],
+                         capture_output=True, text=True)
+    err = res.stderr or ""
+    streams = []
+    for line in err.splitlines():
+        line = line.strip()
+        if line.startswith("Stream #"):
+            if ": Video:" in line:
+                streams.append({"codec_type": "video"})
+            elif ": Audio:" in line:
+                streams.append({"codec_type": "audio"})
+    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", err)
+    duration = (int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+               if m else 0.0)
+    return {"format": {"duration": str(duration)}, "streams": streams}
 
 
 def _loudness(path: Path) -> float | None:
