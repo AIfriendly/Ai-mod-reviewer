@@ -2,7 +2,8 @@
 # The narration stage is provider-pluggable. Set `provider` and fill the matching
 # section. Your CLONED VOICE plugs in here.
 
-# provider: elevenlabs | openai | piper | f5tts | chatterbox | kaggle | prerecorded
+# provider: elevenlabs | openai | piper | f5tts | chatterbox | kaggle |
+#           chatterbox_kaggle | prerecorded
 provider: chatterbox
 
 elevenlabs:
@@ -33,10 +34,17 @@ f5tts:
   # seed: 42                # set for reproducible takes
 
 chatterbox:
-  # YOUR cloned voice via Chatterbox (Resemble AI, MIT) on Kaggle's free GPU —
-  # zero-shot cloning from ONE reference clip, no transcript needed (unlike F5).
-  # Beat ElevenLabs 65.3% vs 24.5% in blind listening tests; the channel default.
+  # YOUR cloned voice via Chatterbox (Resemble AI, MIT) — runs LOCALLY on this
+  # machine's CPU (no Kaggle, no token). Zero-shot cloning from ONE reference
+  # clip, no transcript needed (unlike F5). Beat ElevenLabs 65.3% vs 24.5% in
+  # blind listening tests. Measured ~3.7x real-time on 4 CPU cores — a
+  # ~10-minute episode's narration takes roughly 35-40 minutes to generate.
   ref_audio: "voices/clone/ref_primary.wav"
+  device: cpu                # "cuda" if this machine actually has a GPU
+
+chatterbox_kaggle:
+  # Same voice tech, offloaded to Kaggle's free GPU instead — much faster, but
+  # needs a Kaggle account/token. provider: chatterbox_kaggle to use this.
   timeout: 2400             # seconds to wait for the Kaggle kernel
 
 prerecorded:
