@@ -38,24 +38,39 @@ def _get_depther():
     return _depther
 
 
+def _depth_map(image_path: str, width: int, height: int):
+    """Depth map for an image, cached in-process per (path, size) — shared across all
+    camera-variant clips of the same image so it's computed once, not once per shot."""
+    import numpy as np
+    from PIL import Image
+
+    key = (image_path, width, height)
+    cache = _depth_map._cache
+    if key not in cache:
+        img = Image.open(image_path).convert("RGB").resize((width, height))
+        d = np.asarray(_get_depther()(img)["depth"], dtype=np.float32)
+        d = (d - d.min()) / (d.max() - d.min() + 1e-6)     # 0=far, 1=near
+        cache.clear()                     # keep at most one depth map resident
+        cache[key] = (np.asarray(img, dtype=np.float32), d)
+    return cache[key]
+
+
+_depth_map._cache = {}
+
+
 def render_parallax(image_path: str, out_path: Path, *, width: int = 768,
                     height: int = 512, fps: int = 24, seconds: float = 4.0,
                     max_shift: float = 12.0, seed: int = 0) -> Path:
     """Render one still into a depth-parallax motion clip. `seed` varies the camera
-    path so cycled shots in a segment don't all move identically."""
+    path (dolly angle) so multiple clips from the same image move differently."""
+    import math
     import numpy as np
-    from PIL import Image
     import imageio.v2 as imageio
 
     n = max(2, round(fps * seconds))
-    img = Image.open(image_path).convert("RGB").resize((width, height))
-    d = np.asarray(_get_depther()(img)["depth"], dtype=np.float32)
-    d = (d - d.min()) / (d.max() - d.min() + 1e-6)     # 0=far, 1=near
-    base = np.asarray(img, dtype=np.float32)
+    base, d = _depth_map(image_path, width, height)
     xx, yy = np.meshgrid(np.arange(width), np.arange(height))
 
-    # Vary the move direction per seed (dolly angle) so cycled clips feel distinct.
-    import math
     ang = (seed * 47 % 360) * math.pi / 180.0
     dir_x, dir_y = math.cos(ang), math.sin(ang) * 0.4
 
@@ -75,11 +90,14 @@ def render_parallax(image_path: str, out_path: Path, *, width: int = 768,
     return out_path
 
 
-def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, str]:
-    """Render a parallax clip for each unique mod image used in this video (capped by
-    `i2v_max_clips`; 0 = no cap). Returns {image_local_path: clip_path}. On any failure
+def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, list[str]]:
+    """Render several camera-variant parallax clips per unique mod image used in this
+    video (capped by `i2v_max_clips` images; each gets `i2v_shots_per_image` distinct
+    clips, so a segment cycles through fresh-looking shots instead of looping one
+    identical clip). Returns {image_local_path: [clip_path, ...]}. On any failure
     returns {} so the renderer cleanly falls back to Ken Burns."""
     cap = int(cfg.get("i2v_max_clips", 0) or 0)
+    variants = max(1, int(cfg.get("i2v_shots_per_image", 4)))
     out_dir = Path(work_dir) / "i2v"
 
     # Unique images in first-seen order, deduped by content id.
@@ -108,28 +126,36 @@ def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, str]:
     width = int(cfg.get("i2v_width", 768))
     height = int(cfg.get("i2v_height", 512))
     fps = int(cfg.get("i2v_fps", 24))
-    seconds = float(cfg.get("i2v_seconds", 4.0))
+    seconds = float(cfg.get("i2v_seconds", 5.0))
     max_shift = float(cfg.get("parallax_shift", 12.0))
 
-    print(f"      Rendering {len(order)} depth-parallax clip(s) on CPU (local)...")
+    total = len(order) * variants
+    print(f"      Rendering {total} depth-parallax clip(s) on CPU (local): "
+          f"{len(order)} image(s) x {variants} camera variant(s)...")
     import time
     t0 = time.time()
-    result: dict[str, str] = {}
+    clips_by_sid: dict[str, list[str]] = {}
     for i, p in enumerate(order):
         sid = img_to_sid[p]
-        out = out_dir / f"{sid}.mp4"
-        if not out.exists():
-            try:
-                render_parallax(p, out, width=width, height=height, fps=fps,
-                                seconds=seconds, max_shift=max_shift, seed=i + 1)
-            except Exception as exc:
-                print(f"      parallax failed for {Path(p).name} ({exc}); skipping.")
-                continue
-        result[p] = str(out)
-    # Fan the clip out to every image path that shares its content id (dedup reuse).
-    clips_by_sid = {img_to_sid[p]: c for p, c in result.items()}
+        clip_paths = []
+        for v in range(variants):
+            out = out_dir / f"{sid}_v{v}.mp4"
+            if not out.exists():
+                try:
+                    render_parallax(p, out, width=width, height=height, fps=fps,
+                                    seconds=seconds, max_shift=max_shift,
+                                    seed=i * variants + v + 1)
+                except Exception as exc:
+                    print(f"      parallax failed for {Path(p).name} v{v} "
+                          f"({exc}); skipping.")
+                    continue
+            clip_paths.append(str(out))
+        if clip_paths:
+            clips_by_sid[sid] = clip_paths
+    # Fan the clip list out to every image path that shares its content id (dedup reuse).
     mapping = {p: clips_by_sid[sid] for p, sid in img_to_sid.items()
                if sid in clips_by_sid}
-    print(f"      {len(clips_by_sid)} clip(s) in {time.time() - t0:.0f}s "
+    n_clips = sum(len(v) for v in clips_by_sid.values())
+    print(f"      {n_clips} clip(s) in {time.time() - t0:.0f}s "
           f"({len(mapping)} image(s) mapped).")
     return mapping

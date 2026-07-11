@@ -155,10 +155,10 @@ def _prompt_for(mod_name: str, category: str) -> str:
             f"water and light; stable, photorealistic, no text distortion.")
 
 
-def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, str]:
+def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, list[str]]:
     """Collect the mod images used in this video and generate a motion clip for each
     (capped by `i2v_max_clips`; 0 = no cap / maximise coverage). Returns
-    {image_local_path: clip_path} for clips that came back. On any failure returns {} so
+    {image_local_path: [clip_path]} for clips that came back. On any failure returns {} so
     the renderer cleanly falls back to Ken Burns for everything."""
     cap = int(cfg.get("i2v_max_clips", 0) or 0)
     category = ""
@@ -205,5 +205,7 @@ def plan_and_generate(project, work_dir: Path, cfg: dict) -> dict[str, str]:
         print(f"      I2V generation failed ({exc}); using Ken Burns.")
         return {}
     print(f"      Got {len(clips_by_sid)} clip(s) in {time.time() - t0:.0f}s.")
-    # Map every image path that resolved to a clip.
-    return {p: clips_by_sid[sid] for p, sid in img_to_sid.items() if sid in clips_by_sid}
+    # Map every image path that resolved to a clip. Single-clip lists, matching the
+    # local parallax backend's {path: [clip, ...]} shape (GPU cost stays 1x per image
+    # here — the multi-variant treatment is a CPU-only optimisation, see parallax.py).
+    return {p: [clips_by_sid[sid]] for p, sid in img_to_sid.items() if sid in clips_by_sid}

@@ -697,13 +697,20 @@ def autospec(category: str, count: int = 12, *, domain: str | None = None,
     chosen = list(reversed(chosen))
     galleries: dict[int, dict] = {}
     if with_gallery:
-        from ..research.gallery import fetch_gallery_media
-        for m in chosen:
-            try:
-                galleries[m.mod_id] = fetch_gallery_media(
-                    m.mod_id, domain, max_images=6, max_videos=1)
-            except Exception:
-                galleries[m.mod_id] = {"images": [], "videos": []}
+        from ..config import load_permissions
+        # gallery.py scrapes the mod PAGE (not the API) to get more than the single
+        # API picture_url — against Nexus's Acceptable Use Policy, so it only ever
+        # runs with explicit opt-in (config/permissions.yaml: allow_gallery_scrape).
+        # Off by default -> every mod just keeps its one official API image.
+        if load_permissions().get("allow_gallery_scrape"):
+            from ..research.gallery import fetch_gallery_media
+            max_images = int(load_permissions().get("gallery_max_images", 6))
+            for m in chosen:
+                try:
+                    galleries[m.mod_id] = fetch_gallery_media(
+                        m.mod_id, domain, max_images=max_images, max_videos=1)
+                except Exception:
+                    galleries[m.mod_id] = {"images": [], "videos": []}
     return build_spec(category, chosen, part=part, galleries=galleries)
 
 

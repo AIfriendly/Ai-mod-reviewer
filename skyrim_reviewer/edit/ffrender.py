@@ -71,7 +71,7 @@ _MOVES = [
 
 def _kenburns_segment(images: list[str], dur: float, size, fps: int,
                       lower_third: str | None, out: Path, fade_in: float = 0.0,
-                      xfade: float = 0.35, target_shot: float = 3.8):
+                      xfade: float = 0.35, target_shot: float = 5.0):
     """Render one mod segment: fit-over-blur zoompan shots CROSS-FADED together, with an
     optional lower-third overlay, sized to the frame, lasting exactly `dur`.
 
@@ -82,7 +82,7 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
     W, H = size
     fw, fh = int(W * 0.92), int(H * 0.92)
     imgs = images or [images[0]] if images else []
-    n = max(len(imgs), min(10, round(dur / target_shot)))   # ~3.8s/shot, cycle images
+    n = max(len(imgs), min(30, round(dur / target_shot)))   # ~target_shot s/shot, cycle
     xf = xfade if n > 1 else 0.0
     # With (n-1) overlaps of xf seconds, per-shot length to land exactly on `dur`.
     per = (dur + (n - 1) * xf) / n
@@ -166,14 +166,14 @@ def _video_segment(video: str, dur: float, size, fps: int,
 
 def _i2v_segment(clips: list[str], dur: float, size, fps: int,
                  lower_third: str | None, out: Path, fade_in: float = 0.0,
-                 xfade: float = 0.4, target_shot: float = 3.8):
+                 xfade: float = 0.4, target_shot: float = 5.0):
     """Render one mod segment from AI image-to-video MOTION clips: cover-fill each clip
     to frame, loop if short, cross-dissolve the shots and overlay the lower-third — the
     live-motion counterpart to `_kenburns_segment`. The clips already move, so no zoompan
     is added (that would compound into queasy motion)."""
     W, H = size
     clips = [c for c in clips if c]
-    n = max(len(clips), min(10, round(dur / target_shot)))
+    n = max(len(clips), min(30, round(dur / target_shot)))
     xf = xfade if n > 1 else 0.0
     per = (dur + (n - 1) * xf) / n
     frames = max(1, round(per * fps))
@@ -326,7 +326,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     # for the whole video. Any image without a clip falls back to Ken Burns.
     #   backend "local" (default): CPU depth-parallax, free, no GPU/token;
     #   backend "kaggle"/"ltx":    generative LTX-Video on the free Kaggle GPU.
-    i2v_clips: dict[str, str] = {}
+    i2v_clips: dict[str, list[str]] = {}
+    target_shot = float(cfg.get("target_shot_seconds", 5.0))
     if cfg.get("i2v"):
         backend = str(cfg.get("i2v_backend", "local")).lower()
         try:
@@ -367,15 +368,19 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             lt = seg_dir / f"lt_{i:02d}.png"
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank)
-            # Prefer real author B-roll; then AI motion clips of the stills; then Ken Burns.
-            mod_clips = [i2v_clips[p] for p in images
-                         if p in i2v_clips and Path(i2v_clips[p]).exists()]
+            # Prefer real author B-roll; then AI motion clips of the stills (all camera
+            # variants of every image pooled, so a segment cycles fresh shots instead
+            # of looping one clip); then Ken Burns.
+            mod_clips = [c for p in images for c in i2v_clips.get(p, [])
+                        if Path(c).exists()]
             if videos:                       # real author B-roll beats everything
                 _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
             elif mod_clips:                  # AI image-to-video motion of the screenshots
-                _i2v_segment(mod_clips, dur, size, fps, str(lt), out, fade_in=0.3)
+                _i2v_segment(mod_clips, dur, size, fps, str(lt), out, fade_in=0.3,
+                            target_shot=target_shot)
             else:
-                _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3)
+                _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3,
+                                  target_shot=target_shot)
         else:
             kind = getattr(seg, "kind", "")
             if kind == "outro":
