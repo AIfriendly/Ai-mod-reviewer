@@ -190,6 +190,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/11752
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/11752-4-1503466101.png
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-5-1503466100.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-0-1503466106.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-6-1503466099.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-2-1503466103.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-3-1503466102.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-1-1503466105.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/11752-4-1503466825.png
 - mod_id: 45870
   name: Northpoint
   author: ionis
@@ -199,6 +207,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/45870
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1770471322-270804314.jpg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1709484719-1152544225.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667098-1091922425.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667103-163657297.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667107-2140525732.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667110-411318394.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667115-1304946559.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45870/45870-1613667120-265570651.png
 - mod_id: 14450
   name: Solstheim - Skaal Fishing Camp
   author: fadingsignal
@@ -208,6 +224,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/14450
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144452-835911726.jpeg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144528-766770844.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144498-1048727661.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144481-193339698.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144465-1607832049.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144488-1895404574.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144459-2139831261.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/14450/14450-1515144470-707450002.jpeg
 - mod_id: 109541
   name: Siege at Icemoth
   author: RoastGorilla439
@@ -218,6 +242,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/109541
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705697974-403369402.png
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708087-502144715.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708112-53176744.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708163-197818706.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705710991-1803550406.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708133-1486849493.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708211-356407677.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/109541/109541-1705708815-681917246.png
 - mod_id: 72004
   name: Summerset Isle
   author: yourenotsupposedtobeinhere
@@ -228,6 +260,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/72004
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621633-380724910.png
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621480-1463076514.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621674-633914235.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621748-1607226824.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621789-1102723627.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621832-280412939.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621944-1213024366.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/72004/72004-1658621981-448944844.jpeg
 - mod_id: 18903
   name: The Shire SE
   author: TheBawb
@@ -237,6 +277,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/18903
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788710-9259827.jpeg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788968-1807318166.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788971-1950879242.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788979-2005125698.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788984-935351304.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788993-516213132.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532788998-976070357.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/18903/18903-1532789001-433883529.jpeg
 - mod_id: 79828
   name: Warden of the Coast
   author: TheBawb
@@ -247,6 +295,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/79828
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669999781-66854838.jpeg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991537-1043066533.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991563-1845534940.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991544-1810229430.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991558-744212240.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991544-341176034.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991582-1895453106.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/79828/79828-1669991551-1177857733.jpeg
 - mod_id: 28120
   name: Midwood Isle
   author: DdsLedg
@@ -256,6 +312,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/28120
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593248-1296463305.png
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593241-1153581604.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593269-1795483247.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593268-2043059474.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593284-1209727989.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593290-2127667067.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583595900-329714777.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/28120/28120-1583593322-865069772.jpeg
 - mod_id: 45565
   name: Wyrmstooth
   author: Jonx0r
@@ -265,6 +329,14 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/45565
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032746-1992524601.jpeg
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1726183132-1746976862.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032620-2124736932.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032713-166366037.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032769-444270610.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032735-661903014.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032631-1149007724.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/45565/45565-1613032644-433410111.jpeg
 - mod_id: 2057
   name: Falskaar
   author: AlexanderJVelicky
@@ -274,3 +346,11 @@ mods:
   page_url: https://www.nexusmods.com/skyrimspecialedition/mods/2057
   media_ok: true
   image_url: https://staticdelivery.nexusmods.com/mods/1704/images/37994-1-1373580479.png
+  image_urls:
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1730323907-488235346.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1730322603-1746861991.png
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1717073098-1106088989.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1708945334-874606611.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1708945332-1558872765.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1708945329-134474113.jpeg
+  - https://staticdelivery.nexusmods.com/mods/1704/images/2057/2057-1708945327-192088548.jpeg

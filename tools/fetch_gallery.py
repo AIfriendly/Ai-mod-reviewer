@@ -61,6 +61,38 @@ def _dedupe(seq):
     return list(dict.fromkeys(seq))
 
 
+def fetch_gallery_wayback(mod_id: int, game: str = "skyrimspecialedition",
+                          max_images: int = 8) -> list[str]:
+    """Gallery URLs via the Wayback Machine — works from restricted/proxied networks
+    where the live Nexus site is Cloudflare-blocked. Archived Nexus pages are not
+    Cloudflare-gated, and the images they reference still serve from the CDN. Images
+    may be from an older snapshot, which is fine for b-roll. Empty on no snapshot."""
+    import httpx
+    ua = {"User-Agent": "Mozilla/5.0"}
+    base = f"nexusmods.com/{game}/mods/{mod_id}"
+    try:
+        with httpx.Client(headers=ua, timeout=45, follow_redirects=True) as c:
+            snap = None
+            for u in (f"{base}?tab=images", base):
+                a = c.get(f"https://archive.org/wayback/available?url={u}").json()
+                s = (a.get("archived_snapshots") or {}).get("closest") or {}
+                if s.get("available"):
+                    snap = s["url"]
+                    break
+            if not snap:
+                return []
+            ts = snap.split("/web/")[1].split("/")[0]
+            raw = (f"https://web.archive.org/web/{ts}id_/"
+                   f"https://www.nexusmods.com/{game}/mods/{mod_id}?tab=images")
+            html = c.get(raw).text
+    except Exception:
+        return []
+    urls = [u if u.startswith("http") else "https://" + u for u in _FULL.findall(html)]
+    # Keep only this mod's gallery shots (exclude the header banner already filtered).
+    mine = _dedupe(u for u in urls if f"/{mod_id}-" in u or f"/{mod_id}/" in u)
+    return mine[:max_images]
+
+
 def fetch_gallery(mod_id: int, game: str = "skyrimspecialedition", max_images: int = 8,
                   headless: bool = True, timeout_ms: int = 45000) -> list[str]:
     """Return up to max_images full-res gallery URLs for one mod (empty on failure)."""
@@ -107,7 +139,26 @@ def fetch_gallery(mod_id: int, game: str = "skyrimspecialedition", max_images: i
     return urls[:max_images]
 
 
-def _update_spec(spec_path: str, game: str, max_images: int, headless: bool) -> None:
+def gallery_urls(mod_id: int, game: str, max_images: int, source: str = "auto",
+                 headless: bool = True) -> list[str]:
+    """Resolve a mod's gallery URLs. source: 'browser' (live, current images),
+    'wayback' (archive, works behind Cloudflare/proxy), or 'auto' (browser, then
+    wayback if it fails/returns nothing — e.g. in the cloud sandbox)."""
+    if source in ("browser", "auto"):
+        try:
+            urls = fetch_gallery(mod_id, game, max_images, headless=headless)
+            if urls:
+                return urls
+        except Exception:
+            if source == "browser":
+                raise
+    if source in ("wayback", "auto"):
+        return fetch_gallery_wayback(mod_id, game, max_images)
+    return []
+
+
+def _update_spec(spec_path: str, game: str, max_images: int, headless: bool,
+                 source: str = "auto") -> None:
     """Fetch each mod's gallery and write image_urls back into a script spec so the
     render uses the full gallery. Keeps the existing first image as the lead."""
     import yaml
@@ -116,7 +167,7 @@ def _update_spec(spec_path: str, game: str, max_images: int, headless: bool) -> 
         mid = int(m.get("mod_id", 0))
         if not mid:
             continue
-        urls = fetch_gallery(mid, game, max_images, headless=headless)
+        urls = gallery_urls(mid, game, max_images, source=source, headless=headless)
         print(f"mod {mid} ({m.get('name','')[:30]}): {len(urls)} images", file=sys.stderr)
         if not urls:
             continue
@@ -134,25 +185,22 @@ def main():
     ap.add_argument("--game", default="skyrimspecialedition")
     ap.add_argument("--max", type=int, default=8)
     ap.add_argument("--spec", help="Script spec YAML: fetch galleries and write image_urls back in")
+    ap.add_argument("--source", choices=["auto", "browser", "wayback"], default="auto",
+                    help="auto=live browser then Wayback fallback; wayback works behind "
+                         "Cloudflare/proxy (e.g. the cloud sandbox)")
     ap.add_argument("--headed", action="store_true", help="show the browser (debug)")
     args = ap.parse_args()
     headless = not args.headed
 
-    try:
-        if args.spec:
-            _update_spec(args.spec, args.game, args.max, headless)
-            return
-        out = {}
-        for mid in args.mod_ids:
-            urls = fetch_gallery(mid, args.game, args.max, headless=headless)
-            print(f"mod {mid}: {len(urls)} images", file=sys.stderr)
-            out[str(mid)] = urls
-        print(json.dumps(out, indent=1))
-    except Exception as exc:
-        if "ERR_CONNECTION_RESET" in str(exc) or "ERR_PROXY" in str(exc):
-            sys.exit("Browser HTTPS is blocked here (egress proxy resets it). Run this "
-                     "on your own machine, not the Claude Code cloud sandbox.")
-        raise
+    if args.spec:
+        _update_spec(args.spec, args.game, args.max, headless, source=args.source)
+        return
+    out = {}
+    for mid in args.mod_ids:
+        urls = gallery_urls(mid, args.game, args.max, source=args.source, headless=headless)
+        print(f"mod {mid}: {len(urls)} images", file=sys.stderr)
+        out[str(mid)] = urls
+    print(json.dumps(out, indent=1))
 
 
 if __name__ == "__main__":
