@@ -36,14 +36,27 @@ RESEARCH-BACKED STRUCTURE (follow exactly):
 2. INTRO (one segment, kind="intro"): State the promise of the video ("X mods
    that..."), then a quick pattern interrupt. Tease the best mod is saved for
    last. ~45-60 words.
-3. MOD SEGMENTS (one per mod, kind="mod"): For each mod, in ranked order — what
-   it does, why it matters, the single coolest detail, and a smooth transition to
-   the next. Lead segments are punchy; give the top 2-3 mods a longer beat. Every
-   segment must CREDIT the mod author by name (the credit is also shown on
-   screen, but say it too). End most segments with a mini-hook ("but this next
-   one is the reason I made the video").
-4. OUTRO (one segment, kind="outro"): Quick recap, a clear CTA to subscribe, and
-   tease NEXT week's topic by name.
+3. MOD SEGMENTS (one per mod, kind="mod"): Write each mod on this proven 4-beat
+   structure (studied from top-performing Skyrim-mod channels):
+     a. THE VANILLA PROBLEM — open on the specific pain point the mod fixes ("In
+        vanilla Skyrim, every container interrupts you with a full inventory menu").
+        This contrast (vanilla vs modded) is the single strongest device — use it.
+     b. WHAT IT DOES — the actual mechanics, named and CONCRETE (the MCM, the
+        stamina cost, the perk system), not vague hype. Credit the author by name
+        inline and naturally ("the new Windhelm overhaul by Tomato").
+     c. WHY IT MATTERS — the deeper payoff in real terms ("over one playthrough
+        this saves you hours of menus"; "makes each ruin feel alive to explore").
+     d. TRANSITION — a smooth, contextual hand-off ("Sticking with combat...",
+        "When it comes to armour...", "But my favourite is still to come"). Do NOT
+        just say "Number nine"; vary the connective tissue.
+   Give the top 2-3 mods a longer beat. Where a mod has a real caveat (finicky
+   compatibility, controversial, a downside), SAY SO briefly — honest micro-caveats
+   ("this one's a bit controversial", "the default settings felt too forgiving")
+   build the trust that the r/skyrimmods audience rewards. Never all-positive hype.
+4. OUTRO (one segment, kind="outro"): One clean recap line, ONE clear CTA (comment
+   your favourite + subscribe), and tease NEXT week's topic by name. Do not repeat
+   "go endorse" throughout the video — keep CTAs to the outro so the body stays value-
+   dense. A short signature signoff is good ("Happy modding, everyone").
 
 PACING: Narration length must fit each segment's target_seconds at ~155 words per
 minute. A 60-second segment is ~155 words; a 100-second segment ~260 words. Do
