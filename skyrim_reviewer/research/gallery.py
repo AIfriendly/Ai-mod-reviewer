@@ -73,10 +73,44 @@ def fetch_gallery_media(mod_id: int, domain: str, max_images: int = 6,
     in which case 'videos' is empty and the renderer falls back to the still gallery.
     """
     html = _fetch_html(mod_id, domain, tries, pause)
+    # Direct fetch is blocked by Cloudflare on datacenter/proxied networks (cloud
+    # sandbox). Fall back to Firecrawl, a hosted scraper that renders the page on its
+    # own (clean) IP and returns the HTML — works from anywhere, live current images.
+    if not html or "just a moment" in html.lower():
+        html = _fetch_html_firecrawl(mod_id, domain)
     if not html:
         return {"images": [], "videos": []}
-    images = list(dict.fromkeys(_IMG.findall(html)))[:max_images]
+    images = _dedupe_urls(_IMG.findall(html) + [
+        "https:" + u for u in _IMG_PROTOREL.findall(html)])[:max_images]
     videos = list(dict.fromkeys(_VID.findall(html)))[:max_videos]
     if images or videos:
         time.sleep(pause)                  # be polite between mods
     return {"images": images, "videos": videos}
+
+
+# Protocol-relative //staticdelivery… variant Nexus emits in some markup.
+_IMG_PROTOREL = re.compile(
+    r'(?<!:)//staticdelivery\.nexusmods\.com/mods/\d+/images/'
+    r'(?!thumbnails/|headers/|avatars/)[^\s"\'<>\\)]+?\.(?:jpe?g|png|webp)', re.I)
+
+
+def _dedupe_urls(seq):
+    return list(dict.fromkeys(seq))
+
+
+def _fetch_html_firecrawl(mod_id: int, domain: str) -> str:
+    """Render the mod's images page via Firecrawl (firecrawl.dev). Keyless free tier
+    works (rate-limited); set FIRECRAWL_API_KEY for higher limits. '' on failure."""
+    from ..config import get_env
+    headers = {"User-Agent": _UA, "Content-Type": "application/json"}
+    key = get_env("FIRECRAWL_API_KEY")
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    url = f"https://www.nexusmods.com/{domain}/mods/{mod_id}?tab=images"
+    try:
+        r = httpx.post("https://api.firecrawl.dev/v2/scrape",
+                       json={"url": url, "formats": ["html"], "onlyMainContent": False},
+                       headers=headers, timeout=120)
+        return (r.json().get("data") or {}).get("html", "") or ""
+    except Exception:
+        return ""

@@ -61,6 +61,39 @@ def _dedupe(seq):
     return list(dict.fromkeys(seq))
 
 
+def fetch_gallery_firecrawl(mod_id: int, game: str = "skyrimspecialedition",
+                            max_images: int = 8) -> list[str]:
+    """Gallery URLs via Firecrawl (firecrawl.dev) — a hosted scraper that renders the
+    page on ITS OWN infrastructure and returns the HTML, clearing Cloudflare from a
+    clean IP. Works from restricted/datacenter networks (the cloud sandbox included)
+    where a local browser/httpx is Cloudflare-blocked, AND returns LIVE current images
+    (so it covers brand-new mods, unlike the Wayback archive).
+
+    Keyless free tier works but is rate-limited; set FIRECRAWL_API_KEY for higher limits
+    and reliability. Empty on failure."""
+    import httpx
+    headers = {"User-Agent": "skyrim-reviewer/0.1", "Content-Type": "application/json"}
+    key = os.environ.get("FIRECRAWL_API_KEY")
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+    url = f"https://www.nexusmods.com/{game}/mods/{mod_id}?tab=images"
+    try:
+        r = httpx.post("https://api.firecrawl.dev/v2/scrape",
+                       json={"url": url, "formats": ["html"], "onlyMainContent": False},
+                       headers=headers, timeout=120)
+        html = (r.json().get("data") or {}).get("html", "") or ""
+    except Exception:
+        return []
+    # Nexus serves protocol-relative //staticdelivery... in some markup — normalise.
+    raw = _FULL.findall(html) + [
+        "https:" + u for u in re.findall(
+            r'(?<!:)//staticdelivery\.nexusmods\.com/mods/\d+/images/'
+            r'(?!thumbnails/|headers/|avatars/)[^\s"\'<>\\)]+?\.(?:jpe?g|png|webp)',
+            html, re.I)]
+    mine = _dedupe(u for u in raw if f"/{mod_id}-" in u or f"/{mod_id}/" in u)
+    return mine[:max_images]
+
+
 def fetch_gallery_wayback(mod_id: int, game: str = "skyrimspecialedition",
                           max_images: int = 8) -> list[str]:
     """Gallery URLs via the Wayback Machine — works from restricted/proxied networks
@@ -141,19 +174,28 @@ def fetch_gallery(mod_id: int, game: str = "skyrimspecialedition", max_images: i
 
 def gallery_urls(mod_id: int, game: str, max_images: int, source: str = "auto",
                  headless: bool = True) -> list[str]:
-    """Resolve a mod's gallery URLs. source: 'browser' (live, current images),
-    'wayback' (archive, works behind Cloudflare/proxy), or 'auto' (browser, then
-    wayback if it fails/returns nothing — e.g. in the cloud sandbox)."""
-    if source in ("browser", "auto"):
+    """Resolve a mod's gallery URLs.
+      firecrawl — hosted scraper, live images, clears Cloudflare from its own IP; works
+                  from the cloud sandbox and covers brand-new mods. Keyless free tier.
+      browser   — local headless browser, live images (needs a non-blocked network).
+      wayback   — Wayback Machine archive; free, but gaps for the newest mods.
+      auto      — firecrawl, then wayback, then browser (first non-empty wins)."""
+    if source == "firecrawl":
+        return fetch_gallery_firecrawl(mod_id, game, max_images)
+    if source == "browser":
+        return fetch_gallery(mod_id, game, max_images, headless=headless)
+    if source == "wayback":
+        return fetch_gallery_wayback(mod_id, game, max_images)
+    # auto: best-to-fallback
+    for fn in (lambda: fetch_gallery_firecrawl(mod_id, game, max_images),
+               lambda: fetch_gallery_wayback(mod_id, game, max_images),
+               lambda: fetch_gallery(mod_id, game, max_images, headless=headless)):
         try:
-            urls = fetch_gallery(mod_id, game, max_images, headless=headless)
+            urls = fn()
             if urls:
                 return urls
         except Exception:
-            if source == "browser":
-                raise
-    if source in ("wayback", "auto"):
-        return fetch_gallery_wayback(mod_id, game, max_images)
+            continue
     return []
 
 
@@ -185,9 +227,10 @@ def main():
     ap.add_argument("--game", default="skyrimspecialedition")
     ap.add_argument("--max", type=int, default=8)
     ap.add_argument("--spec", help="Script spec YAML: fetch galleries and write image_urls back in")
-    ap.add_argument("--source", choices=["auto", "browser", "wayback"], default="auto",
-                    help="auto=live browser then Wayback fallback; wayback works behind "
-                         "Cloudflare/proxy (e.g. the cloud sandbox)")
+    ap.add_argument("--source", choices=["auto", "firecrawl", "browser", "wayback"],
+                    default="auto",
+                    help="auto=firecrawl then wayback then browser. firecrawl (hosted, "
+                         "live, works from the cloud sandbox, keyless) is the best default")
     ap.add_argument("--headed", action="store_true", help="show the browser (debug)")
     args = ap.parse_args()
     headless = not args.headed
