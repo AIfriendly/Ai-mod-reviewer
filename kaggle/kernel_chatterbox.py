@@ -41,17 +41,22 @@ manifest_path = next(iter(glob.glob("/kaggle/input/**/manifest.json", recursive=
 kit = os.path.dirname(manifest_path)
 manifest = json.load(open(manifest_path))
 ref = os.path.join(kit, "reference.wav")
+exaggeration = float(manifest.get("exaggeration", 0.5))
+cfg_weight = float(manifest.get("cfg_weight", 0.5))
 
 import torchaudio as ta  # noqa: E402
-from chatterbox.tts_turbo import ChatterboxTurboTTS  # noqa: E402
+# STANDARD model, not Turbo: Turbo silently ignores exaggeration/cfg_weight and
+# produces darker/muffled output. See voice/chatterbox.py for the measurements.
+from chatterbox.tts import ChatterboxTTS  # noqa: E402
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model = ChatterboxTurboTTS.from_pretrained(device=device)
+model = ChatterboxTTS.from_pretrained(device=device)
 
 os.makedirs("/kaggle/working", exist_ok=True)
 for seg in manifest["segments"]:
     out = f"/kaggle/working/{seg['segment_id']}.wav"
-    wav = model.generate(seg["text"], audio_prompt_path=ref)
+    wav = model.generate(seg["text"], audio_prompt_path=ref,
+                         exaggeration=exaggeration, cfg_weight=cfg_weight)
     ta.save(out, wav, model.sr)
     print("done", seg["segment_id"], flush=True)
 print("ALL_SEGMENTS_DONE", flush=True)

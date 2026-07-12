@@ -37,10 +37,13 @@ chatterbox:
   # YOUR cloned voice via Chatterbox (Resemble AI, MIT) — runs LOCALLY on this
   # machine's CPU (no Kaggle, no token). Zero-shot cloning from ONE reference
   # clip, no transcript needed (unlike F5). Beat ElevenLabs 65.3% vs 24.5% in
-  # blind listening tests. Measured ~3.7x real-time on 4 CPU cores — a
-  # ~10-minute episode's narration takes roughly 35-40 minutes to generate.
+  # blind listening tests. Uses the STANDARD model (not Turbo — Turbo ignores
+  # exaggeration and sounds muffled). ~4.3x real-time on 4 CPU cores — a
+  # ~10-minute episode's narration takes roughly 40-45 minutes to generate.
   ref_audio: "voices/clone/ref_primary.wav"
   device: cpu                # "cuda" if this machine actually has a GPU
+  exaggeration: 0.5          # emotion intensity — Chatterbox's headline control
+  cfg_weight: 0.5            # classifier-free guidance — higher = clearer diction
 
 chatterbox_kaggle:
   # Same voice tech, offloaded to Kaggle's free GPU instead — much faster, but

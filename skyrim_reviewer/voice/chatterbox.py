@@ -1,16 +1,22 @@
 """Chatterbox voice cloning — runs LOCALLY on this machine's CPU (or GPU if present).
 
 Chatterbox (Resemble AI, MIT) is zero-shot: it clones from ONE reference clip, no
-transcript needed (unlike F5). Small enough (~350M-500M params) to run on CPU in a
-container with no GPU — measured ~3.7x real-time on 4 cores, so a ~10-minute
-episode's narration takes roughly 35-40 minutes to generate. The model weights
-download once from HuggingFace on first use.
+transcript needed (unlike F5). Small enough to run on CPU in a container with no GPU
+— measured ~4.3x real-time on 4 cores, so a ~10-minute episode's narration takes
+roughly 40-45 minutes to generate. Model weights download once from HuggingFace.
+
+We use the STANDARD ChatterboxTTS, NOT the Turbo variant: Turbo is a touch faster but
+silently ignores `exaggeration`/`cfg_weight` ("not supported by Turbo version and will
+be ignored") AND produces noticeably darker, muffled output (its 8-12kHz band sits
+~30 dB lower than the standard model's, which matches the reference clip's brightness).
 
 config/voice.yaml:
     provider: chatterbox
     chatterbox:
       ref_audio: voices/clone/ref_primary.wav
       device: cpu            # or "cuda" if this machine actually has a GPU
+      exaggeration: 0.5      # emotion intensity (Chatterbox's headline control)
+      cfg_weight: 0.5        # classifier-free guidance — higher = clearer diction
 
 For the free-Kaggle-GPU-offload variant instead, see chatterbox_kaggle.py
 (provider: chatterbox_kaggle) — same voice tech, much faster, needs a Kaggle token.
@@ -28,13 +34,15 @@ class ChatterboxProvider(TTSProvider):
     def __init__(self, cfg: dict):
         self.ref_audio = cfg.get("ref_audio", "voices/clone/ref_primary.wav")
         self.device = cfg.get("device", "cpu")
+        self.exaggeration = float(cfg.get("exaggeration", 0.5))
+        self.cfg_weight = float(cfg.get("cfg_weight", 0.5))
         self._model = None
 
     def _engine(self):
-        """Lazily load the model once (~20-30s the first time, incl. HF download)."""
+        """Lazily load the model once (~40s the first time, incl. HF download)."""
         if self._model is None:
-            from chatterbox.tts_turbo import ChatterboxTurboTTS
-            self._model = ChatterboxTurboTTS.from_pretrained(device=self.device)
+            from chatterbox.tts import ChatterboxTTS
+            self._model = ChatterboxTTS.from_pretrained(device=self.device)
         return self._model
 
     def synth(self, text: str, out_path: Path) -> None:
@@ -54,7 +62,9 @@ class ChatterboxProvider(TTSProvider):
         tmp_dir.mkdir(exist_ok=True)
         parts = []
         for i, chunk in enumerate(chunks):
-            wav = model.generate(chunk, audio_prompt_path=str(ref))
+            wav = model.generate(chunk, audio_prompt_path=str(ref),
+                                 exaggeration=self.exaggeration,
+                                 cfg_weight=self.cfg_weight)
             p = tmp_dir / f"{i:02d}.wav"
             ta.save(str(p), wav, model.sr)
             parts.append(p)

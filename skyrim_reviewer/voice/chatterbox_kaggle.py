@@ -32,7 +32,8 @@ KERNEL_SRC = ROOT / "kaggle" / "kernel_chatterbox.py"
 
 def run_kaggle_chatterbox(segments: list[tuple[str, str]], ref_audio: str,
                           out_dir: Path, timeout: int = 2400, poll: int = 20,
-                          cleanup: bool = True) -> Path:
+                          cleanup: bool = True, exaggeration: float = 0.5,
+                          cfg_weight: float = 0.5) -> Path:
     """Generate <segment_id>.wav per (segment_id, text) on Kaggle's GPU, into out_dir.
 
     RESUMABLE: the job (dataset/kernel id) is recorded in out_dir/_kaggle_cb_job.json.
@@ -68,7 +69,8 @@ def run_kaggle_chatterbox(segments: list[tuple[str, str]], ref_audio: str,
     k_dir = out_dir / f"_kaggle_kernel_{tag}"
     try:
         ds_dir.mkdir(parents=True, exist_ok=True)
-        json.dump({"segments": [{"segment_id": sid, "text": t} for sid, t in segments]},
+        json.dump({"exaggeration": exaggeration, "cfg_weight": cfg_weight,
+                   "segments": [{"segment_id": sid, "text": t} for sid, t in segments]},
                   open(ds_dir / "manifest.json", "w"), indent=2)
         shutil.copyfile(ref_audio, ds_dir / "reference.wav")
         json.dump({"title": slug, "id": f"{user}/{slug}",
@@ -112,6 +114,8 @@ class KaggleChatterboxProvider(TTSProvider):
     def __init__(self, cfg: dict):
         self.ref_audio = cfg.get("ref_audio", "voices/clone/ref_primary.wav")
         self.timeout = int(cfg.get("timeout", 2400))
+        self.exaggeration = float(cfg.get("exaggeration", 0.5))
+        self.cfg_weight = float(cfg.get("cfg_weight", 0.5))
 
     def synth(self, text, out_path):  # pragma: no cover - batch only
         raise NotImplementedError(
@@ -137,7 +141,8 @@ class KaggleChatterboxProvider(TTSProvider):
             expanded += list(zip(ids, chunks))
         print(f"      Offloading {len(seg_chunks)} segments "
               f"({len(expanded)} chunks) to Kaggle GPU (Chatterbox)...")
-        run_kaggle_chatterbox(expanded, self.ref_audio, out_dir, timeout=self.timeout)
+        run_kaggle_chatterbox(expanded, self.ref_audio, out_dir, timeout=self.timeout,
+                              exaggeration=self.exaggeration, cfg_weight=self.cfg_weight)
         try:
             from ..config import voice_config
             do_enhance = voice_config().get("enhance", True)
