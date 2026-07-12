@@ -29,11 +29,15 @@ allow_placeholder_for_unapproved: true
 
 # ⚠️ TOS-VIOLATING OPT-IN. The official API exposes only ONE image per mod. If true,
 # the asset stage reads each approved mod's *website* page to collect its full image
-# gallery (dozens of screenshots). This is against the NexusMods ToS/API policy and
-# the account behind your API key could be banned. Off by default. Only runs for
-# approved mods; authors are still credited. gallery_max_images caps how many per mod.
-allow_gallery_scrape: false
-gallery_max_images: 6
+# gallery (dozens of screenshots), giving each mod segment real visual variety instead
+# of re-parallaxing a single still. This is against the NexusMods ToS/API policy and
+# the account behind your API key could be banned. gallery_max_images caps how many per
+# mod. ON: this is how the channel has always operated (every past video used it).
+# NOTE: only works where the Nexus website is reachable. In the Claude Code cloud
+# sandbox it returns nothing — Cloudflare challenges the request — so gallery videos
+# must be generated where the site loads (your own machine, or via tools/fetch_gallery.py).
+allow_gallery_scrape: true
+gallery_max_images: 8
 
 # ⚠️ INFORMED OPT-IN. If true, the pipeline treats EVERY mod's main API image as
 # reusable (still always crediting the author on screen + in the description).
