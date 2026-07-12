@@ -61,3 +61,4 @@ pause_between_segments_ms: 450
 
 # Voice mastering: bring the cloned voice forward (close-mic) + even, broadcast level.
 enhance: true
+enhance_preset: bright     # proximity (warm) | bright (crisp, air-forward — Chatterbox)
