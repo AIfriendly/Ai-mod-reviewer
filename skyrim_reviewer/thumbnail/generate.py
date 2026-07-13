@@ -236,8 +236,8 @@ def _keyword_for(category_id: str, project) -> str:
     """Short, punchy 1-2 word thumbnail keyword by category."""
     return {"new_lands": "NEW LANDS", "quests": "NEW QUESTS", "graphics": "NEXT-GEN",
             "weapons": "WEAPONS", "armor": "ARMOR", "magic": "MAGIC",
-            "gameplay": "OVERHAUL", "followers": "FOLLOWERS"}.get(
-        category_id, "MODS")
+            "gameplay": "OVERHAUL", "followers": "FOLLOWERS",
+            "adventures": "NEW LANDS"}.get(category_id, "MODS")
 
 
 def _tag(draw, label: str, xy, color, font_size: int = 40) -> None:
