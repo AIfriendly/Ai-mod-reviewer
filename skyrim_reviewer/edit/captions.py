@@ -69,10 +69,13 @@ def _hex_to_ass(color: str) -> str:
 
 
 def build_ass(segments, durations, size, out_path: Path,
-              accent: str = "#d4af37") -> Path:
+              accent: str = "#d4af37", start_offset: float = 0.0) -> Path:
     """Write an .ass subtitle with short, animated caption lines for each spoken
     segment, timed within the segment by word count. Big, bold, centered, with a
-    heavy outline so it reads on any footage — burned in at render time."""
+    heavy outline so it reads on any footage — burned in at render time.
+
+    `start_offset` shifts all timings later (seconds) — used when a cold-open teaser
+    is prepended to the video so captions still line up with the narration."""
     W, H = size
     fontsize = max(36, round(H * 0.05))
     margin_v = round(H * 0.20)               # sit above the lower-third strip
@@ -93,7 +96,7 @@ Style: CapHi,DejaVu Sans,{fontsize},{accent_ass},&H00101010,&H64000000,1,1,4,1,2
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
-    events, t = [], 0.0
+    events, t = [], float(start_offset)
     for seg, dur in zip(segments, durations):
         words = (seg.narration or "").split()
         if not words or dur <= 0:

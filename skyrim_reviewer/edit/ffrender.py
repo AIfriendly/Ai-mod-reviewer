@@ -220,6 +220,162 @@ def _i2v_segment(clips: list[str], dur: float, size, fps: int,
     _run(args)
 
 
+def _font(size: int, bold: bool = True):
+    from PIL import ImageFont
+    try:
+        return ImageFont.truetype("DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf", size)
+    except Exception:
+        return ImageFont.load_default()
+
+
+def _teaser_png(text: str, size, accent: str, out: Path) -> str:
+    """Bold centered pattern-interrupt text for the cold-open teaser (RGBA)."""
+    from PIL import Image, ImageDraw
+    W, H = size
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    f = _font(round(H * 0.13))
+    lines = text.upper().split("\n")
+    total = sum(d.textbbox((0, 0), ln, font=f)[3] for ln in lines) + 12 * (len(lines) - 1)
+    y = (H - total) // 2
+    for ln in lines:
+        bb = d.textbbox((0, 0), ln, font=f)
+        x = (W - (bb[2] - bb[0])) // 2
+        d.text((x, y), ln, font=f, fill="white", stroke_width=10, stroke_fill="black")
+        y += (bb[3] - bb[1]) + 12
+    img.save(out)
+    return str(out)
+
+
+def _endcard_png(prev_title: str | None, channel: str, size, accent: str, out: Path) -> str:
+    """Binge-chain end-card overlay: 'watch next' + previous video + subscribe (RGBA)."""
+    from PIL import Image, ImageDraw
+    W, H = size
+    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    acc = _hex_accent(accent)
+
+    def centered(txt, y, f, fill, stroke=6):
+        bb = d.textbbox((0, 0), txt, font=f)
+        d.text(((W - (bb[2] - bb[0])) // 2, y), txt, font=f, fill=fill,
+               stroke_width=stroke, stroke_fill="black")
+        return bb[3] - bb[1]
+
+    if prev_title:
+        centered("WATCH THIS NEXT", int(H * 0.14), _font(round(H * 0.07)), acc)
+        import textwrap
+        wrapped = textwrap.fill(prev_title, width=26).split("\n")[:2]
+        y = int(H * 0.30)
+        fpt = _font(round(H * 0.075))
+        for ln in wrapped:
+            y += centered(ln, y, fpt, "white") + 14
+    else:
+        centered("MORE SKYRIM MODS", int(H * 0.22), _font(round(H * 0.09)), acc)
+    centered("S U B S C R I B E", int(H * 0.62), _font(round(H * 0.085)), "white")
+    centered("New Skyrim mod videos every week", int(H * 0.76),
+             _font(round(H * 0.045), bold=False), acc)
+    if channel:
+        centered(channel, int(H * 0.87), _font(round(H * 0.05)), "white")
+    img.save(out)
+    return str(out)
+
+
+def _hex_accent(color: str):
+    c = (color or "").lstrip("#")
+    try:
+        return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4))
+    except Exception:
+        return (212, 175, 55)
+
+
+def _silent_wav(dur: float, out: Path) -> Path:
+    """A silent stereo wav of `dur` seconds (audio-slot filler for teaser/end-card)."""
+    _run([_ff(), "-y", "-v", "error", "-f", "lavfi", "-t", f"{dur:.3f}",
+          "-i", "anullsrc=r=44100:cl=stereo", str(out)])
+    return out
+
+
+def _cold_open_teaser(images: list[str], tease_png: str, dur: float, size, fps: int,
+                      out: Path):
+    """A ~4s pattern-interrupt BEFORE the hook: a rapid-fire montage of the best shots
+    with a bold 'stay till #1' overlay, to stop the scroll and set the promise. The
+    single most effective retention tactic for list videos."""
+    W, H = size
+    imgs = [i for i in (images or []) if i][:6]
+    if not imgs:
+        return False
+    n = len(imgs)
+    per = max(0.35, dur / n)                      # very fast cuts (~0.4s) for energy
+    frames = max(1, round(per * fps))
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    for img in imgs:
+        args += ["-loop", "1", "-t", f"{per:.3f}", "-i", img]
+    args += ["-loop", "1", "-i", tease_png]
+    ti = n
+    parts, labels = [], []
+    for k in range(n):
+        z0, z1 = (1.06, 1.18) if k % 2 == 0 else (1.18, 1.06)
+        zexpr = f"{z0}+({z1-z0})*on/{frames}"
+        parts.append(
+            f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"eq=contrast=1.1:saturation=1.2,setsar=1[c{k}];"
+            f"[c{k}]zoompan=z='{zexpr}':d={frames}:x='iw/2-(iw/zoom/2)':"
+            f"y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={fps},"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS[s{k}];")
+        labels.append(f"[s{k}]")
+    chain = "".join(parts) + "".join(labels) + f"concat=n={n}:v=1:a=0[mont];"
+    chain += (f"[{ti}:v]format=rgba[tt];"
+              f"[mont][tt]overlay=0:0,fade=t=in:st=0:d=0.2,"
+              f"fade=t=out:st={dur-0.3:.2f}:d=0.3,format=yuv420p[v]")
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-c:v", "libx264", "-preset", "veryfast", str(out)]
+    _run(args)
+    return True
+
+
+def _end_card(hero: str | None, card_png: str, dur: float, size, fps: int, out: Path):
+    """A ~11s binge-chain end card AFTER the outro: the previous video in the series +
+    a subscribe prompt over a slow push on the best hero, to convert one view into a
+    session (the biggest algorithm signal for a series channel)."""
+    W, H = size
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    if hero and Path(hero).exists():
+        frames = max(1, round(dur * fps))
+        args += ["-loop", "1", "-t", f"{dur + 0.1:.3f}", "-i", hero]
+        base = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+                f"eq=brightness=-0.18:saturation=0.9,gblur=sigma=6,setsar=1,"
+                f"zoompan=z='1.0+0.06*on/{frames}':d={frames}:x='iw/2-(iw/zoom/2)':"
+                f"y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={fps},"
+                f"trim=end_frame={frames},setpts=PTS-STARTPTS[bg];")
+        ci = 1
+    else:
+        args += ["-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=0x0b1018:s={W}x{H}:r={fps}"]
+        base = "[0:v]setsar=1[bg];"; ci = 1
+    args += ["-loop", "1", "-i", card_png]
+    chain = base + (f"[{ci}:v]format=rgba[cd];[bg][cd]overlay=0:0,"
+                    f"fade=t=in:st=0:d=0.4,format=yuv420p[v]")
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+             "-preset", "veryfast", str(out)]
+    _run(args)
+
+
+def _prev_in_series(project) -> str | None:
+    """Title of the previous video in this project's category (from history.json),
+    for the binge-chain 'watch next' card. None if this is the first in the series."""
+    try:
+        from ..history import _load, _game_of
+        entries = _load().get(_game_of(project), [])
+        cat = getattr(project, "category_id", "")
+        same = [e for e in entries
+                if (e.get("category") or "") == cat and e.get("slug") != project.slug]
+        return same[-1].get("title") if same else None
+    except Exception:
+        return None
+
+
 def _hook_montage(images: list[str], dur: float, size, fps: int,
                   title_png: str, out: Path):
     """Cold open: a fast-cut, full-bleed montage of the actual best mod shots with the
@@ -400,13 +556,40 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
                                footage if kind in ("hook", "intro") else None)
         seg_videos.append(out)
 
+    # --- Retention: cold-open teaser (prepend) + binge-chain end card (append) ---
+    # These carry no narration; they get silent audio slots so the a/v timelines stay
+    # aligned. durations stays NARRATION-only (for captions/mod cues); the teaser adds a
+    # caption/cue offset instead.
+    from ..config import channel_config as _cc
+    channel_name = _cc().get("channel", {}).get("name", "")
+    teaser_dur = 0.0
+    if cfg.get("intro_teaser", True) and hook_heroes:
+        td = float(cfg.get("teaser_seconds", 4.0))
+        tpng = seg_dir / "teaser.png"
+        _teaser_png("WAIT FOR\n#1", size, accent, tpng)
+        tv = seg_dir / "seg_teaser.mp4"
+        if _cold_open_teaser(hook_heroes, str(tpng), td, size, fps, tv):
+            seg_videos.insert(0, tv)
+            seg_audios.insert(0, str(_silent_wav(td, seg_dir / "teaser_sil.wav")))
+            teaser_dur = td
+    endcard_dur = 0.0
+    if cfg.get("end_card", True):
+        ed = float(cfg.get("endcard_seconds", 11.0))
+        epng = seg_dir / "endcard.png"
+        _endcard_png(_prev_in_series(project), channel_name, size, accent, epng)
+        ev = seg_dir / "seg_endcard.mp4"
+        _end_card(hook_heroes[0] if hook_heroes else None, str(epng), ed, size, fps, ev)
+        seg_videos.append(ev)
+        seg_audios.append(str(_silent_wav(ed, seg_dir / "endcard_sil.wav")))
+        endcard_dur = ed
+
     # Concat visuals (no re-encode).
     video_only = seg_dir / "_video.mp4"
     _concat_videos(seg_videos, video_only)
 
     # Animated captions (burned in) + a whoosh sting at each mod reveal.
-    total_dur = sum(durations)
-    mod_starts, acc = [], 0.0
+    total_dur = teaser_dur + sum(durations) + endcard_dur
+    mod_starts, acc = [], teaser_dur           # offset cues past the prepended teaser
     for seg, d in zip(spoken, durations):
         if getattr(seg, "kind", "") == "mod":
             mod_starts.append(acc)
@@ -414,7 +597,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     ass_path = None
     if cfg.get("captions", True):
         from .captions import build_ass
-        ass_path = build_ass(spoken, durations, size, seg_dir / "captions.ass", accent)
+        ass_path = build_ass(spoken, durations, size, seg_dir / "captions.ass", accent,
+                             start_offset=teaser_dur)
     sfx_path = None
     if cfg.get("sfx", True):
         try:

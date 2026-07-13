@@ -67,6 +67,13 @@ video:
   captions: true            # burn animated word-chunk captions into the video
   sfx: true                 # whoosh sting at each mod reveal
   color_grade: true         # consistent cinematic grade across the whole video
+  # Retention package: a cold-open teaser (pattern-interrupt before the hook) and a
+  # binge-chain end card (next video in the series + subscribe) — both boost watch time
+  # and session time, the biggest algorithm signals for a small series channel.
+  intro_teaser: true        # ~4s rapid-cut teaser with a "wait for #1" overlay
+  teaser_seconds: 4
+  end_card: true            # ~11s end card linking another video in the series
+  endcard_seconds: 11
   # Image-to-video: turn the still mod screenshots into real MOTION clips, stitched in
   # place of Ken Burns pans. Any image without a clip falls back to Ken Burns, so this
   # never breaks a render. Clips are cached under work/<slug>/i2v/. Two backends:
