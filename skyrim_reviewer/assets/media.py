@@ -64,19 +64,37 @@ def acquire_media(project: Project, resolution: tuple[int, int] = (1920, 1080)) 
         slug = f"mod_{mod.mod_id}"
         used_placeholder = True
         if mod.allow_media_reuse and scrape:
-            from ..research.gallery import fetch_gallery
+            from ..research.gallery import fetch_gallery_media
             have = {a.url for a in mod.media}
-            if sum(1 for a in mod.media if a.kind == "image") < gallery_max:
-                for u in fetch_gallery(mod.mod_id, domain, gallery_max):
+            n_img = sum(1 for a in mod.media if a.kind == "image")
+            has_vid = any(a.kind == "video" for a in mod.media)
+            # Pull the full gallery AND any author-uploaded preview VIDEO (real moving
+            # B-roll of the actual mod, self-hosted on the Nexus CDN — the renderer
+            # prefers it over still-image motion). Most mods have none; then we just
+            # get images and fall back to parallax/zoom stills.
+            if n_img < gallery_max or not has_vid:
+                media = fetch_gallery_media(mod.mod_id, domain,
+                                            max_images=gallery_max, max_videos=1)
+                for u in media.get("videos", []):
+                    if u not in have:
+                        mod.media.append(MediaAsset(url=u, kind="video"))
+                        have.add(u)
+                for u in media.get("images", []):
                     if u not in have:
                         mod.media.append(MediaAsset(url=u, kind="image"))
                         have.add(u)
             imgs = [a for a in mod.media if a.kind == "image"][:gallery_max]
-            mod.media = [a for a in mod.media if a.kind != "image"] + imgs
+            vids = [a for a in mod.media if a.kind == "video"][:1]
+            mod.media = vids + imgs                  # video first (renderer prefers it)
         if mod.allow_media_reuse and mod.media:
             # Download the approved media.
             for idx, asset in enumerate(mod.media):
-                ext = ".jpg" if asset.kind == "image" else ".mp4"
+                if asset.kind == "image":
+                    ext = ".jpg"
+                else:                                # keep the real container extension
+                    ext = Path(asset.url.split("?")[0]).suffix.lower()
+                    if ext not in {".mp4", ".webm", ".mov", ".mkv"}:
+                        ext = ".mp4"
                 dest = assets_dir / f"{slug}_{idx}{ext}"
                 try:
                     _download(asset.url, dest)
