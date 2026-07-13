@@ -525,17 +525,19 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank,
                                endorsements=getattr(mod, "endorsements", 0) or 0)
-            # Prefer real author B-roll; then AI motion clips of the stills (all camera
-            # variants of every image pooled, so a segment cycles fresh shots instead
-            # of looping one clip); then Ken Burns.
+            # Motion style. video.motion_style: "mixed" (default) ALTERNATES parallax
+            # and Ken Burns per mod for visual variety; "parallax" or "kenburns" force one.
             mod_clips = [c for p in images for c in i2v_clips.get(p, [])
                         if Path(c).exists()]
+            style = str(cfg.get("motion_style", "mixed")).lower()
+            use_parallax = bool(mod_clips) and (
+                style == "parallax" or (style == "mixed" and mod_seen % 2 == 1))
             if videos:                       # real author B-roll beats everything
                 _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
-            elif mod_clips:                  # AI image-to-video motion of the screenshots
+            elif use_parallax:               # depth-parallax motion of the screenshots
                 _i2v_segment(mod_clips, dur, size, fps, str(lt), out, fade_in=0.3,
                             target_shot=target_shot)
-            else:
+            else:                            # classic Ken Burns (clean zoom/pan)
                 _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3,
                                   target_shot=target_shot)
         else:
@@ -617,8 +619,14 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     args = [ff, "-y", "-v", "error", "-i", str(video_only)]
     for a in seg_audios:
         args += ["-i", a]
-    track = pick_track(music_dir)
-    music_credit = track_credit(track)
+    # Multi-track bed: rotate through several tracks across the video (crossfading)
+    # instead of looping one. Falls back to a single picked track on failure.
+    from .music import build_music_bed
+    track, bed_stems = build_music_bed(total_dur, seg_dir / "music_bed.m4a", music_dir)
+    if not track:
+        track = pick_track(music_dir)
+        bed_stems = [Path(track).stem] if track else []
+    music_credit = "\n".join(c for s in bed_stems if (c := track_credit(f"{s}.mp3")))
     n_a = len(seg_audios)
     fc = ""
     for j in range(n_a):

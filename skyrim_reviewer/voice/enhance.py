@@ -39,7 +39,20 @@ _BRIGHT = (
     "loudnorm=I=-16:TP=-1.5:LRA=11"
 )
 
-_PRESETS = {"proximity": _PROXIMITY, "bright": _BRIGHT}
+# "Clarity" — an aggressive de-muffle (user-approved). Chatterbox output is dark, so
+# this pushes presence + a strong harmonic exciter and air shelf to bring the voice
+# right forward and kill the muffled quality, at a hotter -15 LUFS.
+_CLARITY = (
+    "aresample=48000,"
+    "highpass=f=60,"
+    "equalizer=f=2800:t=q:w=1.3:g=3.5,"         # presence / diction
+    "equalizer=f=6000:t=q:w=1.4:g=3,"           # clarity
+    "aexciter=amount=5:freq=5000:ceil=17000:blend=5,"   # strong synthesised air
+    "treble=g=9:f=6500,"                         # big air shelf
+    "loudnorm=I=-15:TP=-1.5:LRA=11"
+)
+
+_PRESETS = {"proximity": _PROXIMITY, "bright": _BRIGHT, "clarity": _CLARITY}
 
 
 def enhance_file(path: Path, ffmpeg: str | None = None, preset: str | None = None) -> None:

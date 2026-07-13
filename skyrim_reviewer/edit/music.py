@@ -60,6 +60,54 @@ def pick_track(music_dir: str = "music") -> str | None:
     return str(random.choice(tracks)) if tracks else None
 
 
+def build_music_bed(total_dur: float, out_path, music_dir: str = "music",
+                    seg_seconds: float = 105.0, xfade: float = 3.0):
+    """Stitch MULTIPLE tracks into one bed that ROTATES across the video (crossfading
+    every ~seg_seconds) instead of looping a single track. Returns (bed_path, [stems])
+    for crediting, or (None, []) if there are no tracks. ffmpeg acrossfade chain."""
+    import subprocess
+    from pathlib import Path
+    from ..utils.ffmpeg import ffmpeg_path
+    d = Path(music_dir)
+    tracks = sorted(str(p) for p in d.iterdir()
+                    if p.suffix.lower() in {".mp3", ".wav", ".m4a", ".ogg"}) \
+        if d.exists() else []
+    if not tracks:
+        return None, []
+    if len(tracks) == 1:                       # nothing to rotate through
+        return tracks[0], [Path(tracks[0]).stem]
+    step = max(30.0, seg_seconds - xfade)
+    n = max(2, int(total_dur // step) + 1)
+    args = [ffmpeg_path(), "-y", "-v", "error"]
+    used = []
+    for i in range(n):
+        t = tracks[i % len(tracks)]
+        used.append(Path(t).stem)
+        off = (i // len(tracks)) * seg_seconds  # vary which part of the track each pass
+        args += ["-ss", f"{off:.1f}", "-t", f"{seg_seconds:.1f}", "-i", t]
+    fc = "[0:a]afade=t=in:d=1.5[a0];"
+    for i in range(1, n):
+        fc += f"[{i}:a]anull[a{i}];"
+    prev = "[a0]"
+    for i in range(1, n):
+        outl = "[mix]" if i == n - 1 else f"[c{i}]"
+        fc += f"{prev}[a{i}]acrossfade=d={xfade}:c1=tri:c2=tri{outl};"
+        prev = outl
+    fc += f"{prev}afade=t=out:st={max(0.0, total_dur - 3):.1f}:d=3[out]" \
+        if False else f"[mix]atrim=0:{total_dur + 1:.1f}[out]"
+    args += ["-filter_complex", fc, "-map", "[out]", str(out_path)]
+    try:
+        subprocess.run(args, check=True, capture_output=True, text=True)
+    except Exception:
+        return tracks[0], [Path(tracks[0]).stem]   # fall back to a single track
+    # dedupe stems, order preserved
+    seen, stems = set(), []
+    for s in used:
+        if s not in seen:
+            seen.add(s); stems.append(s)
+    return str(out_path), stems
+
+
 def music_bed(total_duration: float, music_dir: str = "music",
               base_volume: float = 0.12, track: str | None = None):
     """Return a looped, volume-reduced music clip, or None if no track is available."""
