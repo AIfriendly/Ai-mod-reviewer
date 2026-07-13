@@ -120,11 +120,41 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     return out_path
 
 
-def youtube_chapters(script: Script, durations: list[float]) -> list[str]:
-    """'0:00 Intro' style chapter list for the description."""
-    out, t = [], 0.0
-    for seg, dur in zip(script.segments, durations):
-        m, s = int(t // 60), int(t % 60)
-        out.append(f"{m}:{s:02d} {seg.title}")
+def _clean_chapter_name(name: str) -> str:
+    """Tidy raw Nexus mod names for chapter labels (drop edition tags / dangling dashes)."""
+    import re
+    n = re.sub(r"\s*[-–]\s*(SSE|SE|AE|LE|Special Edition|MOD)\b.*$", "", name or "",
+               flags=re.I)
+    n = re.sub(r"\s*\((SSE|SE|AE|LE)\)\s*$", "", n, flags=re.I)
+    n = re.sub(r"\bMOD\b\s*[-–]?\s*$", "", n, flags=re.I)
+    return n.strip(" -–") or (name or "").strip()
+
+
+def youtube_chapters(script: Script, durations: list[float],
+                     mods=None, start_offset: float = 0.0) -> list[str]:
+    """'0:00 Intro' style chapter list for the description. Mod segments are labelled
+    with the mod's name (and countdown rank) — falling back to the mod list when the
+    segment carries no title — so the chapters are actually usable on YouTube instead
+    of blank timestamps. `start_offset` accounts for a prepended cold-open teaser; the
+    first chapter is clamped to 0:00 (YouTube requires it) so it covers the teaser."""
+    by_id = {m.mod_id: m for m in (mods or [])}
+    n_mods = sum(1 for s in script.segments if getattr(s, "kind", "") == "mod")
+    labels = {"hook": "Intro", "intro": "Intro", "outro": "Outro"}
+    out, t, mod_i = [], float(start_offset), 0
+    for idx, (seg, dur) in enumerate(zip(script.segments, durations)):
+        tt = 0.0 if idx == 0 else t          # first chapter must be 0:00 for YouTube
+        m_, s_ = int(tt // 60), int(tt % 60)
+        kind = getattr(seg, "kind", "")
+        label = (seg.title or "").strip()
+        if kind == "mod":
+            mod_i += 1
+            mod = by_id.get(seg.mod_id)
+            name = label or (mod.name if mod else f"Mod {mod_i}")
+            name = _clean_chapter_name(name)
+            rank = n_mods - mod_i + 1
+            label = f"#{rank} {name}" if n_mods >= 3 else name
+        elif not label:
+            label = labels.get(kind, kind.title() or "Chapter")
+        out.append(f"{m_}:{s_:02d} {label}")
         t += dur
     return out

@@ -686,7 +686,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     # Sidecar artefacts (same as moviepy path).
     durs = segment_durations(script)
     write_srt(script, durs, out_dir / f"{project.slug}.srt")
-    script.chapters = youtube_chapters(script, durs)
+    script.chapters = youtube_chapters(script, durs, mods=project.mods,
+                                       start_offset=teaser_dur)
     from ..branding import make_description
     wm = ""
     try:
