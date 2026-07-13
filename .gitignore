@@ -67,6 +67,7 @@ _build_nl45.py
 # Scratch drivers/logs (underscore-prefixed) are throwaway — never commit them.
 _*.py
 _*.log
+_*.sh
 
 # `learn` raw snapshot (regenerated every run; the distilled insights YAML IS committed)
 analytics/channel_stats.json
