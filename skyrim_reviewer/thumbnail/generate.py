@@ -107,26 +107,86 @@ def _subject_score(path: str) -> float:
         return 0.0
 
 
-def _mod_gallery_hero(mod) -> str | None:
-    """A clean GALLERY screenshot for the hero — prefer a non-primary image, since a
-    mod's primary/splash image is frequently a title card with the mod name baked in
-    (which clashes with our own thumbnail text)."""
+def _text_coverage(path: str) -> float:
+    """Fraction of the frame occupied by baked-in TEXT (0-1). Mod splash/primary images
+    are frequently 'title cards' with the mod name written across them (and sometimes a
+    2- or 3-panel collage) — layering our own thumbnail text on top of those makes a
+    cluttered mess. This detects those so we can reject them as the hero. Uses a
+    morphological-gradient text-region heuristic via OpenCV; returns 0.0 if unavailable
+    (selection then just falls back to the brightness/subject logic).
+
+    Calibrated: title cards score ~0.08-0.15, clean gameplay screenshots ~0.00-0.03."""
+    try:
+        import cv2
+        import numpy as np
+        im = Image.open(path).convert("L")
+        im.thumbnail((640, 360))
+        arr = np.asarray(im)
+        h, w = arr.shape
+        grad = cv2.morphologyEx(arr, cv2.MORPH_GRADIENT,
+                                cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)))
+        _, bw = cv2.threshold(grad, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        connected = cv2.morphologyEx(bw, cv2.MORPH_CLOSE,
+                                     cv2.getStructuringElement(cv2.MORPH_RECT, (11, 1)))
+        cnts, _ = cv2.findContours(connected, cv2.RETR_EXTERNAL,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+        area = 0
+        for c in cnts:
+            x, y, cw, ch = cv2.boundingRect(c)
+            ar = cw / float(ch) if ch else 0
+            # text lines read as wide, short, stroke-dense boxes (not full-frame edges)
+            if 1.8 < ar < 30 and 0.03 * h < ch < 0.22 * h and cw > 0.08 * w:
+                if bw[y:y + ch, x:x + cw].mean() > 45:
+                    area += cw * ch
+        return min(1.0, area / float(w * h))
+    except Exception:
+        return 0.0
+
+
+_TEXT_MAX = 0.045   # reject a hero whose text coverage exceeds this (title cards)
+
+
+def _hero_quality(path: str) -> float:
+    """Higher = a better thumbnail hero. Rewards a well-exposed, punchy image and
+    penalises dark/underexposed or flat/hazy shots (which read as muddy at small size).
+    Keeps selection away from gloomy interior/HUD screenshots."""
+    b = _brightness(path)
+    if b < 0:
+        return -1.0
+    # brightness sweet-spot ~130; falls off toward black/blown-out
+    bright = 1.0 - abs(b - 130) / 130.0
+    contrast = min(_contrast(path) / 70.0, 1.0)     # 70+ std-dev = plenty of punch
+    return 0.55 * bright + 0.45 * contrast
+
+
+def _clean_heroes(mod) -> list[str]:
+    """A mod's screenshots that are NOT title-card/text-heavy, ranked best-hero first
+    by exposure/contrast quality (so dark HUD screenshots lose to bright promo shots).
+    Primaries are eligible but only if clean."""
     imgs = [a.local_path for a in mod.media
             if a.local_path and Path(a.local_path).suffix.lower() in {
                 ".png", ".jpg", ".jpeg", ".webp"} and Path(a.local_path).exists()]
     if not imgs:
-        return None
-    return imgs[1] if len(imgs) > 1 else imgs[0]   # skip the (often title-card) primary
+        return []
+    gallery, primary = imgs[1:], imgs[:1]
+    ordered = gallery + primary                    # prefer gallery over the splash
+    clean = [p for p in ordered if _text_coverage(p) <= _TEXT_MAX] or ordered
+    return sorted(clean, key=_hero_quality, reverse=True)
+
+
+def _mod_gallery_hero(mod) -> str | None:
+    """The best clean, well-exposed GALLERY screenshot for the hero."""
+    clean = _clean_heroes(mod)
+    return clean[0] if clean else None
 
 
 def _best_hero(project: Project) -> str | None:
-    """Pick the thumbnail hero: prefer a clear character/face subject (close-ups make
-    the strongest thumbnails) among the top-endorsed mods' well-lit GALLERY shots
-    (avoiding title-card splash images); otherwise fall back to the highest-endorsed
-    well-lit shot. Hero is punched up at stage time."""
+    """Pick the thumbnail hero: a clean (text-free), well-lit, high-contrast GALLERY
+    screenshot from the top-endorsed mods, preferring a clear character/face subject
+    (close-ups convert best). Never a title-card splash image."""
     ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
                     reverse=True)
-    candidates = [img for mod in ranked[:10] if (img := _mod_gallery_hero(mod))]
+    candidates = [img for mod in ranked[:10] for img in _clean_heroes(mod)[:2]]
     if not candidates:
         candidates = _hero_images(project)
     if not candidates:
@@ -137,7 +197,8 @@ def _best_hero(project: Project) -> str | None:
     strong = [(img, s) for img, s in subjects if s >= 0.04]
     if strong:
         return max(strong, key=lambda x: x[1])[0]
-    return well_lit[0]                            # else highest-endorsed well-lit shot
+    # else the punchiest (highest-contrast) well-lit shot — reads best at small size.
+    return max(well_lit, key=_contrast)
 
 
 def make_thumbnail(project: Project, text: str | None = None,
@@ -196,13 +257,31 @@ def _punch(img: Image.Image) -> Image.Image:
     return img
 
 
+def _vignette(canvas: Image.Image, strength: int = 150) -> Image.Image:
+    """Darken the edges/corners so the centre subject pops (cinematic focus)."""
+    W, H = canvas.size
+    mask = Image.new("L", (W, H), 0)
+    md = ImageDraw.Draw(mask)
+    # radial-ish falloff via nested ellipses
+    steps = 40
+    for i in range(steps):
+        a = int(strength * (i / steps) ** 2)
+        pad = int((i / steps) * min(W, H) * 0.75)
+        md.ellipse([-pad, -pad, W + pad, H + pad], outline=a)
+    dark = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    dark.putalpha(mask)
+    return Image.alpha_composite(canvas.convert("RGBA"), dark).convert("RGB")
+
+
 def _pil_thumbnail(heroes: list[str], keyword: str, accent: str, count: int,
                    category: str, out: Path) -> None:
-    """A clickable channel thumbnail without Remotion. Single striking hero + a bold
-    number badge + a punchy accent keyword. Only graphics/comparison videos get the
+    """A clickable channel thumbnail without Remotion. ONE striking, text-free hero,
+    punched and vignetted, with a bold accent number badge and a punchy keyword seated
+    on a scrim + accent underline. Only graphics/comparison videos get the
     VANILLA-vs-MODDED split (it's meaningless for new lands / quests)."""
     heroes = [h for h in heroes if h]
     W, H = SIZE
+    acc = _hex(accent)
     canvas = Image.new("RGB", SIZE, (10, 14, 20))
     comparison = category in ("graphics", "comparison") and len(heroes) >= 2
     if comparison:
@@ -215,40 +294,58 @@ def _pil_thumbnail(heroes: list[str], keyword: str, accent: str, count: int,
         _tag(ImageDraw.Draw(canvas), "MODDED", (W // 2 + 30, 26), accent)
     elif heroes:
         canvas.paste(_punch(_cover(Image.open(heroes[0]).convert("RGB"), SIZE)), (0, 0))
+        canvas = _vignette(canvas)
 
-    # Cinematic vignette + a strong bottom gradient scrim for text legibility.
+    # Scrim: strong bottom gradient + a soft left wash so text is always legible.
     scrim = Image.new("RGBA", SIZE, (0, 0, 0, 0))
     sd = ImageDraw.Draw(scrim)
-    for i in range(300):
-        a = int(210 * (i / 300) ** 1.4)
-        sd.line([(0, H - 300 + i), (W, H - 300 + i)], fill=(0, 0, 0, a))
+    for i in range(340):                            # bottom band for the keyword
+        a = int(225 * (i / 340) ** 1.5)
+        sd.line([(0, H - 340 + i), (W, H - 340 + i)], fill=(0, 0, 0, a))
+    for i in range(460):                            # gentle left wash for depth
+        a = int(120 * (1 - i / 460) ** 1.7)
+        sd.line([(i, 0), (i, H)], fill=(0, 0, 0, a))
     canvas = Image.alpha_composite(canvas.convert("RGBA"), scrim).convert("RGB")
     draw = ImageDraw.Draw(canvas)
 
-    # Big bold keyword, bottom-left, white with a heavy black stroke.
+    # --- Keyword: huge, white, heavy stroke, with an accent underline bar. ---
     kw = keyword.upper()
-    kfont = _font(150 if len(kw) <= 9 else 118)
-    draw.text((54, H - 190), kw, font=kfont, fill="white",
-              stroke_width=9, stroke_fill="black")
-    draw.text((58, H - 84), "SKYRIM MODS", font=_font(46), fill=accent,
-              stroke_width=4, stroke_fill="black")
+    kfont = _font(154 if len(kw) <= 9 else 120)
+    kx, ky = 52, H - 205
+    kb = draw.textbbox((kx, ky), kw, font=kfont)
+    draw.text((kx, ky), kw, font=kfont, fill="white", stroke_width=10,
+              stroke_fill="black")
+    # accent underline directly under the keyword
+    uy = kb[3] + 6
+    draw.rounded_rectangle([kx + 4, uy, kb[2], uy + 16], radius=8, fill=acc)
+    # channel kicker above the keyword, on its own accent chip
+    kick = "SKYRIM MODS"
+    kkf = _font(42)
+    kkb = draw.textbbox((0, 0), kick, font=kkf)
+    kw_w, kw_h = kkb[2] - kkb[0], kkb[3] - kkb[1]
+    draw.rounded_rectangle([kx, ky - kw_h - 40, kx + kw_w + 34, ky - 14],
+                           radius=12, fill=acc)
+    draw.text((kx + 17, ky - kw_h - 34), kick, font=kkf, fill=(12, 12, 12))
 
-    # Number badge, top-left: the count in the accent colour — the eye-catcher.
+    # --- Number badge, top-left: big accent pill with a drop shadow. ---
     if count:
-        acc = _hex(accent)
         bfont = _font(150)
         num = f"{count}"
         bb = draw.textbbox((0, 0), num, font=bfont)
         bw, bh = bb[2] - bb[0], bb[3] - bb[1]
-        draw.rounded_rectangle([34, 30, 34 + bw + 56, 30 + bh + 44], radius=22,
-                               fill=(0, 0, 0))
-        draw.rounded_rectangle([40, 36, 40 + bw + 44, 30 + bh + 38], radius=18,
-                               fill=acc)
-        draw.text((40 + 22, 36 + 2), num, font=bfont, fill=(10, 12, 16),
-                  stroke_width=3, stroke_fill=(10, 12, 16))
+        x0, y0 = 40, 34
+        pill = [x0, y0, x0 + bw + 60, y0 + bh + 52]
+        # shadow
+        draw.rounded_rectangle([pill[0] + 8, pill[1] + 10, pill[2] + 8, pill[3] + 10],
+                               radius=26, fill=(0, 0, 0))
+        draw.rounded_rectangle(pill, radius=26, fill=(0, 0, 0))         # black ring
+        draw.rounded_rectangle([pill[0] + 7, pill[1] + 7, pill[2] - 7, pill[3] - 7],
+                               radius=20, fill=acc)                      # accent fill
+        draw.text((x0 + 30 - bb[0], y0 + 20 - bb[1]), num, font=bfont,
+                  fill=(12, 14, 18))
 
-    # Thin accent border frames it against YouTube's white feed.
-    draw.rectangle([0, 0, W - 1, H - 1], outline=_hex(accent), width=8)
+    # Thick accent border frames it against YouTube's white feed.
+    draw.rectangle([0, 0, W - 1, H - 1], outline=acc, width=10)
     out.parent.mkdir(parents=True, exist_ok=True)
     canvas.save(out)
 
@@ -267,11 +364,15 @@ def make_thumbnail_variants(project, accent: str = "#d4af37",
     out_dir = Path(project.workdir) / "thumbs"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # The author-curated main image of each mod, most-endorsed first (best-looking
-    # heroes; never stats tables). Each variant uses a different mod as its hero.
-    ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
-                    reverse=True)
-    heroes = [img for mod in ranked if (img := _mod_main_image(mod))]
+    # One CLEAN, well-exposed hero per mod (never a title-card/text splash), then
+    # ranked by image quality so the variants use the best-LOOKING scenes — a mod whose
+    # whole gallery is dark won't force a muddy thumbnail. Distinct mods = A/B variety.
+    heroes = [img for mod in project.mods if (img := _mod_gallery_hero(mod))]
+    heroes = sorted(heroes, key=_hero_quality, reverse=True)
+    if not heroes:                                  # last resort: any main image
+        ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
+                        reverse=True)
+        heroes = [img for mod in ranked if (img := _mod_main_image(mod))]
     cid = getattr(project, "category_id", "") or ""
     variants = thumbnail_variants_text(category_title or "", n, cid)
     count = len(project.mods)
