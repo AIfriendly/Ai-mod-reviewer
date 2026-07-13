@@ -581,18 +581,18 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank,
                                endorsements=getattr(mod, "endorsements", 0) or 0)
-            # Motion style. video.motion_style: "mixed" (default) CYCLES through the
-            # three edit styles per mod for variety — parallax -> Ken Burns -> zoom;
-            # "parallax" / "kenburns" / "zoom" force one.
+            # Motion style. video.motion_style: "mixed" (default) ALTERNATES the two
+            # edit styles per mod for variety — parallax <-> zoom; "parallax" /
+            # "zoom" / "kenburns" force one. (Ken Burns dropped from the rotation.)
             mod_clips = [c for p in images for c in i2v_clips.get(p, [])
                         if Path(c).exists()]
             style = str(cfg.get("motion_style", "mixed")).lower()
             if style == "mixed":
-                pick = [None, "parallax", "kenburns", "zoom"][mod_seen % 3 + 1]
+                pick = ["parallax", "zoom"][mod_seen % 2]
             else:
                 pick = style
             if pick == "parallax" and not mod_clips:     # need clips; fall back
-                pick = "kenburns"
+                pick = "zoom"
             if videos:                       # real author B-roll beats everything
                 _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
             elif pick == "parallax":         # depth-parallax motion of the screenshots
