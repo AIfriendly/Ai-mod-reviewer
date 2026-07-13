@@ -63,6 +63,9 @@ def run(category_id: str, *, profile_name: str | None = None,
 
     cat = next((c for c in cfg["categories"] if c["id"] == category_id), None)
     category_title = cat["title"] if cat else (theme or "Best Skyrim Mods")
+    # The category's clean title (e.g. "Best Skyrim New Lands Mods") — used for A/B
+    # title + thumbnail generation, which need the CATEGORY, not the full video title.
+    seo_category_title = category_title
 
     if script_spec:
         # Manual / chat-authored path — mods + script come from the spec file.
@@ -70,6 +73,11 @@ def run(category_id: str, *, profile_name: str | None = None,
         spec = load_spec(script_spec)
         apply_spec(project, spec)
         category_title = project.script.title
+        # Keep a real category title for SEO: prefer the spec's category_id -> config.
+        _sc = next((c for c in cfg["categories"]
+                    if c["id"] == (spec.get("category_id") or category_id)), None)
+        if _sc:
+            seo_category_title = _sc["title"]
         print(f"[2/6] Using {len(project.mods)} mods from spec — no API calls.")
     else:
         from .research import research_category
@@ -120,15 +128,15 @@ def run(category_id: str, *, profile_name: str | None = None,
         out_path=Path(project.workdir) / "remotion" / "title.mp4",
     )
     make_thumbnail(project, accent=cfg["branding"]["accent_color"],
-                   category_title=category_title)
+                   category_title=seo_category_title)
     # A/B variants: alternative titles + thumbnails to choose from before upload.
     try:
         from .branding import title_variants
         from .thumbnail.generate import make_thumbnail_variants
         n_mods = len(project.mods)
-        titles = title_variants(category_title, n_mods, fmt=fmt)
+        titles = title_variants(seo_category_title, n_mods, fmt=fmt)
         thumbs = make_thumbnail_variants(project, accent=cfg["branding"]["accent_color"],
-                                         category_title=category_title)
+                                         category_title=seo_category_title)
         Path("output").mkdir(exist_ok=True)
         lines = ["TITLE OPTIONS (pick one):"] + [f"  {i+1}. {t}" for i, t in enumerate(titles)]
         lines += ["", "THUMBNAIL OPTIONS:"] + [f"  {i+1}. {p}" for i, p in enumerate(thumbs)]

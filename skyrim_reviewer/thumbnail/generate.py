@@ -107,13 +107,26 @@ def _subject_score(path: str) -> float:
         return 0.0
 
 
+def _mod_gallery_hero(mod) -> str | None:
+    """A clean GALLERY screenshot for the hero — prefer a non-primary image, since a
+    mod's primary/splash image is frequently a title card with the mod name baked in
+    (which clashes with our own thumbnail text)."""
+    imgs = [a.local_path for a in mod.media
+            if a.local_path and Path(a.local_path).suffix.lower() in {
+                ".png", ".jpg", ".jpeg", ".webp"} and Path(a.local_path).exists()]
+    if not imgs:
+        return None
+    return imgs[1] if len(imgs) > 1 else imgs[0]   # skip the (often title-card) primary
+
+
 def _best_hero(project: Project) -> str | None:
     """Pick the thumbnail hero: prefer a clear character/face subject (close-ups make
-    the strongest thumbnails) among the top-endorsed mods' well-lit images; otherwise
-    fall back to the highest-endorsed well-lit shot. Hero is punched up at stage time."""
+    the strongest thumbnails) among the top-endorsed mods' well-lit GALLERY shots
+    (avoiding title-card splash images); otherwise fall back to the highest-endorsed
+    well-lit shot. Hero is punched up at stage time."""
     ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
                     reverse=True)
-    candidates = [img for mod in ranked[:10] if (img := _mod_main_image(mod))]
+    candidates = [img for mod in ranked[:10] if (img := _mod_gallery_hero(mod))]
     if not candidates:
         candidates = _hero_images(project)
     if not candidates:
@@ -149,53 +162,100 @@ def make_thumbnail(project: Project, text: str | None = None,
             project.thumbnail_path = str(out)
             return str(out)
 
-    canvas = Image.new("RGB", SIZE, (12, 18, 26))
-    draw = ImageDraw.Draw(canvas)
-    text = (text or project.script.hook_line if project.script else None) or "TOP MODS"
-
-    if len(heroes) >= 2:
-        # Before / after split.
-        left = _cover(Image.open(heroes[1]).convert("RGB"), (SIZE[0] // 2, SIZE[1]))
-        left = ImageEnhance.Color(left).enhance(0.35)          # desaturate "before"
-        right = _cover(Image.open(heroes[0]).convert("RGB"), (SIZE[0] // 2, SIZE[1]))
-        canvas.paste(left, (0, 0))
-        canvas.paste(right, (SIZE[0] // 2, 0))
-        draw.rectangle([SIZE[0] // 2 - 4, 0, SIZE[0] // 2 + 4, SIZE[1]], fill=accent)
-        _tag(draw, "VANILLA", (30, 30), (90, 90, 90))
-        _tag(draw, "MODDED", (SIZE[0] // 2 + 30, 30), accent)
-    elif heroes:
-        canvas.paste(_cover(Image.open(heroes[0]).convert("RGB"), SIZE), (0, 0))
-        _tag(draw, "MODDED", (SIZE[0] - 250, 30), accent)
-
-    # Darken bottom for text legibility.
-    shade = Image.new("RGBA", SIZE, (0, 0, 0, 0))
-    ImageDraw.Draw(shade).rectangle([0, SIZE[1] - 240, SIZE[0], SIZE[1]],
-                                    fill=(0, 0, 0, 150))
-    canvas = Image.alpha_composite(canvas.convert("RGBA"), shade).convert("RGB")
-    draw = ImageDraw.Draw(canvas)
-
-    # Big bold headline (keep it short).
-    words = text.upper().split()
-    headline = " ".join(words[:4])
-    font = _font(110)
-    wrapped = textwrap.fill(headline, width=14)
-    draw.multiline_text((50, SIZE[1] - 230), wrapped, font=font, fill="white",
-                        stroke_width=6, stroke_fill="black", spacing=4)
-
-    out = Path(project.workdir) / "thumbnail.png"
+    # PIL fallback (used when Remotion isn't available — e.g. the cloud sandbox).
+    cid = getattr(project, "category_id", "") or ""
+    kw = _keyword_for(cid, project)
     out.parent.mkdir(parents=True, exist_ok=True)
-    canvas.save(out)
+    _pil_thumbnail([_best_hero(project)] + heroes, kw, accent, len(project.mods), cid, out)
     project.thumbnail_path = str(out)
     return str(out)
 
 
-def _tag(draw, label: str, xy, color) -> None:
-    font = _font(40)
+def _keyword_for(category_id: str, project) -> str:
+    """Short, punchy 1-2 word thumbnail keyword by category."""
+    return {"new_lands": "NEW LANDS", "quests": "NEW QUESTS", "graphics": "NEXT-GEN",
+            "weapons": "WEAPONS", "armor": "ARMOR", "magic": "MAGIC",
+            "gameplay": "OVERHAUL", "followers": "FOLLOWERS"}.get(
+        category_id, "MODS")
+
+
+def _tag(draw, label: str, xy, color, font_size: int = 40) -> None:
+    font = _font(font_size)
     pad = 14
     bbox = draw.textbbox(xy, label, font=font)
     draw.rectangle([bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad],
                    fill=(0, 0, 0))
     draw.text(xy, label, font=font, fill=color)
+
+
+def _punch(img: Image.Image) -> Image.Image:
+    """Boost contrast + saturation so the hero pops at thumbnail size."""
+    img = ImageEnhance.Contrast(img).enhance(1.12)
+    img = ImageEnhance.Color(img).enhance(1.25)
+    img = ImageEnhance.Brightness(img).enhance(1.03)
+    return img
+
+
+def _pil_thumbnail(heroes: list[str], keyword: str, accent: str, count: int,
+                   category: str, out: Path) -> None:
+    """A clickable channel thumbnail without Remotion. Single striking hero + a bold
+    number badge + a punchy accent keyword. Only graphics/comparison videos get the
+    VANILLA-vs-MODDED split (it's meaningless for new lands / quests)."""
+    heroes = [h for h in heroes if h]
+    W, H = SIZE
+    canvas = Image.new("RGB", SIZE, (10, 14, 20))
+    comparison = category in ("graphics", "comparison") and len(heroes) >= 2
+    if comparison:
+        left = ImageEnhance.Color(_cover(Image.open(heroes[1]).convert("RGB"),
+                                         (W // 2, H))).enhance(0.3)
+        right = _punch(_cover(Image.open(heroes[0]).convert("RGB"), (W // 2, H)))
+        canvas.paste(left, (0, 0)); canvas.paste(right, (W // 2, 0))
+        ImageDraw.Draw(canvas).rectangle([W // 2 - 5, 0, W // 2 + 5, H], fill=accent)
+        _tag(ImageDraw.Draw(canvas), "VANILLA", (30, 26), (150, 150, 150))
+        _tag(ImageDraw.Draw(canvas), "MODDED", (W // 2 + 30, 26), accent)
+    elif heroes:
+        canvas.paste(_punch(_cover(Image.open(heroes[0]).convert("RGB"), SIZE)), (0, 0))
+
+    # Cinematic vignette + a strong bottom gradient scrim for text legibility.
+    scrim = Image.new("RGBA", SIZE, (0, 0, 0, 0))
+    sd = ImageDraw.Draw(scrim)
+    for i in range(300):
+        a = int(210 * (i / 300) ** 1.4)
+        sd.line([(0, H - 300 + i), (W, H - 300 + i)], fill=(0, 0, 0, a))
+    canvas = Image.alpha_composite(canvas.convert("RGBA"), scrim).convert("RGB")
+    draw = ImageDraw.Draw(canvas)
+
+    # Big bold keyword, bottom-left, white with a heavy black stroke.
+    kw = keyword.upper()
+    kfont = _font(150 if len(kw) <= 9 else 118)
+    draw.text((54, H - 190), kw, font=kfont, fill="white",
+              stroke_width=9, stroke_fill="black")
+    draw.text((58, H - 84), "SKYRIM MODS", font=_font(46), fill=accent,
+              stroke_width=4, stroke_fill="black")
+
+    # Number badge, top-left: the count in the accent colour — the eye-catcher.
+    if count:
+        acc = _hex(accent)
+        bfont = _font(150)
+        num = f"{count}"
+        bb = draw.textbbox((0, 0), num, font=bfont)
+        bw, bh = bb[2] - bb[0], bb[3] - bb[1]
+        draw.rounded_rectangle([34, 30, 34 + bw + 56, 30 + bh + 44], radius=22,
+                               fill=(0, 0, 0))
+        draw.rounded_rectangle([40, 36, 40 + bw + 44, 30 + bh + 38], radius=18,
+                               fill=acc)
+        draw.text((40 + 22, 36 + 2), num, font=bfont, fill=(10, 12, 16),
+                  stroke_width=3, stroke_fill=(10, 12, 16))
+
+    # Thin accent border frames it against YouTube's white feed.
+    draw.rectangle([0, 0, W - 1, H - 1], outline=_hex(accent), width=8)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out)
+
+
+def _hex(color: str):
+    c = color.lstrip("#")
+    return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4)) if len(c) == 6 else (212, 175, 55)
 
 
 def make_thumbnail_variants(project, accent: str = "#d4af37",
@@ -218,10 +278,19 @@ def make_thumbnail_variants(project, accent: str = "#d4af37",
     paths = []
     from ..config import channel_config as _cc
     brand = _cc().get('channel', {}).get('name', '')
+    # Vary BOTH the hero image and the keyword per variant so YouTube's Test & Compare
+    # has genuinely different options to pick a winner from.
+    kw_pool = [_keyword_for(cid, project)] + [k for _, k, _ in variants if k]
+    kw_pool = list(dict.fromkeys([k.upper() for k in kw_pool if k])) or ["MODS"]
     for i, (headline, keyword, banner) in enumerate(variants):
         hero = heroes[i % len(heroes)] if heroes else None
         out = out_dir / f"thumb_v{i+1}.png"
         if hero and render_thumbnail(headline, keyword, banner, [hero], accent, out,
                                      brand=brand, count=count):
+            paths.append(str(out))
+        elif heroes:
+            # PIL fallback (no Remotion): different hero + keyword each variant.
+            ordered = heroes[i % len(heroes):] + heroes[:i % len(heroes)]
+            _pil_thumbnail(ordered, kw_pool[i % len(kw_pool)], accent, count, cid, out)
             paths.append(str(out))
     return paths
