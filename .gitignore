@@ -70,3 +70,6 @@ _*.log
 
 # `learn` raw snapshot (regenerated every run; the distilled insights YAML IS committed)
 analytics/channel_stats.json
+
+# Throwaway test specs (underscore-prefixed)
+examples/_*.yaml
