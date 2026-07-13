@@ -127,6 +127,11 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
         project = Project(slug=slug, workdir=f"work/{slug}", mods=[], profile=profile,
                           category_id=category_id)
         apply_spec(project, spec)
+        # apply_spec adopts the spec's own `slug:` — force the short slug back so the
+        # Short never writes over the full video's output/work paths.
+        project.slug = slug
+        project.workdir = f"work/{slug}"
+        Path(project.workdir).mkdir(parents=True, exist_ok=True)
     else:
         category_id = project.category_id or ""
 
