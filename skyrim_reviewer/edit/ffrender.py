@@ -164,6 +164,62 @@ def _video_segment(video: str, dur: float, size, fps: int,
     _run(args)
 
 
+def _zoom_segment(images: list[str], dur: float, size, fps: int,
+                  lower_third: str | None, out: Path, fade_in: float = 0.0,
+                  xfade: float = 0.4, target_shot: float = 5.0):
+    """Render one mod segment as clean, punchy FULL-FRAME zoom-in shots (cover-cropped,
+    no blur bars), cross-faded — a distinct third motion style alongside Ken Burns
+    (fit-over-blur pan) and depth-parallax. Alternates a slow push-in / slow pull-out."""
+    W, H = size
+    imgs = images or []
+    if not imgs:
+        return
+    n = max(len(imgs), min(30, round(dur / target_shot)))
+    xf = xfade if n > 1 else 0.0
+    per = (dur + (n - 1) * xf) / n
+    frames = max(1, round(per * fps))
+    shot_imgs = [imgs[k % len(imgs)] for k in range(n)]
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    for img in shot_imgs:
+        args += ["-loop", "1", "-t", f"{per + 0.05:.3f}", "-i", img]
+    if lower_third:
+        args += ["-loop", "1", "-i", lower_third]
+    lt_idx = len(shot_imgs)
+    parts, labels = [], []
+    for k in range(n):
+        z0, z1 = (1.0, 1.16) if k % 2 == 0 else (1.16, 1.0)   # push in / pull out
+        zexpr = f"{z0}+({z1-z0})*on/{frames}"
+        parts.append(
+            f"[{k}:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+            f"eq=contrast=1.05:saturation=1.1,setsar=1[c{k}];"
+            f"[c{k}]zoompan=z='{zexpr}':d={frames}:x='iw/2-(iw/zoom/2)':"
+            f"y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={fps},"
+            f"trim=end_frame={frames},setpts=PTS-STARTPTS,fps={fps},"
+            f"format=yuv420p[s{k}];")
+        labels.append(f"[s{k}]")
+    chain = "".join(parts)
+    if n == 1:
+        chain += "[s0]copy[vc];"
+    else:
+        prev = "[s0]"
+        for k in range(1, n):
+            off = k * (per - xf)
+            outl = "[vc]" if k == n - 1 else f"[x{k}]"
+            chain += (f"{prev}[s{k}]xfade=transition=fade:duration={xf:.3f}:"
+                      f"offset={off:.3f}{outl};")
+            prev = outl
+    if lower_third:
+        chain += f"[vc][{lt_idx}:v]overlay=0:0[vo];"
+    else:
+        chain += "[vc]copy[vo];"
+    chain += (f"[vo]fade=t=in:st=0:d={fade_in:.2f}[v]" if fade_in > 0 else "[vo]copy[v]")
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+             "-preset", "veryfast", str(out)]
+    _run(args)
+
+
 def _i2v_segment(clips: list[str], dur: float, size, fps: int,
                  lower_third: str | None, out: Path, fade_in: float = 0.0,
                  xfade: float = 0.4, target_shot: float = 5.0):
@@ -525,19 +581,27 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
                                size, lt, accent=accent, rank=rank,
                                endorsements=getattr(mod, "endorsements", 0) or 0)
-            # Motion style. video.motion_style: "mixed" (default) ALTERNATES parallax
-            # and Ken Burns per mod for visual variety; "parallax" or "kenburns" force one.
+            # Motion style. video.motion_style: "mixed" (default) CYCLES through the
+            # three edit styles per mod for variety — parallax -> Ken Burns -> zoom;
+            # "parallax" / "kenburns" / "zoom" force one.
             mod_clips = [c for p in images for c in i2v_clips.get(p, [])
                         if Path(c).exists()]
             style = str(cfg.get("motion_style", "mixed")).lower()
-            use_parallax = bool(mod_clips) and (
-                style == "parallax" or (style == "mixed" and mod_seen % 2 == 1))
+            if style == "mixed":
+                pick = [None, "parallax", "kenburns", "zoom"][mod_seen % 3 + 1]
+            else:
+                pick = style
+            if pick == "parallax" and not mod_clips:     # need clips; fall back
+                pick = "kenburns"
             if videos:                       # real author B-roll beats everything
                 _video_segment(videos[0], dur, size, fps, str(lt), out, fade_in=0.3)
-            elif use_parallax:               # depth-parallax motion of the screenshots
+            elif pick == "parallax":         # depth-parallax motion of the screenshots
                 _i2v_segment(mod_clips, dur, size, fps, str(lt), out, fade_in=0.3,
                             target_shot=target_shot)
-            else:                            # classic Ken Burns (clean zoom/pan)
+            elif pick == "zoom":             # clean full-frame zoom-in
+                _zoom_segment(images, dur, size, fps, str(lt), out, fade_in=0.3,
+                              target_shot=target_shot)
+            else:                            # classic Ken Burns (fit-over-blur pan)
                 _kenburns_segment(images, dur, size, fps, str(lt), out, fade_in=0.3,
                                   target_shot=target_shot)
         else:
