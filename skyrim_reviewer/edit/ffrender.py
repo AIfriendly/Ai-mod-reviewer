@@ -523,7 +523,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
             rank = (n_mods - mod_seen + 1) if n_mods >= 3 else None
             lt = seg_dir / f"lt_{i:02d}.png"
             render_lower_third(mod.name, mod.uploaded_by or mod.author or "Unknown",
-                               size, lt, accent=accent, rank=rank)
+                               size, lt, accent=accent, rank=rank,
+                               endorsements=getattr(mod, "endorsements", 0) or 0)
             # Prefer real author B-roll; then AI motion clips of the stills (all camera
             # variants of every image pooled, so a segment cycles fresh shots instead
             # of looping one clip); then Ken Burns.
