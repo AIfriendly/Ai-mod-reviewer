@@ -110,7 +110,7 @@ def _kenburns_segment(images: list[str], dur: float, size, fps: int,
             f"s={fw}x{fh}:fps={fps},"
             f"trim=end_frame={frames},setpts=PTS-STARTPTS[fz{k}];"
             f"[bg{k}][fz{k}]overlay=(W-w)/2:(H-h)/2:shortest=1,"
-            f"format=yuv420p[s{k}];")
+            f"fps={fps},format=yuv420p[s{k}];")   # re-assert CFR before xfade
         labels.append(f"[s{k}]")
     chain = "".join(parts)
     if n == 1:
