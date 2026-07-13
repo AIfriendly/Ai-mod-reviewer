@@ -29,6 +29,12 @@ categories:
     title: "Best Skyrim Quest Mods"
     nexus_category_ids: [35]             # Quests and Adventures (filtered to pure quests)
     search_terms: ["quest", "questline", "story", "adventure"]
+  - id: adventures
+    title: "Best Skyrim New Lands & Quest Mods"   # merged topic: lands + quests in one
+    nexus_category_ids: [89, 35]         # Locations - New + Quests and Adventures
+    graphql_categories: ["Locations -  New", "Quests and Adventures"]
+    search_terms: ["new lands", "worldspace", "island", "explore",
+                   "quest", "questline", "story", "adventure"]
   - id: graphics
     title: "Best Skyrim Graphics & Visual Mods"
     nexus_category_ids: [62, 29, 97, 74]  # Visuals & Graphics; Models & Textures; ENB/ReShade; Environmental

@@ -336,6 +336,23 @@ def make(
 
 
 @app.command()
+def short(
+    spec: str = typer.Argument(..., help="Path to a full-video YAML spec; the Short "
+                               "spotlights that video's best mod"),
+    out_dir: str = typer.Option("output", help="Where to write the vertical mp4 + meta"),
+    max_words: int = typer.Option(60, help="Word budget for the mod pitch (~length)"),
+):
+    """Render a vertical YouTube Short (1080x1920, ~30-45s) spotlighting one mod from a
+    full-video spec, to funnel viewers to the long-form video. Reuses the clarity voice,
+    zoom motion, burned captions and music bed."""
+    from .shorts import make_short
+    typer.echo(f"Building Short from {spec} ...")
+    res = make_short(spec_path=spec, out_dir=out_dir, max_words=max_words)
+    typer.echo(f"  Spotlight mod: {res['mod']}  ({res['duration']}s)")
+    typer.echo(f"  -> {res['video']}")
+
+
+@app.command()
 def publish(slug: str):
     """Upload an already-rendered project's bundle (video + title + thumbnail +
     description) to a single GoFile folder. `slug` is the output file name without
