@@ -79,6 +79,21 @@ def run(category_id: str, *, profile_name: str | None = None,
         if _sc:
             seo_category_title = _sc["title"]
         print(f"[2/6] Using {len(project.mods)} mods from spec — no API calls.")
+        # "No repeats" guard: flag any mod already showcased in a DIFFERENT video so a
+        # hand-authored spec can't accidentally re-use it (the automated path already
+        # dedupes via history.json; chat-authored specs bypass that).
+        try:
+            from .history import _game_of, mods_featured_elsewhere
+            prior = mods_featured_elsewhere(_game_of(project), project.slug)
+            repeats = [(m, prior[m.mod_id]) for m in project.mods
+                       if m.mod_id in prior]
+            if repeats:
+                print(f"      ⚠️  {len(repeats)} mod(s) already showcased in another "
+                      f"video — replace before publishing:")
+                for m, where in repeats:
+                    print(f"         - {m.name} (mod {m.mod_id}) was in {where}")
+        except Exception:
+            pass
     else:
         from .research import research_category
         from .scripting import write_script

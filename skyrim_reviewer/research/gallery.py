@@ -98,19 +98,28 @@ def _dedupe_urls(seq):
     return list(dict.fromkeys(seq))
 
 
-def _fetch_html_firecrawl(mod_id: int, domain: str) -> str:
+def _fetch_html_firecrawl(mod_id: int, domain: str, tries: int = 3) -> str:
     """Render the mod's images page via Firecrawl (firecrawl.dev). Keyless free tier
-    works (rate-limited); set FIRECRAWL_API_KEY for higher limits. '' on failure."""
+    works (rate-limited); set FIRECRAWL_API_KEY for higher limits. Retries a few times
+    with backoff because the free tier 429s / cold-starts intermittently — a single
+    transient miss is what leaves a mod with no media (placeholder slate). '' on
+    persistent failure."""
     from ..config import get_env
     headers = {"User-Agent": _UA, "Content-Type": "application/json"}
     key = get_env("FIRECRAWL_API_KEY")
     if key:
         headers["Authorization"] = f"Bearer {key}"
     url = f"https://www.nexusmods.com/{domain}/mods/{mod_id}?tab=images"
-    try:
-        r = httpx.post("https://api.firecrawl.dev/v2/scrape",
-                       json={"url": url, "formats": ["html"], "onlyMainContent": False},
-                       headers=headers, timeout=120)
-        return (r.json().get("data") or {}).get("html", "") or ""
-    except Exception:
-        return ""
+    for attempt in range(tries):
+        try:
+            r = httpx.post("https://api.firecrawl.dev/v2/scrape",
+                           json={"url": url, "formats": ["html"],
+                                 "onlyMainContent": False},
+                           headers=headers, timeout=120)
+            html = (r.json().get("data") or {}).get("html", "") or ""
+            if html:
+                return html
+        except Exception:
+            pass
+        time.sleep(2 * (attempt + 1))              # 2s, 4s backoff through 429s
+    return ""

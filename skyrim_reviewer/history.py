@@ -51,6 +51,20 @@ def seen_titles(game: str) -> list[str]:
     return [e.get("title", "") for e in _load().get(game, [])]
 
 
+def mods_featured_elsewhere(game: str, slug: str) -> dict[int, str]:
+    """Map {mod_id -> the slug of a DIFFERENT video that already featured it}.
+
+    Used to catch a new spec that re-uses a previously-showcased mod. Entries for the
+    same slug are ignored so re-rendering an existing video doesn't false-alarm."""
+    out: dict[int, str] = {}
+    for entry in _load().get(game, []):
+        if entry.get("slug") == slug:
+            continue
+        for mid in entry.get("mod_ids", []):
+            out.setdefault(int(mid), entry.get("slug", "?"))
+    return out
+
+
 def record_video(project) -> None:
     """Record a produced video's mods + title so it's never repeated."""
     game = _game_of(project)
