@@ -52,7 +52,23 @@ _CLARITY = (
     "loudnorm=I=-15:TP=-1.5:LRA=11"
 )
 
-_PRESETS = {"proximity": _PROXIMITY, "bright": _BRIGHT, "clarity": _CLARITY}
+# "Warm" — user-approved. Clear and present WITHOUT the harshness of "clarity": adds
+# low-mid body, a moderate presence lift, a gentle de-ess notch at ~7 kHz to kill
+# sibilance, a light exciter and a soft air shelf, at a comfortable -16 LUFS. This is
+# the default narration master.
+_WARM = (
+    "aresample=48000,"
+    "highpass=f=75,"
+    "equalizer=f=200:t=q:w=1.0:g=2,"            # low-mid body / warmth
+    "equalizer=f=3000:t=q:w=1.4:g=2.5,"         # presence / diction (moderate)
+    "equalizer=f=7200:t=q:w=2:g=-2,"            # de-ess: tame harsh sibilance
+    "aexciter=amount=2:freq=6000:ceil=15000:blend=2.5,"  # gentle synthesised air
+    "treble=g=3.5:f=9000,"                       # soft air shelf (not the harsh g=9)
+    "loudnorm=I=-16:TP=-1.5:LRA=11"
+)
+
+_PRESETS = {"proximity": _PROXIMITY, "bright": _BRIGHT, "clarity": _CLARITY,
+            "warm": _WARM}
 
 
 def enhance_file(path: Path, ffmpeg: str | None = None, preset: str | None = None) -> None:
