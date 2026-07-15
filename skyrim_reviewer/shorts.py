@@ -142,12 +142,25 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
             if seg.mod_id and seg.narration:
                 pitches.setdefault(seg.mod_id, seg.narration)
 
-    # A Short spotlights ONE mod, so only acquire media for the top candidates (by
-    # endorsements) until one yields real screenshots — not the whole 10-mod gallery.
+    # Pull the video's MOST VIRAL part into the Short: its #1 pick — the countdown
+    # climax (the last mod segment), the moment the whole video builds toward. Fall
+    # back to the highest-endorsed mods that actually have usable media. Only acquire
+    # media for these top candidates, not the whole 10-mod gallery.
+    climax_id = None
+    if project.script:
+        mod_segs = [s for s in project.script.segments if s.kind == "mod" and s.mod_id]
+        if mod_segs:
+            climax_id = mod_segs[-1].mod_id
     ranked = sorted(project.mods, key=lambda m: getattr(m, "endorsements", 0),
                     reverse=True)
+    order = []
+    if climax_id:
+        climax = next((m for m in project.mods if m.mod_id == climax_id), None)
+        if climax:
+            order.append(climax)
+    order += [m for m in ranked if m not in order]
     mod, images = None, []
-    for cand in ranked[:4]:
+    for cand in order[:5]:
         one = Project(slug=project.slug, workdir=project.workdir, mods=[cand],
                       profile=project.profile, category_id=category_id)
         acquire_media(one, resolution=VERTICAL)

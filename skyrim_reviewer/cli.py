@@ -319,12 +319,15 @@ def make(
         None, "--script",
         help="Path to a chat-authored YAML script spec (skips research + Claude; "
              "no API keys needed)"),
+    short: bool = typer.Option(False, "--short", help="After the full render, also "
+                               "build ONE vertical Short from the video's most viral "
+                               "part (its #1 pick). Standard for every new video."),
 ):
     """Run the full pipeline: research -> script -> assets -> voice -> edit -> publish.
 
     Provide --script <file.yaml> to use a hand-written script (no API keys).
     On success the video, title, thumbnail and description are bundled to one GoFile
-    link (disable with --no-publish).
+    link (disable with --no-publish). Add --short to also cut a companion Short.
     """
     if game:
         import os
@@ -333,6 +336,14 @@ def make(
     run(category, profile_name=profile, fmt=fmt, theme=theme,
         next_topic=next_topic, skip_render=skip_render, script_spec=script,
         publish=publish, voice_override=voice)
+    if short and script and not skip_render:
+        from .shorts import make_short
+        typer.echo("\n[short] Cutting the companion Short from the most viral part...")
+        try:
+            res = make_short(spec_path=script)
+            typer.echo(f"[short] {res['mod']} ({res['duration']}s) -> {res['video']}")
+        except Exception as e:
+            typer.echo(f"[short] Skipped — {type(e).__name__}: {e}")
 
 
 @app.command()
