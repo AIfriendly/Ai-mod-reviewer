@@ -322,12 +322,19 @@ def make(
     short: bool = typer.Option(False, "--short", help="After the full render, also "
                                "build ONE vertical Short from the video's most viral "
                                "part (its #1 pick). Standard for every new video."),
+    publish_youtube: bool = typer.Option(False, "--publish-youtube", help="After "
+                                         "rendering, upload the video (+ Short) straight "
+                                         "to YouTube (guarded to MODVAULT, private). "
+                                         "Needs the YOUTUBE_* env vars."),
+    yt_privacy: str = typer.Option("private", help="Privacy for --publish-youtube: "
+                                   "private | unlisted | public (public needs audit)."),
 ):
     """Run the full pipeline: research -> script -> assets -> voice -> edit -> publish.
 
     Provide --script <file.yaml> to use a hand-written script (no API keys).
     On success the video, title, thumbnail and description are bundled to one GoFile
-    link (disable with --no-publish). Add --short to also cut a companion Short.
+    link (disable with --no-publish). Add --short to also cut a companion Short, and
+    --publish-youtube to upload it all to MODVAULT.
     """
     if game:
         import os
@@ -344,6 +351,25 @@ def make(
             typer.echo(f"[short] {res['mod']} ({res['duration']}s) -> {res['video']}")
         except Exception as e:
             typer.echo(f"[short] Skipped — {type(e).__name__}: {e}")
+    if publish_youtube and script and not skip_render:
+        import yaml
+        from pathlib import Path
+        from .publish.youtube import publish_slug_youtube
+        slug = (yaml.safe_load(open(script)) or {}).get("slug")
+        if not slug:
+            typer.echo("[youtube] no slug in spec — skipping upload.")
+        else:
+            typer.echo("\n[youtube] Uploading to MODVAULT...")
+            try:
+                r = publish_slug_youtube(slug, privacy=yt_privacy,
+                                         expect_channel="MODVAULT")
+                typer.echo(f"[youtube] video -> {r['url']}  [{r['privacy']}]")
+                if Path(f"output/short-{slug}.mp4").exists():
+                    r2 = publish_slug_youtube(f"short-{slug}", privacy=yt_privacy,
+                                              expect_channel="MODVAULT")
+                    typer.echo(f"[youtube] short -> {r2['url']}  [{r2['privacy']}]")
+            except Exception as e:
+                typer.echo(f"[youtube] upload skipped: {type(e).__name__}: {e}")
 
 
 @app.command()
