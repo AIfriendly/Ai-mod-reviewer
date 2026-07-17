@@ -363,6 +363,47 @@ def short(
     typer.echo(f"  -> {res['video']}")
 
 
+@app.command(name="youtube-check")
+def youtube_check():
+    """Verify the YOUTUBE_* OAuth env vars work (refreshes an access token). Run this
+    after setting the three vars from tools/youtube_auth.py, before uploading."""
+    from .publish.youtube import _access_token
+    try:
+        tok = _access_token()
+        typer.echo(f"OK — got an access token ({tok[:12]}...). Credentials work.")
+    except Exception as e:
+        typer.echo(f"FAILED: {type(e).__name__}: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def youtube(
+    slug: str = typer.Argument(..., help="Rendered video slug, e.g. 2026-07-13-adventures-vol2"),
+    privacy: str = typer.Option("private", help="private | unlisted | public "
+                                "(public is LOCKED until the API project is audited)"),
+    publish_at: str = typer.Option(None, help="Schedule public go-live, RFC3339 UTC "
+                                   "e.g. 2026-07-20T15:00:00Z (needs audited project)"),
+    short: bool = typer.Option(True, help="Also upload the companion Short if present"),
+):
+    """Auto-upload output/<slug>.mp4 to YouTube with its generated title, description,
+    tags and thumbnail. Requires the YOUTUBE_* env vars (see tools/youtube_auth.py).
+    NOTE: un-audited API projects have uploads locked to private."""
+    from pathlib import Path
+    from .publish.youtube import publish_slug_youtube
+    try:
+        res = publish_slug_youtube(slug, privacy=privacy, publish_at=publish_at)
+        typer.echo(f"Video -> {res['url']}  [{res['privacy']}]  {res['title']}")
+    except Exception as e:
+        typer.echo(f"Upload failed: {type(e).__name__}: {e}")
+        raise typer.Exit(1)
+    if short and Path(f"output/short-{slug}.mp4").exists():
+        try:
+            r2 = publish_slug_youtube(f"short-{slug}", privacy=privacy)
+            typer.echo(f"Short -> {r2['url']}  [{r2['privacy']}]")
+        except Exception as e:
+            typer.echo(f"Short upload failed: {type(e).__name__}: {e}")
+
+
 @app.command()
 def publish(slug: str):
     """Upload an already-rendered project's bundle (video + title + thumbnail +
