@@ -29,6 +29,11 @@ _GAMING_CATEGORY = "20"          # YouTube's "Gaming" category id
 
 
 def _creds() -> tuple[str, str, str]:
+    try:                                  # honour .env like the rest of the pipeline
+        from ..config import _load_dotenv_once
+        _load_dotenv_once()
+    except Exception:
+        pass
     cid = os.environ.get("YOUTUBE_CLIENT_ID", "")
     secret = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
     refresh = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
