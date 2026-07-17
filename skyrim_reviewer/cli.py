@@ -319,13 +319,13 @@ def make(
         None, "--script",
         help="Path to a chat-authored YAML script spec (skips research + Claude; "
              "no API keys needed)"),
-    short: bool = typer.Option(False, "--short", help="After the full render, also "
-                               "build ONE vertical Short from the video's most viral "
-                               "part (its #1 pick). Standard for every new video."),
-    publish_youtube: bool = typer.Option(False, "--publish-youtube", help="After "
-                                         "rendering, upload the video (+ Short) straight "
-                                         "to YouTube (guarded to MODVAULT, private). "
-                                         "Needs the YOUTUBE_* env vars."),
+    short: bool = typer.Option(True, "--short/--no-short", help="After the full render, "
+                               "also build ONE vertical Short from the video's most "
+                               "viral part (its #1 pick). ON by default."),
+    publish_youtube: bool = typer.Option(True, "--publish-youtube/--no-publish-youtube",
+                                         help="After rendering, upload the video (+ Short) "
+                                         "to YouTube (guarded to MODVAULT). ON by default; "
+                                         "gracefully skips if YOUTUBE_* env vars absent."),
     yt_privacy: str = typer.Option("private", help="Privacy for --publish-youtube: "
                                    "private | unlisted | public (public needs audit)."),
 ):
