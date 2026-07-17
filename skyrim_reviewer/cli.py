@@ -343,33 +343,35 @@ def make(
     run(category, profile_name=profile, fmt=fmt, theme=theme,
         next_topic=next_topic, skip_render=skip_render, script_spec=script,
         publish=publish, voice_override=voice)
+    short_slug = None
     if short and script and not skip_render:
         from .shorts import make_short
-        typer.echo("\n[short] Cutting the companion Short from the most viral part...")
+        typer.echo(f"\n[short] Building a STANDALONE Short (its own fresh {category} mod)...")
         try:
-            res = make_short(spec_path=script)
+            res = make_short(category=category)     # discovers its own new mod
+            short_slug = res.get("slug")
             typer.echo(f"[short] {res['mod']} ({res['duration']}s) -> {res['video']}")
         except Exception as e:
             typer.echo(f"[short] Skipped — {type(e).__name__}: {e}")
     if publish_youtube and script and not skip_render:
         import yaml
-        from pathlib import Path
         from .publish.youtube import publish_slug_youtube
         slug = (yaml.safe_load(open(script)) or {}).get("slug")
-        if not slug:
-            typer.echo("[youtube] no slug in spec — skipping upload.")
-        else:
-            typer.echo("\n[youtube] Uploading to MODVAULT...")
+        typer.echo("\n[youtube] Uploading to MODVAULT...")
+        if slug:
             try:
                 r = publish_slug_youtube(slug, privacy=yt_privacy,
                                          expect_channel="MODVAULT")
                 typer.echo(f"[youtube] video -> {r['url']}  [{r['privacy']}]")
-                if Path(f"output/short-{slug}.mp4").exists():
-                    r2 = publish_slug_youtube(f"short-{slug}", privacy=yt_privacy,
-                                              expect_channel="MODVAULT")
-                    typer.echo(f"[youtube] short -> {r2['url']}  [{r2['privacy']}]")
             except Exception as e:
-                typer.echo(f"[youtube] upload skipped: {type(e).__name__}: {e}")
+                typer.echo(f"[youtube] video upload skipped: {type(e).__name__}: {e}")
+        if short_slug:
+            try:
+                r2 = publish_slug_youtube(short_slug, privacy=yt_privacy,
+                                          expect_channel="MODVAULT")
+                typer.echo(f"[youtube] short -> {r2['url']}  [{r2['privacy']}]")
+            except Exception as e:
+                typer.echo(f"[youtube] short upload skipped: {type(e).__name__}: {e}")
 
 
 @app.command()
@@ -387,6 +389,29 @@ def short(
     res = make_short(spec_path=spec, out_dir=out_dir, max_words=max_words)
     typer.echo(f"  Spotlight mod: {res['mod']}  ({res['duration']}s)")
     typer.echo(f"  -> {res['video']}")
+
+
+@app.command(name="short-new")
+def short_new(
+    category: str = typer.Argument("adventures", help="Category to pull a fresh mod from"),
+    upload: bool = typer.Option(True, "--upload/--no-upload", help="Upload to MODVAULT"),
+    yt_privacy: str = typer.Option("private", help="private | unlisted | public"),
+):
+    """Make a STANDALONE Short: discover a fresh, never-featured mod in `category` and
+    review it as its own self-contained vertical video (records it so it's never reused),
+    then upload it to MODVAULT. This is its own content — not a clip of a long video."""
+    from .shorts import make_short
+    typer.echo(f"Discovering a fresh {category} mod for a standalone Short...")
+    res = make_short(category=category)
+    typer.echo(f"  Mod: {res['mod']}  ({res['duration']}s) -> {res['video']}")
+    if upload and res.get("slug"):
+        from .publish.youtube import publish_slug_youtube
+        try:
+            r = publish_slug_youtube(res["slug"], privacy=yt_privacy,
+                                     expect_channel="MODVAULT")
+            typer.echo(f"  [youtube] -> {r['url']}  [{r['privacy']}]")
+        except Exception as e:
+            typer.echo(f"  [youtube] upload skipped: {type(e).__name__}: {e}")
 
 
 @app.command(name="youtube-check")

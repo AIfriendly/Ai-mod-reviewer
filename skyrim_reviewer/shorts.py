@@ -47,21 +47,29 @@ def _first_sentences(text: str, max_words: int) -> str:
 
 
 def _short_script(mod, category_id: str, channel: str, max_words: int,
-                  source_pitch: str = "") -> Script:
-    """A 3-beat Short: hook -> condensed mod pitch -> CTA to the full video."""
+                  source_pitch: str = "", standalone: bool = False) -> Script:
+    """A 3-beat Short: hook -> condensed mod pitch -> CTA. When `standalone`, the Short
+    is its OWN mini-review (its own fresh mod), so the CTA points at the channel, not a
+    'full video'."""
     hook = _HOOKS.get(category_id, "You need to see this Skyrim mod.")
     pitch = _first_sentences(source_pitch or mod.summary, max_words)
     if not pitch:
-        pitch = f"{mod.name} is one you probably missed — and it's free on Nexus."
+        pitch = f"{mod.name} is one you probably missed — and it's completely free on Nexus."
     author = mod.uploaded_by or mod.author or "its author"
-    cta = f"That's {mod.name}, by {author}. Ten more like it in the full video — follow {channel}."
+    if standalone:
+        cta = (f"That's {mod.name}, by {author} — free on Nexus, link in the description. "
+               f"Follow {channel} for a new Skyrim mod every day.")
+        title = f"You NEED this Skyrim Mod — {mod.name} #shorts"
+    else:
+        cta = (f"That's {mod.name}, by {author}. Ten more like it in the full video — "
+               f"follow {channel}.")
+        title = f"{mod.name} — Skyrim Mod #Shorts"
     segs = [
         Segment(segment_id="hook", kind="hook", narration=hook, title=""),
         Segment(segment_id="pitch", kind="mod", narration=pitch, title=mod.name,
                 mod_id=mod.mod_id),
         Segment(segment_id="cta", kind="outro", narration=cta, title=""),
     ]
-    title = f"{mod.name} — Skyrim Mod #Shorts"
     return Script(title=title, format=VideoFormat.category_list, hook_line=hook,
                   segments=segs)
 
@@ -75,21 +83,23 @@ def _mod_images(mod) -> list[str]:
     return sorted(imgs, key=_hero_quality, reverse=True)
 
 
-def _cta_card(channel: str, accent: str, out: Path) -> str:
-    """A final full-frame vertical CTA slate (follow + full video)."""
+def _cta_card(channel: str, accent: str, out: Path, standalone: bool = False) -> str:
+    """A final full-frame vertical CTA slate. Standalone Shorts push a follow, not a
+    'watch the full video'."""
     from PIL import Image, ImageDraw
     from .thumbnail.generate import _font, _hex
     W, H = VERTICAL
     img = Image.new("RGB", VERTICAL, (12, 15, 21))
     d = ImageDraw.Draw(img)
     acc = _hex(accent)
-    d.text((W // 2, H // 2 - 140), "WATCH THE", font=_font(84), fill="white",
+    top, bot = ("MORE MODS", "EVERY DAY") if standalone else ("WATCH THE", "FULL VIDEO")
+    d.text((W // 2, H // 2 - 140), top, font=_font(84), fill="white",
            anchor="mm", stroke_width=4, stroke_fill="black")
-    d.text((W // 2, H // 2 - 30), "FULL VIDEO", font=_font(120), fill=acc,
+    d.text((W // 2, H // 2 - 30), bot, font=_font(120), fill=acc,
            anchor="mm", stroke_width=5, stroke_fill="black")
     d.text((W // 2, H // 2 + 120), channel, font=_font(70), fill="white",
            anchor="mm", stroke_width=4, stroke_fill="black")
-    d.rounded_rectangle([W // 2 - 220, H // 2 + 220, W // 2 + 220, H // 2 + 330],
+    d.rounded_rectangle([W // 2 - 240, H // 2 + 220, W // 2 + 240, H // 2 + 330],
                         radius=24, fill=acc)
     d.text((W // 2, H // 2 + 275), "SUBSCRIBE", font=_font(56), fill=(12, 14, 18),
            anchor="mm")
@@ -99,11 +109,15 @@ def _cta_card(channel: str, accent: str, out: Path) -> str:
 
 
 def make_short(spec_path: str | None = None, project: Project | None = None,
-               out_dir: str = "output", music_dir: str = "music",
-               accent: str = "#d4af37", max_words: int = 60,
+               category: str | None = None, out_dir: str = "output",
+               music_dir: str = "music", accent: str = "#d4af37", max_words: int = 60,
                cta_seconds: float = 2.5) -> dict:
-    """Render a vertical Short spotlighting one mod. Returns
-    {video, title, description, tags}."""
+    """Render a vertical Short. Three modes:
+      • category="adventures"  -> STANDALONE: discovers its OWN fresh, never-featured
+        mod and reviews it as a self-contained Short (records it so it's never reused).
+      • spec_path=<yaml>       -> companion Short from that video's #1 pick.
+      • project=<Project>      -> companion Short from an in-memory project.
+    Returns {video, slug, title, description, tags, mod, duration, standalone}."""
     from .config import active_profile, channel_config
     from .assets import acquire_media
     from .voice import get_provider
@@ -114,11 +128,27 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
     cfg = channel_config()
     channel = cfg.get("channel", {}).get("name", "@ModVault")
     category_id = ""
+    standalone = bool(category) and project is None and spec_path is None
 
     # 1. Resolve the mods + media.
-    if project is None:
+    if standalone:
+        # Discover ONE fresh, never-featured mod in this category — its own content.
+        from .scripting.autospec import autospec as _autospec
+        from .scripting import apply_spec
+        _, profile = active_profile(override="full")
+        spec = _autospec(category, count=1)          # excludes history + galleries baked
+        category_id = category
+        mid = spec["mods"][0]["mod_id"]
+        slug = f"short-{category}-{mid}"
+        project = Project(slug=slug, workdir=f"work/{slug}", mods=[], profile=profile,
+                          category_id=category_id)
+        apply_spec(project, spec)
+        project.slug = slug
+        project.workdir = f"work/{slug}"
+        Path(project.workdir).mkdir(parents=True, exist_ok=True)
+    elif project is None:
         if not spec_path:
-            raise ValueError("make_short needs spec_path or project")
+            raise ValueError("make_short needs spec_path, project, or category")
         from .scripting import apply_spec, load_spec
         _, profile = active_profile(override="full")
         spec = load_spec(spec_path)
@@ -134,6 +164,7 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
         Path(project.workdir).mkdir(parents=True, exist_ok=True)
     else:
         category_id = project.category_id or ""
+        slug = project.slug
 
     # each mod's full-video narration, so the Short's pitch can borrow from it
     pitches: dict[int, str] = {}
@@ -175,8 +206,11 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
     seg_dir = workdir / "short"; seg_dir.mkdir(exist_ok=True)
 
     # 2. Script + narration (cloned clarity voice, pronunciation + mastering applied).
+    #    Standalone Shorts pitch from the mod's own summary (not the templated
+    #    autospec narration); companion Shorts borrow the long video's narration.
     script = _short_script(mod, category_id, channel, max_words,
-                           source_pitch=pitches.get(mod.mod_id, ""))
+                           source_pitch="" if standalone else pitches.get(mod.mod_id, ""),
+                           standalone=standalone)
     provider = get_provider()
     provider.narrate_script(script, seg_dir / "narration")
     spoken = [s for s in script.segments if s.audio_path]
@@ -189,7 +223,7 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
     body = seg_dir / "body.mp4"
     _zoom_segment(images, narr_dur, VERTICAL, FPS, None, body, fade_in=0.2,
                   target_shot=3.2)
-    cta_png = _cta_card(channel, accent, seg_dir / "cta.png")
+    cta_png = _cta_card(channel, accent, seg_dir / "cta.png", standalone=standalone)
     cta_mp4 = seg_dir / "cta.mp4"
     _run = __import__("subprocess").run
     _run([ff, "-y", "-v", "error", "-loop", "1", "-t", f"{cta_seconds:.2f}",
@@ -245,10 +279,22 @@ def make_short(spec_path: str | None = None, project: Project | None = None,
     # 6. Shorts metadata.
     tags = ["skyrim", "skyrim mods", "skyrim shorts", mod.name.lower(),
             f"skyrim {category_id.replace('_', ' ')}", "modded skyrim"]
+    tail = (f"Follow {channel} for a new free Skyrim mod every day."
+            if standalone else f"Full video on the channel — {channel}")
     desc = (f"{mod.name} by {mod.uploaded_by or mod.author}\n{mod.page_url}\n\n"
-            f"Full video on the channel — {channel}\n#skyrim #skyrimmods #shorts")
+            f"{tail}\n#skyrim #skyrimmods #shorts")
     (out_dir_p / f"{project.slug}.title.txt").write_text(
-        f"{mod.name} — You NEED this Skyrim mod #shorts\n", encoding="utf-8")
+        f"{script.title}\n", encoding="utf-8")
     (out_dir_p / f"{project.slug}.description.txt").write_text(desc, encoding="utf-8")
-    return {"video": str(out_mp4), "title": mod.name, "description": desc, "tags": tags,
-            "mod": mod.name, "duration": round(total_dur, 1)}
+    (out_dir_p / f"{project.slug}.tags.txt").write_text(", ".join(tags), encoding="utf-8")
+    # A standalone Short IS its own video about a real mod — record it so no long video
+    # (or future Short) ever re-uses that mod.
+    if standalone:
+        try:
+            from .history import record_video
+            record_video(project)
+        except Exception:
+            pass
+    return {"video": str(out_mp4), "slug": project.slug, "title": script.title,
+            "description": desc, "tags": tags, "mod": mod.name,
+            "duration": round(total_dur, 1), "standalone": standalone}
