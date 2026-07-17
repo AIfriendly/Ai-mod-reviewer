@@ -34,8 +34,11 @@ import webbrowser
 
 import httpx
 
-# youtube.upload covers both videos.insert and thumbnails.set.
-SCOPE = "https://www.googleapis.com/auth/youtube.upload"
+# youtube.upload covers videos.insert + thumbnails.set; youtube.readonly lets the
+# uploader confirm WHICH channel the token points at (important when one Google
+# account owns several channels / brand accounts).
+SCOPE = ("https://www.googleapis.com/auth/youtube.upload "
+         "https://www.googleapis.com/auth/youtube.readonly")
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
@@ -82,6 +85,8 @@ def main() -> None:
             pass
 
     print("\nOpening your browser to approve access...")
+    print("⚠️  Your email owns SEVERAL channels — when prompted, pick the RIGHT ONE")
+    print("    (e.g. MODVAULT). The token is bound to whichever channel you select.")
     print("If it doesn't open, paste this URL manually:\n" + url + "\n")
     webbrowser.open(url)
     server = http.server.HTTPServer(("127.0.0.1", port), Handler)

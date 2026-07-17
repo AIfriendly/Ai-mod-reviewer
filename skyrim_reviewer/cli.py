@@ -367,10 +367,14 @@ def short(
 def youtube_check():
     """Verify the YOUTUBE_* OAuth env vars work (refreshes an access token). Run this
     after setting the three vars from tools/youtube_auth.py, before uploading."""
-    from .publish.youtube import _access_token
+    from .publish.youtube import _access_token, whoami
     try:
         tok = _access_token()
-        typer.echo(f"OK — got an access token ({tok[:12]}...). Credentials work.")
+        who = whoami(tok)
+        typer.echo(f"OK — credentials work. Uploads will go to: "
+                   f"{who.get('title','?')} ({who.get('handle') or who.get('channel_id','?')})")
+        typer.echo("  If that's the WRONG channel, re-run tools/youtube_auth.py and "
+                   "pick the right one in the browser.")
     except Exception as e:
         typer.echo(f"FAILED: {type(e).__name__}: {e}")
         raise typer.Exit(1)
@@ -383,6 +387,9 @@ def youtube(
                                 "(public is LOCKED until the API project is audited)"),
     publish_at: str = typer.Option(None, help="Schedule public go-live, RFC3339 UTC "
                                    "e.g. 2026-07-20T15:00:00Z (needs audited project)"),
+    channel: str = typer.Option("MODVAULT", help="Safety guard: abort unless the "
+                                "authorized channel matches this (your email owns "
+                                "several). Pass '' to disable."),
     short: bool = typer.Option(True, help="Also upload the companion Short if present"),
 ):
     """Auto-upload output/<slug>.mp4 to YouTube with its generated title, description,
@@ -390,15 +397,18 @@ def youtube(
     NOTE: un-audited API projects have uploads locked to private."""
     from pathlib import Path
     from .publish.youtube import publish_slug_youtube
+    expect = channel or None
     try:
-        res = publish_slug_youtube(slug, privacy=privacy, publish_at=publish_at)
+        res = publish_slug_youtube(slug, privacy=privacy, publish_at=publish_at,
+                                   expect_channel=expect)
         typer.echo(f"Video -> {res['url']}  [{res['privacy']}]  {res['title']}")
     except Exception as e:
         typer.echo(f"Upload failed: {type(e).__name__}: {e}")
         raise typer.Exit(1)
     if short and Path(f"output/short-{slug}.mp4").exists():
         try:
-            r2 = publish_slug_youtube(f"short-{slug}", privacy=privacy)
+            r2 = publish_slug_youtube(f"short-{slug}", privacy=privacy,
+                                      expect_channel=expect)
             typer.echo(f"Short -> {r2['url']}  [{r2['privacy']}]")
         except Exception as e:
             typer.echo(f"Short upload failed: {type(e).__name__}: {e}")

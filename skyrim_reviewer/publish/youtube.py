@@ -50,6 +50,24 @@ def _access_token() -> str:
     return r.json()["access_token"]
 
 
+def whoami(token: str | None = None) -> dict:
+    """The channel the current credentials will upload to. Critical when one Google
+    account owns multiple channels (brand accounts) — this confirms WHICH one the
+    token is bound to. Returns {title, handle, channel_id} (empty dict on failure)."""
+    token = token or _access_token()
+    r = httpx.get("https://www.googleapis.com/youtube/v3/channels",
+                  params={"part": "snippet", "mine": "true"},
+                  headers={"Authorization": f"Bearer {token}"}, timeout=60)
+    r.raise_for_status()
+    items = r.json().get("items", [])
+    if not items:
+        return {}
+    sn = items[0]["snippet"]
+    return {"title": sn.get("title", ""),
+            "handle": sn.get("customUrl", ""),
+            "channel_id": items[0]["id"]}
+
+
 def _file_chunks(path: str, size: int = 1024 * 1024):
     with open(path, "rb") as f:
         while True:
@@ -72,11 +90,26 @@ def set_thumbnail(video_id: str, thumb_path: str, token: str | None = None) -> N
 def upload_video(video_path: str, title: str, description: str,
                  tags: list[str] | None = None, category_id: str = _GAMING_CATEGORY,
                  privacy: str = "private", thumbnail_path: str | None = None,
-                 publish_at: str | None = None) -> dict:
+                 publish_at: str | None = None, expect_channel: str | None = None) -> dict:
     """Resumable-upload a video and (optionally) set its thumbnail. Returns
     {video_id, url, privacy}. `publish_at` (RFC3339, e.g. 2026-07-20T15:00:00Z)
     schedules a public go-live — only honoured once the project is audited."""
     token = _access_token()
+    # Confirm which channel this token uploads to (guards against a multi-channel
+    # account uploading to the wrong one). expect_channel: abort unless the target's
+    # title/handle contains it (case-insensitive).
+    who = whoami(token)
+    if who:
+        print(f"  [youtube] target channel: {who['title']} "
+              f"({who.get('handle') or who['channel_id']})")
+    if expect_channel and who:
+        hay = (who["title"] + " " + who.get("handle", "")).lower()
+        if expect_channel.lower().lstrip("@") not in hay:
+            raise RuntimeError(
+                f"Refusing to upload: token points at '{who['title']}"
+                f"{(' / ' + who['handle']) if who.get('handle') else ''}', not "
+                f"'{expect_channel}'. Re-run tools/youtube_auth.py and pick the right "
+                f"channel.")
     size = os.path.getsize(video_path)
     status: dict = {"privacyStatus": privacy, "selfDeclaredMadeForKids": False}
     if publish_at:
@@ -116,7 +149,8 @@ def _read(path: Path) -> str:
 
 
 def publish_slug_youtube(slug: str, privacy: str = "private",
-                         publish_at: str | None = None, out_dir: str = "output") -> dict:
+                         publish_at: str | None = None, out_dir: str = "output",
+                         expect_channel: str | None = None) -> dict:
     """Upload output/<slug>.mp4 using its generated title/description/tags + thumbnail."""
     out = Path(out_dir)
     video = out / f"{slug}.mp4"
@@ -132,6 +166,6 @@ def publish_slug_youtube(slug: str, privacy: str = "private",
             else None)
     res = upload_video(str(video), title, description, tags, privacy=privacy,
                        thumbnail_path=str(thumb) if thumb else None,
-                       publish_at=publish_at)
+                       publish_at=publish_at, expect_channel=expect_channel)
     res["title"] = title
     return res
