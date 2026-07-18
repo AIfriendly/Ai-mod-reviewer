@@ -477,16 +477,12 @@ def youtube(
 
 @app.command(name="crosspost-check")
 def crosspost_check():
-    """Verify the AYRSHARE_API_KEY is set and which social accounts are linked."""
-    from .publish.crosspost import _api_key, _BASE
-    import httpx
+    """Verify UPLOAD_POST_API_KEY + UPLOAD_POST_USER are set (upload-post.com)."""
+    from .publish.crosspost import _creds
     try:
-        key = _api_key()
-        r = httpx.get(f"{_BASE}/user", headers={"Authorization": f"Bearer {key}"},
-                      timeout=30)
-        d = r.json()
-        active = d.get("activeSocialAccounts") or d.get("displayNames") or d
-        typer.echo(f"OK — Ayrshare linked accounts: {active}")
+        key, user = _creds()
+        typer.echo(f"OK — upload-post configured. Profile: '{user}', key: {key[:6]}…")
+        typer.echo("  Make sure TikTok is connected to that profile in the dashboard.")
     except Exception as e:
         typer.echo(f"FAILED: {type(e).__name__}: {e}")
         raise typer.Exit(1)
@@ -495,11 +491,11 @@ def crosspost_check():
 @app.command()
 def crosspost(
     slug: str = typer.Argument(..., help="Rendered slug, e.g. short-adventures-133579"),
-    platforms: str = typer.Option("tiktok,instagram", help="Comma list: tiktok,"
-                                  "instagram,youtube,facebook,x,..."),
+    platforms: str = typer.Option("tiktok", help="Comma list: tiktok,instagram,"
+                                  "youtube,... (free tier = one account: tiktok)"),
 ):
-    """Cross-post output/<slug>.mp4 to TikTok + Instagram (etc.) via Ayrshare, using its
-    title + description as the caption. Needs AYRSHARE_API_KEY."""
+    """Cross-post output/<slug>.mp4 to TikTok (etc.) via upload-post.com, using its
+    title + description as the caption. Needs UPLOAD_POST_API_KEY + UPLOAD_POST_USER."""
     from .publish.crosspost import crosspost_slug
     plats = [p.strip() for p in platforms.split(",") if p.strip()]
     typer.echo(f"Cross-posting {slug} to {plats} ...")
