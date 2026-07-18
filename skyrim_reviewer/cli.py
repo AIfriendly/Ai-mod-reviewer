@@ -372,6 +372,16 @@ def make(
                 typer.echo(f"[youtube] short -> {r2['url']}  [{r2['privacy']}]")
             except Exception as e:
                 typer.echo(f"[youtube] short upload skipped: {type(e).__name__}: {e}")
+    # Cross-post the Short to TikTok + Instagram via Ayrshare — runs automatically
+    # whenever AYRSHARE_API_KEY is configured; silently skips otherwise.
+    if short_slug and not skip_render:
+        try:
+            from .publish.crosspost import crosspost_slug
+            typer.echo("\n[crosspost] Posting the Short to TikTok + Instagram...")
+            cp = crosspost_slug(short_slug)
+            typer.echo(f"[crosspost] {cp.get('status', 'sent')}")
+        except Exception as e:
+            typer.echo(f"[crosspost] skipped: {type(e).__name__}: {e}")
 
 
 @app.command()
@@ -463,6 +473,42 @@ def youtube(
             typer.echo(f"Short -> {r2['url']}  [{r2['privacy']}]")
         except Exception as e:
             typer.echo(f"Short upload failed: {type(e).__name__}: {e}")
+
+
+@app.command(name="crosspost-check")
+def crosspost_check():
+    """Verify the AYRSHARE_API_KEY is set and which social accounts are linked."""
+    from .publish.crosspost import _api_key, _BASE
+    import httpx
+    try:
+        key = _api_key()
+        r = httpx.get(f"{_BASE}/user", headers={"Authorization": f"Bearer {key}"},
+                      timeout=30)
+        d = r.json()
+        active = d.get("activeSocialAccounts") or d.get("displayNames") or d
+        typer.echo(f"OK — Ayrshare linked accounts: {active}")
+    except Exception as e:
+        typer.echo(f"FAILED: {type(e).__name__}: {e}")
+        raise typer.Exit(1)
+
+
+@app.command()
+def crosspost(
+    slug: str = typer.Argument(..., help="Rendered slug, e.g. short-adventures-133579"),
+    platforms: str = typer.Option("tiktok,instagram", help="Comma list: tiktok,"
+                                  "instagram,youtube,facebook,x,..."),
+):
+    """Cross-post output/<slug>.mp4 to TikTok + Instagram (etc.) via Ayrshare, using its
+    title + description as the caption. Needs AYRSHARE_API_KEY."""
+    from .publish.crosspost import crosspost_slug
+    plats = [p.strip() for p in platforms.split(",") if p.strip()]
+    typer.echo(f"Cross-posting {slug} to {plats} ...")
+    try:
+        res = crosspost_slug(slug, platforms=plats)
+        typer.echo(f"Done: {res.get('status', res)}")
+    except Exception as e:
+        typer.echo(f"Failed: {type(e).__name__}: {e}")
+        raise typer.Exit(1)
 
 
 @app.command()
