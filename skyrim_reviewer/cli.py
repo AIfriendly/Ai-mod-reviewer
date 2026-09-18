@@ -130,6 +130,8 @@ def ideas(
         typer.echo(f"   style:   {idea['format']}  (like {', '.join(idea['inspired_by']) or 'general'})")
         if idea["mods"]:
             typer.echo(f"   mods:    {', '.join(idea['mods'][:5])}")
+        if idea["live_reference_titles"]:
+            typer.echo(f"   trending now: {'; '.join(idea['live_reference_titles'])}")
         typer.echo(f"   make it: {idea['command']}")
 
 

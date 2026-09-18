@@ -24,6 +24,7 @@ skyrim_reviewer/
   research/nexus.py     NexusMods API client + ranking (any game, AUP-compliant)
   research/gallery.py   Opt-in gallery scraper (ToS-violating, off by default)
   research/footage.py   Steam trailer B-roll for the cinematic intro
+  research/reference_scrape.py  Optional Firecrawl lookup for `ideas --live`
   scripting/writer.py   Claude-based script generation (needs ANTHROPIC_API_KEY)
   scripting/manual.py   Chat-authored YAML spec path (no API keys needed)
   scripting/autospec.py Automated idea -> spec generation
@@ -77,7 +78,8 @@ don't assume a stage needs to re-run from scratch.
 `.env` (see `.env.example`): `NEXUS_API_KEY` (research), `ANTHROPIC_API_KEY`
 (optional, automated script writer only), `KAGGLE_API_TOKEN` (free-GPU voice),
 optional ElevenLabs/OpenAI voice keys, YouTube/Ayrshare credentials for
-publishing.
+publishing, and `FIRECRAWL_API_KEY` (optional — `ideas --live` reference-channel
+freshness layer; everything else works with it unset).
 
 ## Verifying changes
 
