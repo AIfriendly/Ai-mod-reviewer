@@ -572,6 +572,33 @@
       "mod_ids": [
         13972
       ]
+    },
+    {
+      "date": "2026-09-18",
+      "slug": "2026-09-18-weapons-full",
+      "title": "10 Skyrim Weapon & Armor Mods Worth Your Load Order",
+      "category": "weapons",
+      "mod_ids": [
+        35390,
+        15264,
+        13776,
+        20199,
+        10644,
+        122125,
+        45735,
+        30051,
+        68656,
+        31612
+      ]
+    },
+    {
+      "date": "2026-09-18",
+      "slug": "short-weapons-5019",
+      "title": "1 Skyrim Weapon Mods That Make Combat Actually Fun (2026)",
+      "category": "weapons",
+      "mod_ids": [
+        5019
+      ]
     }
   ]
 }
