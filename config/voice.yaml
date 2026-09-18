@@ -3,8 +3,8 @@
 # section. Your CLONED VOICE plugs in here.
 
 # provider: elevenlabs | openai | piper | f5tts | chatterbox | kaggle |
-#           chatterbox_kaggle | prerecorded
-provider: chatterbox
+#           chatterbox_kaggle | qwen | prerecorded
+provider: qwen
 
 elevenlabs:
   # voice_id of YOUR cloned voice. Either set it here or via ELEVENLABS_VOICE_ID env.
@@ -49,6 +49,17 @@ chatterbox_kaggle:
   # Same voice tech, offloaded to Kaggle's free GPU instead — much faster, but
   # needs a Kaggle account/token. provider: chatterbox_kaggle to use this.
   timeout: 2400             # seconds to wait for the Kaggle kernel
+
+qwen:
+  # YOUR cloned voice via Qwen3-TTS (open-weight, runs LOCALLY, ICL zero-shot —
+  # no cloud account). ref_text empty -> x-vector-only cloning (no transcript
+  # needed, lower fidelity); set it (or drop a <ref_audio>.txt sidecar) for full
+  # ICL mode. No GPU here -> CPU inference on a 1.7B model, expect it to be slow.
+  ref_audio: "voices/clone/ref_primary.wav"
+  ref_text: ""
+  model: "Qwen/Qwen3-TTS-12Hz-1.7B-Base"
+  device: cpu                # "cuda:0" if this machine actually has a GPU
+  language: English
 
 prerecorded:
   # Use audio you (or your cloned voice) rendered yourself.

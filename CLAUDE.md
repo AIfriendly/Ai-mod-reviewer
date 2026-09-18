@@ -29,7 +29,8 @@ skyrim_reviewer/
   scripting/manual.py   Chat-authored YAML spec path (no API keys needed)
   scripting/autospec.py Automated idea -> spec generation
   assets/media.py       Permission-gated media download + credits manifest
-  voice/                 Pluggable TTS: f5tts, kaggle_gpu, piper, elevenlabs, openai
+  voice/                 Pluggable TTS: f5tts, chatterbox, qwen, kaggle_gpu, piper,
+                          elevenlabs, openai
   edit/                  Trailer intro montage, Ken Burns, music, captions, assembly
   edit/tier_list.py     ranked_tier_list on-screen graphics: scorecard, best-for, tier board
   edit/encode_opts.py   ffmpeg codec/preset + video-config helpers (no moviepy import)
