@@ -15,9 +15,11 @@ MCP servers connected to this account/session:
 | `github` | Yes — repo/PR workflow | Keep |
 | `Claude_Code_Remote` | Yes — session/branch management | Keep |
 | `Claude_Docs` | No reference in this repo | Keep only if you use it elsewhere; drop if idle |
-| `Firecrawl` | No reference (research here goes through the NexusMods/Steam/yt-dlp APIs directly, not web scraping) | Delete if not used outside this project |
+| `Firecrawl` | No — research here goes through the NexusMods/Steam/yt-dlp APIs directly, no web scraping anywhere in `skyrim_reviewer/` | Delete unless used in another project |
 | `Heygen` | No — this pipeline renders locally with moviepy/ffmpeg/Remotion, no HeyGen calls anywhere in `skyrim_reviewer/` | Delete unless used in another project |
 | `HyperFrames_by_HeyGen` | No — same reason | Delete unless used in another project |
+
+**Delete candidates: `Firecrawl`, `Heygen`, `HyperFrames_by_HeyGen`** — zero references in this codebase, all three add their tool descriptions to every session's starting context whether or not the session touches them.
 
 Skills available in this session (built-in + installed) skew toward
 Office-document generation (`pptx`, `docx`, `xlsx`, `pdf`), artifact/dataviz
