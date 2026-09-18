@@ -355,6 +355,175 @@ def _hex(color: str):
     return tuple(int(c[i:i + 2], 16) for i in (0, 2, 4)) if len(c) == 6 else (212, 175, 55)
 
 
+def _assign_tiers(project: Project) -> list[tuple]:
+    """[(mod, tier), ...] ranked best-first. Uses each mod's real `tier` from the
+    script's segments when the video is ranked_tier_list; otherwise buckets mods by
+    score (or endorsements) into the configured tier letters (config/channel.yaml ->
+    tier_list.tiers), so a plain category_list video can still get a tier-style
+    thumbnail without fabricating a verdict shown nowhere else in the video."""
+    from ..config import channel_config as _cc
+    tiers = _cc().get("tier_list", {}).get("tiers") or ["S", "A", "B", "C"]
+
+    by_mod_id = {}
+    script = getattr(project, "script", None)
+    if script and str(getattr(script, "format", "")) == "ranked_tier_list":
+        for seg in script.segments:
+            if getattr(seg, "kind", "") == "mod" and getattr(seg, "tier", None):
+                by_mod_id[seg.mod_id] = seg.tier
+    if by_mod_id:
+        return [(m, by_mod_id[m.mod_id]) for m in project.mods if m.mod_id in by_mod_id]
+
+    ranked = sorted(project.mods,
+                    key=lambda m: (getattr(m, "score", 0) or getattr(m, "endorsements", 0)),
+                    reverse=True)
+    if not ranked:
+        return []
+    n = len(tiers)
+    out = []
+    for i, mod in enumerate(ranked):
+        tier = tiers[min(i * n // len(ranked), n - 1)]
+        out.append((mod, tier))
+    return out
+
+
+def make_tier_strip_thumbnail(project: Project, accent: str = "#d4af37",
+                              category_title: str = "", out: Path | None = None) -> str:
+    """Tier-list-style thumbnail: a colored S/A/B/C strip of mod icons on the left,
+    a big punchy hero shot on the right behind a diagonal seam, bold two-tone headline
+    across the bottom. Modeled on the "tier list ranking" thumbnail style common on
+    mod-review channels. PIL-only (no Remotion dependency)."""
+    from ..edit.tier_list import TIER_COLORS, _DEFAULT_TIER_COLOR
+    from ..branding import thumbnail_text
+
+    out = out or (Path(project.workdir) / "thumbnail_tierlist.png")
+    W, H = SIZE
+    acc = _hex(accent)
+    canvas = Image.new("RGB", SIZE, (12, 15, 20))
+
+    placed = _assign_tiers(project)
+    tiers_order = list(dict.fromkeys(t for _, t in placed)) or ["S", "A", "B", "C"]
+    panel_w = int(W * 0.30)
+    slant = int(W * 0.10)
+
+    # Prefer a hero from a mod with a real multi-image gallery — a mod with only its
+    # single API picture_url is often a text splash/promo card (as seen with a
+    # 1-image mod slipping past _clean_heroes's text filter), and those read badly
+    # once cropped/vignetted behind the headline.
+    gallery_mods = [m for m in project.mods if len(m.media) >= 2]
+    gallery_heroes = [img for m in gallery_mods if (img := _mod_gallery_hero(m))]
+    hero_path = (max(gallery_heroes, key=_hero_quality) if gallery_heroes
+                else _best_hero(project))
+    if hero_path:
+        hero = _punch(_cover(Image.open(hero_path).convert("RGB"), SIZE))
+        hero = _vignette(hero)
+        hero_rgba = hero.convert("RGBA")
+        # Diagonal seam mask: hero visible right of a line that's wider (further
+        # right) at the top and tucks in toward panel_w at the bottom.
+        mask = Image.new("L", SIZE, 0)
+        md = ImageDraw.Draw(mask)
+        top_x = panel_w + slant
+        bot_x = panel_w
+        md.polygon([(top_x, 0), (W, 0), (W, H), (bot_x, H)], fill=255)
+        canvas = Image.composite(hero_rgba, canvas.convert("RGBA"), mask).convert("RGB")
+        # Accent seam line along the cut.
+        d = ImageDraw.Draw(canvas)
+        d.line([(top_x, 0), (bot_x, H)], fill=accent, width=8)
+
+    draw = ImageDraw.Draw(canvas)
+    draw.rectangle([0, 0, panel_w, H], fill=(14, 17, 23))
+
+    row_h = H // max(len(tiers_order), 1)
+    label_w = int(panel_w * 0.22)
+    icon_pad = 8
+    tf = _font(round(row_h * 0.42))
+    for i, tier in enumerate(tiers_order):
+        y0, y1 = i * row_h, (i + 1) * row_h
+        color = TIER_COLORS.get(tier, _DEFAULT_TIER_COLOR)
+        draw.rectangle([0, y0, label_w, y1 - 2], fill=color)
+        tb = draw.textbbox((0, 0), tier, font=tf)
+        draw.text((label_w / 2 - (tb[2] - tb[0]) / 2 - tb[0],
+                   y0 + row_h / 2 - (tb[3] - tb[1]) / 2 - tb[1]), tier,
+                  fill=(10, 12, 16), font=tf)
+        draw.rectangle([label_w, y0, panel_w, y1 - 2], fill=(24, 27, 34))
+
+        icon_size = row_h - 2 * icon_pad
+        x = label_w + icon_pad
+        for mod, mtier in placed:
+            if mtier != tier or x + icon_size > panel_w:
+                continue
+            img_path = _mod_main_image(mod)
+            if not img_path:
+                continue
+            try:
+                icon = _cover(Image.open(img_path).convert("RGB"), (icon_size, icon_size))
+                canvas.paste(icon, (x, y0 + icon_pad))
+                draw.rectangle([x, y0 + icon_pad, x + icon_size, y0 + icon_pad + icon_size],
+                              outline=(0, 0, 0), width=2)
+            except Exception:
+                pass
+            x += icon_size + icon_pad
+
+    # Bottom scrim so the headline reads over both the panel and the hero seam.
+    scrim = Image.new("RGBA", SIZE, (0, 0, 0, 0))
+    sd = ImageDraw.Draw(scrim)
+    for i in range(260):
+        a = int(215 * (i / 260) ** 1.5)
+        sd.line([(0, H - 260 + i), (W, H - 260 + i)], fill=(0, 0, 0, a))
+    canvas = Image.alpha_composite(canvas.convert("RGBA"), scrim).convert("RGB")
+    draw = ImageDraw.Draw(canvas)
+
+    title = (project.script.title if project.script else "") or "Best Skyrim Mods"
+    cid = getattr(project, "category_id", "") or ""
+    headline, keyword, _banner = thumbnail_text(title, category_title or title, cid)
+    headline = headline.rstrip("?") + "?"
+    words = headline.upper().split()
+    kw_set = {keyword.upper()}
+    margin = 40
+    max_w = W - 2 * margin
+
+    def _line_width(ws: list[str], font) -> int:
+        w = 0
+        for i, word in enumerate(ws):
+            bb = draw.textbbox((0, 0), word, font=font)
+            w += (bb[2] - bb[0]) + (22 if i else 0)
+        return w
+
+    # Fit on one line by shrinking; wrap to two lines if it's still too wide even
+    # at the smallest readable size.
+    size = 96
+    font = _font(size)
+    while size > 48 and _line_width(words, font) > max_w:
+        size -= 4
+        font = _font(size)
+    if _line_width(words, font) > max_w and len(words) > 1:
+        mid = (len(words) + 1) // 2
+        lines = [words[:mid], words[mid:]]
+        size = 64
+        font = _font(size)
+        while size > 40 and max(_line_width(ln, font) for ln in lines) > max_w:
+            size -= 4
+            font = _font(size)
+    else:
+        lines = [words]
+
+    line_h = int(size * 1.15)
+    y = H - margin - line_h * len(lines)
+    for ln in lines:
+        x = margin
+        for w in ln:
+            color = accent if w in kw_set else "white"
+            draw.text((x, y), w, font=font, fill=color, stroke_width=9, stroke_fill="black")
+            wb = draw.textbbox((x, y), w, font=font)
+            x = wb[2] + 22
+        y += line_h
+
+    draw.rectangle([0, 0, W - 1, H - 1], outline=acc, width=10)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(out)
+    project.thumbnail_path = str(out)
+    return str(out)
+
+
 def make_thumbnail_variants(project, accent: str = "#d4af37",
                             category_title: str = "", n: int = 3) -> list[str]:
     """Render N A/B thumbnail variants (different keyword/banner + panel images) into
