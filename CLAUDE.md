@@ -31,6 +31,8 @@ skyrim_reviewer/
   assets/media.py       Permission-gated media download + credits manifest
   voice/                 Pluggable TTS: f5tts, kaggle_gpu, piper, elevenlabs, openai
   edit/                  Trailer intro montage, Ken Burns, music, captions, assembly
+  edit/tier_list.py     ranked_tier_list on-screen graphics: scorecard, best-for, tier board
+  edit/encode_opts.py   ffmpeg codec/preset + video-config helpers (no moviepy import)
   thumbnail/generate.py Channel-style thumbnail (Remotion, PIL fallback)
   branding.py            Titles + YouTube description builder
   ideas.py               Viral video-idea generator
@@ -41,6 +43,7 @@ skyrim_reviewer/
 remotion/                Animated title card + thumbnail (React/Remotion, Node)
 kaggle/                  Free-GPU narration kernels + notebook
 config/                  channel / voice / games / reference_channels / permissions YAML
+                          channel.yaml -> tier_list: tiers + scorecard criteria for ranked_tier_list
 examples/                Worked YAML specs (chat-authored, no-API-key path)
 tools/                   One-off scripts (gallery fetch, YouTube OAuth)
 ```

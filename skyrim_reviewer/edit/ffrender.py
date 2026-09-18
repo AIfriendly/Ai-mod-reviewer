@@ -15,9 +15,10 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from ..models import Mod, Project, Script
+from ..models import Mod, Project, Script, VideoFormat
 from .captions import segment_durations, write_srt, youtube_chapters
 from .lower_third import render_lower_third
+from .tier_list import render_best_for, render_scorecard, render_tier_board
 
 
 def _ff() -> str:
@@ -418,6 +419,54 @@ def _end_card(hero: str | None, card_png: str, dur: float, size, fps: int, out: 
     _run(args)
 
 
+def _verdict_clip(mod_name: str, scorecard: dict, best_for: str,
+                  placed_so_far: list[tuple[str, str]], tiers: list[str],
+                  hero: str | None, dur: float, size, fps: int, accent: str,
+                  seg_dir: Path, idx: int) -> Path:
+    """ranked_tier_list only: a short append clip after a mod's segment — the
+    scorecard + best-for card over a slow-zoomed, dimmed hero shot (same background
+    treatment as _end_card), with the cumulative tier board pinned bottom-left so the
+    board visibly fills in as the video progresses."""
+    W, H = size
+    card = seg_dir / f"verdict_card_{idx:02d}.png"
+    render_scorecard(mod_name, scorecard, size, card, accent=accent)
+    bf_png = seg_dir / f"verdict_bestfor_{idx:02d}.png"
+    render_best_for(best_for or "Anyone curious about this mod.", size, bf_png,
+                    accent=accent)
+    board_png = seg_dir / f"verdict_board_{idx:02d}.png"
+    render_tier_board(placed_so_far, tiers, size, board_png, accent=accent,
+                      highlight=mod_name)
+
+    ff = _ff()
+    args = [ff, "-y", "-v", "error"]
+    if hero and Path(hero).exists():
+        frames = max(1, round(dur * fps))
+        args += ["-loop", "1", "-t", f"{dur + 0.1:.3f}", "-i", hero]
+        base = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+                f"eq=brightness=-0.22:saturation=0.85,gblur=sigma=8,setsar=1,"
+                f"zoompan=z='1.0+0.05*on/{frames}':d={frames}:x='iw/2-(iw/zoom/2)':"
+                f"y='ih/2-(ih/zoom/2)':s={W}x{H}:fps={fps},"
+                f"trim=end_frame={frames},setpts=PTS-STARTPTS[bg];")
+        ci = 1
+    else:
+        args += ["-f", "lavfi", "-t", f"{dur:.3f}", "-i", f"color=c=0x0b1018:s={W}x{H}:r={fps}"]
+        base = "[0:v]setsar=1[bg];"
+        ci = 1
+    args += ["-loop", "1", "-i", str(card), "-loop", "1", "-i", str(bf_png),
+             "-loop", "1", "-i", str(board_png)]
+    chain = (base +
+             f"[{ci}:v]format=rgba[cd];[bg][cd]overlay=0:0[bg2];"
+             f"[{ci+1}:v]format=rgba[bf];[bg2][bf]overlay=0:0[bg3];"
+             f"[{ci+2}:v]format=rgba[tb];[bg3][tb]overlay=0:0,"
+             f"fade=t=in:st=0:d=0.35,format=yuv420p[v]")
+    out = seg_dir / f"seg_verdict_{idx:02d}.mp4"
+    args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
+             "-r", str(fps), "-pix_fmt", "yuv420p", "-c:v", "libx264",
+             "-preset", "veryfast", str(out)]
+    _run(args)
+    return out
+
+
 def _prev_in_series(project) -> str | None:
     """Title of the previous video in this project's category (from history.json),
     for the binge-chain 'watch next' card. None if this is the first in the series."""
@@ -525,6 +574,14 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     seg_dir = workdir / "ffsegs"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
+    # ranked_tier_list only: verdict-card settings + cumulative reveal state.
+    is_tier_list = project.format == VideoFormat.ranked_tier_list
+    tier_cfg = channel_config().get("tier_list", {})
+    tiers = tier_cfg.get("tiers", ["S", "A", "B", "C"])
+    verdict_seconds = float(tier_cfg.get("verdict_seconds", 5))
+    placed_so_far: list[tuple[str, str]] = []
+    extra_gaps: dict[str, float] = {}          # segment_id -> seconds spliced in after it
+
     # Cinematic intro trailer footage (cached).
     footage = []
     try:
@@ -623,6 +680,19 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
                                footage if kind in ("hook", "intro") else None)
         seg_videos.append(out)
 
+        # ranked_tier_list: splice a short verdict card (scorecard + best-for + the
+        # cumulative tier board) right after this mod's segment.
+        if is_tier_list and mod and getattr(seg, "tier", None):
+            placed_so_far.append((mod.name, seg.tier))
+            hero = images[0] if images else None
+            vclip = _verdict_clip(mod.name, seg.scorecard, seg.best_for, placed_so_far,
+                                  tiers, hero, verdict_seconds, size, fps, accent,
+                                  seg_dir, i)
+            seg_videos.append(vclip)
+            vsil = _silent_wav(verdict_seconds, seg_dir / f"verdict_sil_{i:02d}.wav")
+            seg_audios.append(str(vsil))
+            extra_gaps[seg.segment_id] = verdict_seconds
+
     # --- Retention: cold-open teaser (prepend) + binge-chain end card (append) ---
     # These carry no narration; they get silent audio slots so the a/v timelines stay
     # aligned. durations stays NARRATION-only (for captions/mod cues); the teaser adds a
@@ -655,17 +725,17 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     _concat_videos(seg_videos, video_only)
 
     # Animated captions (burned in) + a whoosh sting at each mod reveal.
-    total_dur = teaser_dur + sum(durations) + endcard_dur
+    total_dur = teaser_dur + sum(durations) + sum(extra_gaps.values()) + endcard_dur
     mod_starts, acc = [], teaser_dur           # offset cues past the prepended teaser
     for seg, d in zip(spoken, durations):
         if getattr(seg, "kind", "") == "mod":
             mod_starts.append(acc)
-        acc += d
+        acc += d + extra_gaps.get(seg.segment_id, 0.0)
     ass_path = None
     if cfg.get("captions", True):
         from .captions import build_ass
         ass_path = build_ass(spoken, durations, size, seg_dir / "captions.ass", accent,
-                             start_offset=teaser_dur)
+                             start_offset=teaser_dur, extra_gaps=extra_gaps)
     sfx_path = None
     if cfg.get("sfx", True):
         try:
@@ -740,7 +810,7 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         vmap, vcopy = "[vout]", False
     else:
         vmap, vcopy = "0:v", True
-    from .assemble import _encode_opts
+    from .encode_opts import _encode_opts
     codec, preset, threads, extra = _encode_opts()
     out_dir = Path("output")
     out_dir.mkdir(exist_ok=True)
@@ -757,9 +827,9 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
 
     # Sidecar artefacts (same as moviepy path).
     durs = segment_durations(script)
-    write_srt(script, durs, out_dir / f"{project.slug}.srt")
+    write_srt(script, durs, out_dir / f"{project.slug}.srt", extra_gaps=extra_gaps)
     script.chapters = youtube_chapters(script, durs, mods=project.mods,
-                                       start_offset=teaser_dur)
+                                       start_offset=teaser_dur, extra_gaps=extra_gaps)
     from ..branding import make_description
     wm = ""
     try:

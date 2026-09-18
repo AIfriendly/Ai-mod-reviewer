@@ -30,6 +30,18 @@ Spec format (see examples/ for a full one):
         title: "Combat"
         narration: "..."
         target_seconds: 75
+
+For format: ranked_tier_list, each "mod" segment also carries the verdict card data
+(see config/channel.yaml -> tier_list for the configured tiers/criteria):
+
+      - kind: mod
+        ref: 1
+        title: "Combat"
+        narration: "..."
+        target_seconds: 90
+        tier: "A"
+        scorecard: {Impact: 4.5, Uniqueness: 4, Polish: 3.5, Compatibility: 5}
+        best_for: "Anyone who wants combat overhauled without touching their load order."
 """
 from __future__ import annotations
 
@@ -54,9 +66,15 @@ def spec_skeleton(mods, *, title: str, fmt: str, profile, next_topic: str = "",
         {"kind": "intro", "title": "The promise", "target_seconds": profile.intro_seconds,
          "narration": ""},
     ]
+    tier_list_fmt = str(fmt) == "ranked_tier_list"
     for i, m in enumerate(mods, 1):
-        segs.append({"kind": "mod", "ref": i, "title": m.name,
-                     "target_seconds": profile.seconds_per_mod, "narration": ""})
+        seg = {"kind": "mod", "ref": i, "title": m.name,
+               "target_seconds": profile.seconds_per_mod, "narration": ""}
+        if tier_list_fmt:
+            from ..config import channel_config
+            criteria = channel_config().get("tier_list", {}).get("scorecard_criteria", [])
+            seg.update(tier="", scorecard={c: 0 for c in criteria}, best_for="")
+        segs.append(seg)
     segs.append({"kind": "outro", "title": "Outro",
                  "target_seconds": profile.outro_seconds, "narration": ""})
     spec = {
@@ -155,6 +173,9 @@ def apply_spec(project: Project, spec: dict) -> Project:
             narration=s.get("narration", "").strip(),
             target_seconds=float(s.get("target_seconds", 0)),
             mod_id=mod_id,
+            tier=s.get("tier"),
+            scorecard={k: float(v) for k, v in (s.get("scorecard") or {}).items()},
+            best_for=s.get("best_for", ""),
         ))
 
     fmt = VideoFormat(spec.get("format", project.format.value))
