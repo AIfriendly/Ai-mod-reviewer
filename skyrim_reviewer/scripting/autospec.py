@@ -572,7 +572,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
 # for weak video segments. Matched case-insensitively against the mod name.
 _JUNK = re.compile(
     r"\b(translation|delayed start|alternate routes?|bugfix|hotfix|"
-    r"completion tracker|quest markers?|patch|cleaned|tweak|unofficial|"
+    r"completion tracker|quest markers?|patch|cleaned|tweaks?|unofficial|"
     r"add-?on)\b", re.I)
 
 
