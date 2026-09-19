@@ -446,11 +446,43 @@ def make_tier_strip_thumbnail(project: Project, accent: str = "#d4af37",
                   fill=(10, 12, 16), font=tf)
         draw.rectangle([label_w, y0, panel_w, y1 - 2], fill=(24, 27, 34))
 
-        icon_size = row_h - 2 * icon_pad
+        # Fit AS MANY icons as the row can actually hold instead of one full-height
+        # icon per row — a tier with a dozen mods (any video longer than a handful
+        # of picks) used to show just its first mod and silently drop the rest.
+        # Pick a target icon COUNT first, then size icons to fit it (not the other
+        # way around — sizing icons to the full row height first left room for
+        # exactly one, no matter how many mods were actually in the tier).
+        tier_mods = [mod for mod, mtier in placed if mtier == tier]
+        available_w = panel_w - label_w - icon_pad
+        max_row_icon = row_h - 2 * icon_pad
+        max_wanted = 5
+
+        def _fits(count: int, badge_w: int) -> int:
+            """Icon size (px, square) for `count` icons + an optional badge in the
+            available width, capped at the row's full height. 0 if it won't fit
+            even at the minimum readable size."""
+            if count <= 0:
+                return 0
+            size = min(max_row_icon,
+                      (available_w - badge_w - icon_pad * count) // count)
+            return size if size >= 24 else 0
+
+        shown = min(len(tier_mods), max_wanted)
+        remainder = len(tier_mods) - shown
+        icon_size = 0
+        while shown > 0:
+            badge_w = 0
+            if remainder > 0:
+                bf = _font(round(row_h * 0.28))
+                bb = draw.textbbox((0, 0), f"+{remainder}", font=bf)
+                badge_w = (bb[2] - bb[0]) + 18 + icon_pad
+            icon_size = _fits(shown, badge_w)
+            if icon_size:
+                break
+            shown -= 1
+            remainder = len(tier_mods) - shown
         x = label_w + icon_pad
-        for mod, mtier in placed:
-            if mtier != tier or x + icon_size > panel_w:
-                continue
+        for mod in tier_mods[:shown]:
             img_path = _mod_main_image(mod)
             if not img_path:
                 continue
@@ -462,6 +494,15 @@ def make_tier_strip_thumbnail(project: Project, accent: str = "#d4af37",
             except Exception:
                 pass
             x += icon_size + icon_pad
+        if remainder > 0:
+            bf = _font(round(row_h * 0.28))
+            label = f"+{remainder}"
+            bb = draw.textbbox((0, 0), label, font=bf)
+            bw, bh = (bb[2] - bb[0]) + 18, (bb[3] - bb[1]) + 12
+            draw.rounded_rectangle([x, y0 + (row_h - bh) / 2, x + bw, y0 + (row_h + bh) / 2],
+                                   radius=8, fill=TIER_COLORS.get(tier, _DEFAULT_TIER_COLOR))
+            draw.text((x + 9 - bb[0], y0 + (row_h - bh) / 2 + 6 - bb[1]), label,
+                      font=bf, fill=(10, 12, 16))
 
     # Bottom scrim so the headline reads over both the panel and the hero seam.
     scrim = Image.new("RGBA", SIZE, (0, 0, 0, 0))
