@@ -86,7 +86,5 @@ class QwenTTSProvider(TTSProvider):
         tmp_dir.rmdir()
 
         if out_path.suffix == ".mp3" and wav_path.exists():
-            from ..utils.ffmpeg import ffmpeg_path
-            subprocess.run([ffmpeg_path(), "-y", "-i", str(wav_path), str(out_path)],
-                           capture_output=True, check=True)
-            wav_path.unlink(missing_ok=True)
+            from .base import wav_to_mp3
+            wav_to_mp3(wav_path, out_path)
