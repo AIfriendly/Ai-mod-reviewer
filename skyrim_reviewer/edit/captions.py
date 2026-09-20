@@ -5,6 +5,7 @@ list computed from the REAL audio durations, so timestamps are accurate.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from ..models import Script
@@ -138,15 +139,24 @@ def _clean_chapter_name(name: str) -> str:
     return n.strip(" -–") or (name or "").strip()
 
 
+# Separator between a chapter's label and its mod link. Distinctive enough that the
+# description builder can split it back off without touching mod names.
+CHAPTER_LINK_SEP = " — "
+
+
 def youtube_chapters(script: Script, durations: list[float],
                      mods=None, start_offset: float = 0.0,
-                     extra_gaps: dict | None = None) -> list[str]:
+                     extra_gaps: dict | None = None,
+                     link_mods: bool = False) -> list[str]:
     """'0:00 Intro' style chapter list for the description. Mod segments are labelled
     with the mod's name (and countdown rank) — falling back to the mod list when the
     segment carries no title — so the chapters are actually usable on YouTube instead
     of blank timestamps. `start_offset` accounts for a prepended cold-open teaser; the
     first chapter is clamped to 0:00 (YouTube requires it) so it covers the teaser.
-    `extra_gaps` (segment_id -> seconds): see build_ass."""
+    `extra_gaps` (segment_id -> seconds): see build_ass. `link_mods` appends each
+    mod's Nexus page to its chapter line, so a viewer reading the timestamps has the
+    download link right there (CHAPTER_LINK_SEP lets the description strip them again
+    if the 5000-char cap needs the room)."""
     extra_gaps = extra_gaps or {}
     by_id = {m.mod_id: m for m in (mods or [])}
     n_mods = sum(1 for s in script.segments if getattr(s, "kind", "") == "mod")
@@ -166,6 +176,12 @@ def youtube_chapters(script: Script, durations: list[float],
             label = f"#{rank} {name}" if n_mods >= 3 else name
         elif not label:
             label = labels.get(kind, kind.title() or "Chapter")
+        if link_mods and kind == "mod":
+            url = getattr(by_id.get(seg.mod_id), "page_url", "")
+            if url:
+                # Bare host: YouTube still auto-links it, and the 12 chars saved per
+                # line decide whether a long list's links fit the description cap.
+                label += CHAPTER_LINK_SEP + re.sub(r"^https?://(www\.)?", "", url)
         out.append(f"{m_}:{s_:02d} {label}")
         t += dur + extra_gaps.get(seg.segment_id, 0.0)
     return out

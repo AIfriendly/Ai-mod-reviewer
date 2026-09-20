@@ -829,7 +829,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     durs = segment_durations(script)
     write_srt(script, durs, out_dir / f"{project.slug}.srt", extra_gaps=extra_gaps)
     script.chapters = youtube_chapters(script, durs, mods=project.mods,
-                                       start_offset=teaser_dur, extra_gaps=extra_gaps)
+                                       start_offset=teaser_dur, extra_gaps=extra_gaps,
+                                       link_mods=True)
     from ..branding import make_description
     wm = ""
     try:

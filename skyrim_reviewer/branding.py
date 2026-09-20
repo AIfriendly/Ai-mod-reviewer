@@ -169,9 +169,30 @@ def pinned_comment(project) -> str:
 
 
 def make_description(project, music_credit: str | None = None,
-                     watermark: str = "", next_topic: str = "") -> str:
+                     watermark: str = "", next_topic: str = "",
+                     limit: int = 5000) -> str:
     """Build a channel-style YouTube description: hook, timestamps, mod links with
-    credit, CTA, music attribution, and hashtags."""
+    credit, CTA, music attribution, and hashtags.
+
+    YouTube hard-caps descriptions at `limit` characters and silently drops the rest,
+    which used to cut the author credits off long videos entirely. So a list that
+    doesn't fit sheds detail in priority order instead: first the per-chapter mod
+    links (the pinned comment carries the full credited list), then the separate
+    credits block. Complete timestamps always survive — they're what the chapter UI
+    needs, and an incomplete list breaks navigation for every mod below the cut."""
+    for link_chapters, credit_block in ((True, True), (True, False),
+                                        (False, True), (False, False)):
+        out = _compose_description(project, music_credit, watermark, next_topic,
+                                   link_chapters, credit_block)
+        if len(out) <= limit:
+            return out
+    return out[:limit].rsplit("\n", 1)[0]
+
+
+def _compose_description(project, music_credit: str | None, watermark: str,
+                         next_topic: str, link_chapters: bool,
+                         credit_block: bool) -> str:
+    from .edit.captions import CHAPTER_LINK_SEP
     script = project.script
     lines: list[str] = [script.title, ""]
     # Keep only the lead paragraph of any existing description — structured credits /
@@ -185,19 +206,24 @@ def make_description(project, music_credit: str | None = None,
     if desc:
         lines += [desc, ""]
 
-    if getattr(script, "chapters", None):
+    chapters = list(getattr(script, "chapters", None) or [])
+    if chapters:
+        if not link_chapters:
+            chapters = [c.split(CHAPTER_LINK_SEP)[0] for c in chapters]
         lines.append("⏱ Timestamps")
-        lines += script.chapters
+        lines += chapters
         lines.append("")
 
     # Mods featured — always credit authors + link the mod page (NexusMods terms).
     mods = [m for m in project.mods if getattr(m, "page_url", "")]
-    if mods:
+    if mods and credit_block:
         lines.append("🔧 Mods featured (support the authors — endorse & download):")
         for m in mods:
             author = getattr(m, "uploaded_by", "") or getattr(m, "author", "") or "Unknown"
             lines.append(f"• {m.name} by {author} — {m.page_url}")
         lines.append("")
+    elif mods:
+        lines += ["🔧 Every mod credited and linked in the pinned comment.", ""]
 
     cta = "▶ Subscribe for new Skyrim mod videos twice a week."
     if next_topic:
