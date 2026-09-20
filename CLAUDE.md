@@ -121,6 +121,39 @@ YouTube auth (`YOUTUBE_CLIENT_ID` / `_SECRET` / `_REFRESH_TOKEN`):
   (the narration is English), mods already in `history.json` for that game
   domain, and anything without real media or a usable summary.
 
+## Narration style
+
+The templates in `autospec.py` (`_HOOKS_FIRST`, `_HOOKS_PART`, `_INTROS`,
+`_OUTROS`, `_teaser`) follow the structure used by the established Skyrim
+mod-showcase channels in `config/reference_channels.yaml`. Keep that shape
+when editing them:
+
+- **Open by naming what is actually in this video.** Greet the viewer, say
+  specifically what this episode covers, then hand off to the first entry
+  ("let's begin", "first off, let's take a look"). A generic "N of the best
+  mods" promises nothing and makes every video sound identical — `_teaser`
+  exists to name real entries from the list being built.
+- **Per mod: name it, say what it is in one line, then get concrete.** The
+  reference channels lead with specifics — counts of NPCs, voice lines or
+  quests, named requirements, what changed versus vanilla. Concrete detail is
+  what makes a segment worth watching; adjectives are not.
+- **Close short and warm.** Hope they found something for their load order,
+  credit the authors, one like/subscribe ask, sign off. Don't stack CTAs.
+- **Second person, direct address.** "You" and "we", not "the player".
+
+Two hard limits: take structure and rhythm only — never lines verbatim, and
+never another channel's host persona or name. Every factual claim about a mod
+comes from that mod's own Nexus page, never from a reference video and never
+invented.
+
+To study a channel, `yt-dlp` is rate-limited (HTTP 429) from the sandbox and
+YouTube 401s Firecrawl on channel pages. What works: Firecrawl's `/v1/scrape`
+endpoint (needs `FIRECRAWL_API_KEY`; the repo's `reference_scrape.py` only
+calls `/v1/search`) against a transcript site with `waitFor` set, since those
+pages render client-side. Verify the author field on the scraped page — search
+results routinely surface other channels' videos. Don't commit the
+transcripts.
+
 ## Video output constraints
 
 - YouTube descriptions hard-cap at 5000 characters and the rest is silently
