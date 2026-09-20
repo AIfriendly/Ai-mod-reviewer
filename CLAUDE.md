@@ -124,35 +124,54 @@ YouTube auth (`YOUTUBE_CLIENT_ID` / `_SECRET` / `_REFRESH_TOKEN`):
 ## Narration style
 
 The templates in `autospec.py` (`_HOOKS_FIRST`, `_HOOKS_PART`, `_INTROS`,
-`_OUTROS`, `_teaser`) follow the structure used by the established Skyrim
-mod-showcase channels in `config/reference_channels.yaml`. Keep that shape
-when editing them:
+`_OUTROS`, `_teaser`) follow the structure of the established Skyrim
+mod-showcase channels in `config/reference_channels.yaml`, drawn from eleven
+transcripts of one of them. Frequencies below are from that sample. Keep the
+shape when editing:
 
-- **Open by naming what is actually in this video.** Greet the viewer, say
-  specifically what this episode covers, then hand off to the first entry
-  ("let's begin", "first off, let's take a look"). A generic "N of the best
+- **Hand off explicitly into the first entry** — "let's begin", "let's check
+  out the first mod", "let's get into it". 9 of 11 videos do this. It is the
+  single most consistent thing they do; don't let an opening trail off.
+- **Open by naming what is actually in this video.** Say specifically what
+  this episode covers before the countdown starts. A generic "N of the best
   mods" promises nothing and makes every video sound identical — `_teaser`
   exists to name real entries from the list being built.
-- **Per mod: name it, say what it is in one line, then get concrete.** The
-  reference channels lead with specifics — counts of NPCs, voice lines or
-  quests, named requirements, what changed versus vanilla. Concrete detail is
-  what makes a segment worth watching; adjectives are not.
+- **Promise the best is last.** "I'm saving my favourite for last." A
+  countdown already ends on its strongest entry, so saying so is free
+  retention. Keep at least one hook variant carrying it.
+- **Vary the opening shape.** Most greet first, but some cold-open on an
+  observation and identify the video after. Both variants exist in
+  `_HOOKS_FIRST`; keep both so consecutive uploads don't sound templated.
+- **Per mod: name it, say what it is in one line, then get concrete.** They
+  lead with specifics — counts of NPCs, voice lines or quests, named
+  requirements, what changed versus vanilla. Concrete detail is what makes a
+  segment worth watching; adjectives are not.
 - **Close short and warm.** Hope they found something for their load order,
   credit the authors, one like/subscribe ask, sign off. Don't stack CTAs.
 - **Second person, direct address.** "You" and "we", not "the player".
 
 Two hard limits: take structure and rhythm only — never lines verbatim, and
-never another channel's host persona or name. Every factual claim about a mod
-comes from that mod's own Nexus page, never from a reference video and never
-invented.
+never another channel's host persona or name (the sampled channel's outros are
+mostly Patreon supporter roll-calls and a recurring "at your service" tag —
+none of that is ours to take). Every factual claim about a mod comes from that
+mod's own Nexus page, never from a reference video and never invented.
+
+`_teaser` returns a lower-case clause so it can sit mid-sentence; `build_spec`
+capitalises after sentence breaks. A new template that opens on it still needs
+that pass, so don't bypass it.
 
 To study a channel, `yt-dlp` is rate-limited (HTTP 429) from the sandbox and
 YouTube 401s Firecrawl on channel pages. What works: Firecrawl's `/v1/scrape`
 endpoint (needs `FIRECRAWL_API_KEY`; the repo's `reference_scrape.py` only
 calls `/v1/search`) against a transcript site with `waitFor` set, since those
 pages render client-side. Verify the author field on the scraped page — search
-results routinely surface other channels' videos. Don't commit the
-transcripts.
+results routinely surface other channels' videos, and 3 of 12 candidates in
+one batch turned out to be different channels that merely appeared in the
+sidebar. Don't commit the transcripts.
+
+Sample size matters here: three transcripts showed only the patterns all three
+shared, and the best-for-last promise and cold-open shape did not appear until
+the sample reached eleven. Treat a handful of videos as a hint, not a style.
 
 ## Video output constraints
 
