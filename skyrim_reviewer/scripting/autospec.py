@@ -240,6 +240,19 @@ _HOOKS_FIRST = [
     "Welcome back! If your Skyrim is feeling a little stale, this list is the fix: "
     "{n} of the best {noun} in {year}, ranked from good to absolutely essential. "
     "{teaser}. All free, all credited below. Let's begin the first showcase.",
+    # Says the quiet part out loud: the countdown already saves the best for last,
+    # and the reference channels explicitly promise it rather than leaving it implied.
+    "Welcome back! Today we're ranking {n} of the best {noun} in {year}, and "
+    "{teaser}. I'm saving my favourite for last, so stick around to the end. "
+    "Everything is free and credited below. Let's begin.",
+    # Cold open: lead with the observation, identify the video after. Two of the
+    # reference videos open this way instead of greeting first.
+    "You'd think Skyrim would have run out of good {noun} by {year}. It hasn't — "
+    "not even close. {teaser}, and that's only the start of a list {n} deep, "
+    "ranked from good to essential. All free, all linked below. Let's get into it.",
+    "Skyrim is fourteen years old and somehow the {noun} keep getting better. "
+    "{teaser}. That's part of {n} of the best you can install in {year}, ranked "
+    "from good all the way to essential, and the best one is last. Let's begin.",
 ]
 _HOOKS_PART = [
     "Welcome back — and this time it's part {part}. We've got {n} more of the very best "
@@ -515,13 +528,19 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     short = noun.replace(" mods", "").title()
     title_options = _unique_titles(category, short, n, year, part, rng)
     title = title_options[0]
+    def _caps(text: str) -> str:
+        """Capitalise after sentence breaks — the teaser is a lower-case clause and
+        templates may drop it either mid-sentence or at the start of one."""
+        return re.sub(r"([.!?]\s+)([a-z])",
+                      lambda m: m.group(1) + m.group(2).upper(), text)
+
     teaser = _teaser(mods, rng)
     if part and part > 1:
-        hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year,
-                                              teaser=teaser)
+        hook = _caps(rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun,
+                                                    year=year, teaser=teaser))
     else:
-        hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year,
-                                               teaser=teaser)
+        hook = _caps(rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year,
+                                                     teaser=teaser))
 
     intro = rng.choice(_INTROS).format(nord=nord)
     outro = rng.choice(_OUTROS).format(n=n, noun=noun, year=year)
