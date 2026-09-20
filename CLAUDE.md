@@ -85,6 +85,77 @@ optional ElevenLabs/OpenAI voice keys, YouTube/Ayrshare credentials for
 publishing, and `FIRECRAWL_API_KEY` (optional — `ideas --live` reference-channel
 freshness layer; everything else works with it unset).
 
+YouTube auth (`YOUTUBE_CLIENT_ID` / `_SECRET` / `_REFRESH_TOKEN`):
+- `tools/youtube_auth.py` catches an OAuth redirect on localhost, so it only
+  works where the browser and the script are the same machine — never from a
+  sandbox. `tools/youtube_auth_device.py` uses Google's device flow instead
+  (no redirect; the user approves a short code on any device) and is the only
+  option for a headless host.
+- The device endpoint requires an OAuth client of type "TVs and Limited Input
+  devices"; a Desktop-app client is rejected with "Invalid client type".
+- Device flow permits only the `youtube` and `youtube.readonly` scopes.
+  `videos.insert` and `thumbnails.set` accept `youtube`, but comment posting
+  needs `youtube.force-ssl`, which that flow cannot grant.
+- Until the Google Cloud project passes YouTube's compliance audit, every
+  API-uploaded video is forced to `private` and `publishAt` scheduling won't
+  fire. Don't treat that as a bug in the uploader.
+- The account owns several channels, so `upload_video` takes `expect_channel`
+  and aborts on a mismatch. Keep that guard.
+
+## Research: finding the right mods
+
+- Prefer NexusMods' own taxonomy over inferring content from titles. The v2
+  GraphQL `mods` query returns a `tags { name }` field, and dedicated
+  categories exist for most buckets ("Quests", "Magic - Spells & Enchantments").
+  Regex classifiers over name/summary (`_is_quest`, `_is_new_land` in
+  `autospec.py`) are a last resort for buckets Nexus doesn't separate — a
+  regex pass once returned ZERO valid quest mods for a year that actually had
+  dozens.
+- "Best of <year>" means `createdAt` in that year. `discover_mods()` sorts by
+  endorsements, which structurally cannot surface recent releases — a new mod
+  has no endorsements yet. Sort by `createdAt DESC` and page until the results
+  fall out of the year, then rank the survivors by endorsements.
+- A mod updated this year is not a mod released this year; filter on
+  `createdAt`, never `updatedAt`.
+- Always filter out: `adultContent`, the `Translation` tag, non-Latin titles
+  (the narration is English), mods already in `history.json` for that game
+  domain, and anything without real media or a usable summary.
+
+## Video output constraints
+
+- YouTube descriptions hard-cap at 5000 characters and the rest is silently
+  dropped. `make_description` shrinks to fit — don't add unconditional
+  sections to it. Timestamp+link lines run ~95 chars, so links only fit for
+  roughly 50 mods; beyond that the pinned comment carries them.
+- Qwen TTS speaks about 3.6 words/second, much faster than the hand-written
+  `target_seconds` in a spec implies. Estimate runtime from narration word
+  count, and hit a length target by writing more real detail mined from the
+  mod's full Nexus description — never filler, never invented facts.
+- On-screen cards (`edit/tier_list.py`) are full-frame RGBA overlays
+  composited on top of each other. Two cards that both draw mid-frame WILL
+  collide; give each a vertical band, or show them in separate time windows
+  via `overlay=...:enable=`.
+- Check rendered output by extracting frames (`ffmpeg -ss <t> -frames:v 1`)
+  and actually looking at them. Layout bugs — overlapping cards, dropped
+  items — do not show up in logs, exit codes, or QA.
+
+## Long renders
+
+- A full-length render takes hours. Start it as the background command
+  itself; a `nohup ... &` inside a backgrounded call has been reaped
+  mid-render, losing the run.
+- Depth-parallax clips (`edit/parallax.py`) are cached by hash, so re-running
+  a render reuses them. Re-render the final stage rather than rebuilding a
+  project from scratch.
+- Never delete files while a background job may still be writing them (the
+  `ffmpeg2pass-*.log` files belong to an in-flight two-pass encode).
+- `work/<slug>/ffsegs` and `work/<slug>/i2v` are regenerable intermediates and
+  are where the disk goes; clearing them for a finished, delivered video is
+  the safe way to make room. The `output/*.mp4` deliverables are not.
+- `history.json` edits: make the precise change and read `git diff` before
+  committing. A blanket dedupe script once silently dropped six unrelated
+  entries.
+
 ## Verifying changes
 
 There is no test suite or linter configured in this repo (no `pytest`,
@@ -105,7 +176,10 @@ There is no test suite or linter configured in this repo (no `pytest`,
   it by default or remove the warnings.
 - `assets/media.py` only uses mod media that's in the permissions ledger
   (`config/permissions.yaml`) or falls back to a placeholder slate. Don't
-  bypass the permission gate.
+  bypass the permission gate. Approving a batch asserts the user has real
+  permission from those authors, so confirm it with them per batch — it is
+  not implied by them asking for the video, and a previous batch's answer
+  does not carry over to different mods.
 - Trailer B-roll (`research/footage.py`) and GoFile links are called out in
   the README as copyright/exposure risks — keep behavior opt-out-able, not
   silently expanded.
