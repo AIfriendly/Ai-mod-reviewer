@@ -211,52 +211,69 @@ _WHO_FOR_GENERIC = [
 
 # Hook / intro / outro variants — picked per video so different uploads don't open
 # with the exact same script (a key anti-"mass-produced template" signal).
+def _teaser(mods: list[Mod], rng: random.Random) -> str:
+    """Name a few of this video's actual standout mods for the opening.
+
+    The strongest pattern in the reference channels' openings is telling the viewer
+    what is specifically in THIS episode before the countdown starts, rather than a
+    generic "here are N mods". Mods arrive ranked weakest-first, so the tail is the
+    good end of the list; naming real entries keeps the promise accurate.
+    """
+    picks = [_spoken_name(m.name) for m in mods[-3:] if m.name][::-1]
+    if not picks:
+        return "we've got a stacked list this time"
+    if len(picks) == 1:
+        return f"we're taking a look at {picks[0]}"
+    if len(picks) == 2:
+        return f"we're taking a look at {picks[0]} and {picks[1]}"
+    return (f"we're taking a look at {picks[0]}, {picks[1]}, {picks[2]}, "
+            f"and plenty more")
+
+
 _HOOKS_FIRST = [
-    "Skyrim is over a decade old, but thanks to its modding community it has never "
-    "looked or played better — especially when it comes to {noun}. Today I'm counting "
-    "down {n} of the absolute best {noun} you can install right now, all of them free, "
-    "all of them linked below. Stick around to the end, because the number one pick is "
-    "the one I genuinely couldn't play without. Let's jump in.",
-    "I've spent way too many hours digging through Nexus so you don't have to, and I've "
-    "narrowed it down to the {n} best {noun} worth your time in {year}. Every single one "
-    "is free, every author is credited below, and trust me — the top of this list is "
-    "special. Let's get straight into it.",
-    "If your Skyrim is starting to feel a little stale, the {n} {noun} on this list are "
-    "the fix. These are the mods I'd reinstall first on any fresh setup — all free, all "
-    "linked down below, ranked from good to absolutely essential. Let's count them down.",
+    "Welcome back to the channel! Today we've got {n} of the best {noun} in {year}, "
+    "ranked from good all the way up to essential — {teaser}. Every one of them is "
+    "free, and every author is credited down in the description. Let's begin.",
+    "Hello friends, and welcome back! This time {teaser}, all part of a ranked run "
+    "through {n} of the best {noun} you can install in {year}. Everything here is free "
+    "and linked below, so go endorse the authors while you watch. Let's get into it.",
+    "Welcome back! If your Skyrim is feeling a little stale, this list is the fix: "
+    "{n} of the best {noun} in {year}, ranked from good to absolutely essential. "
+    "{teaser}. All free, all credited below. Let's begin the first showcase.",
 ]
 _HOOKS_PART = [
-    "We're back — and this time it's part {part}. You loved the last round so much that "
-    "I went digging for {n} more of the very best {noun} Skyrim has to offer, and honestly, "
-    "some of these might be even better than before. Every one is free, every author is "
-    "linked below, and the number one pick is a must-have. Let's get into it.",
-    "You asked for more, so here's part {part}: {n} more of the best {noun} I could find, "
-    "with zero repeats from the earlier videos. All free, all credited below. Let's dive "
-    "straight back in.",
+    "Welcome back — and this time it's part {part}. We've got {n} more of the very best "
+    "{noun} Skyrim has to offer, with zero repeats from the earlier videos: {teaser}. "
+    "All free, all credited below. Let's begin.",
+    "Hello again, friends! Part {part} is here with {n} more of the best {noun} I could "
+    "find, and {teaser}. Everything is free and linked in the description. Let's get "
+    "straight back into it.",
 ]
 _INTROS = [
-    "Quick note before we start: everything here is completely free on Nexus Mods, and "
-    "every creator is credited in the description, so please go endorse their work — it's "
-    "the least we can do for this much free content. We're counting down from number "
-    "{nord} all the way to number one, so settle in. Here we go.",
-    "Before we dive in — every mod is free, every author is linked below, and a quick "
-    "endorsement on Nexus genuinely helps these creators keep going. Alright, counting "
-    "down from {nord} to one. Let's do it.",
-    "One thing up front: I'm ranking these from number {nord} down to my personal number "
-    "one, and reasonable people will absolutely disagree on the order — let me know yours "
-    "in the comments. Everything's free and linked below. Let's get started.",
+    "Quick note before we start: everything here is completely free on Nexus, and every "
+    "creator is credited in the description, so please go endorse their work — it's the "
+    "least we can do for this much free content. We're counting down from number {nord} "
+    "to number one. First off, let's take a look.",
+    "One thing up front: a quick endorsement on Nexus genuinely helps these authors keep "
+    "going, and they're all linked below. We're going from number {nord} down to number "
+    "one, so settle in. Here we go.",
+    "Before we dive in — I'm ranking these from number {nord} down to my personal number "
+    "one, and you'll absolutely disagree with some of the order, so tell me yours in the "
+    "comments. Everything's free and linked below. Now, let's begin.",
 ]
 _OUTROS = [
-    "And that's the list — {n} of the best {noun} in {year}. Every mod is linked below "
-    "with full credit to the brilliant authors who made them, so go show them some love. "
-    "If this helped you out, subscribe, because I put out two new Skyrim videos every "
-    "single week. Thanks so much for watching, and I'll see you in the next one.",
-    "So there you go — {n} {noun} that'll seriously transform your game, all free and all "
-    "linked below. Drop a comment with the one you'd have put at number one, hit subscribe "
-    "for two new Skyrim videos a week, and I'll catch you in the next one.",
-    "That wraps up {n} of my favourite {noun} right now. Go endorse the authors down in "
-    "the description — they've earned it — and if you want more lists like this, subscribe; "
-    "there's a new one every few days. Thanks for watching, see you next time.",
+    "And that's the list. Thanks so much for watching — I hope you found a few new {noun} "
+    "for your load order. Every mod is linked below with full credit to the authors who "
+    "made them, so go show them some love. Leave a like if you enjoyed this, and "
+    "subscribe for more. See you in the next one!",
+    "That's all {n} of them. I hope you came away with something new for your next "
+    "playthrough — I certainly did. Everything is linked and credited below, so go endorse "
+    "the authors; they've earned it. Let me know your own number one in the comments. "
+    "Thanks for watching, see you next time!",
+    "That wraps up {n} of the best {noun} in {year}. Tell me what you thought of these "
+    "in the comment section, and do like and subscribe if you want more lists like this. "
+    "All the authors are credited down below. Thank you so much for watching — see you "
+    "in the next one!",
 ]
 
 
@@ -498,10 +515,13 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     short = noun.replace(" mods", "").title()
     title_options = _unique_titles(category, short, n, year, part, rng)
     title = title_options[0]
+    teaser = _teaser(mods, rng)
     if part and part > 1:
-        hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year)
+        hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year,
+                                              teaser=teaser)
     else:
-        hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year)
+        hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year,
+                                               teaser=teaser)
 
     intro = rng.choice(_INTROS).format(nord=nord)
     outro = rng.choice(_OUTROS).format(n=n, noun=noun, year=year)
