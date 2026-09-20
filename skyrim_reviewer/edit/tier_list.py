@@ -83,7 +83,9 @@ def render_scorecard(name: str, scorecard: dict[str, float], size: tuple[int, in
     star_size = round(H * 0.05)
     rows = list(scorecard.items()) or [("Score", 0.0)]
     y = int(H * 0.32)
-    row_h = int(H * 0.55 / max(len(rows), 1))
+    # Stop at 0.72: render_best_for owns the band below, and the two cards are
+    # composited over each other, so overrunning here collides with its text.
+    row_h = int(H * 0.40 / max(len(rows), 1))
     label_x = int(W * 0.10)
     star_x = int(W * 0.52)
     for label, score in rows:
@@ -107,10 +109,10 @@ def render_best_for(text: str, size: tuple[int, int], out: Path,
     acc = _hex(accent)
     kf = _font(round(H * 0.06))
     kb = d.textbbox((0, 0), "BEST FOR", font=kf)
-    d.text(((W - (kb[2] - kb[0])) // 2, int(H * 0.40)), "BEST FOR", fill=acc, font=kf)
+    d.text(((W - (kb[2] - kb[0])) // 2, int(H * 0.755)), "BEST FOR", fill=acc, font=kf)
     bf = _font(round(H * 0.05), bold=False)
     lines = textwrap.fill(text, width=34).split("\n")[:3]
-    y = int(H * 0.52)
+    y = int(H * 0.835)
     for ln in lines:
         lb = d.textbbox((0, 0), ln, font=bf)
         d.text(((W - (lb[2] - lb[0])) // 2, y), ln, fill="white", font=bf,
@@ -121,53 +123,96 @@ def render_best_for(text: str, size: tuple[int, int], out: Path,
     return str(out)
 
 
-def render_tier_board(placed: list[tuple[str, str]], tiers: list[str],
+def _thumb(path: str | None, s: int) -> Image.Image:
+    """A square cover-cropped thumbnail, or a neutral plate when the image is missing."""
+    if path and Path(path).exists():
+        try:
+            im = Image.open(path).convert("RGB")
+            w, h = im.size
+            side = min(w, h)
+            im = im.crop(((w - side) // 2, (h - side) // 2,
+                          (w + side) // 2, (h + side) // 2))
+            return im.resize((s, s), Image.LANCZOS)
+        except Exception:
+            pass
+    return Image.new("RGB", (s, s), (38, 41, 50))
+
+
+def _fit_thumb_size(counts: list[int], avail_w: int, avail_h: int,
+                    label_w: int, gap: int, n_tiers: int) -> tuple[int, int]:
+    """Largest square thumb size that lets EVERY placed mod fit on one screen, with
+    the number of columns it implies. Tiers wrap onto extra lines as they fill, and
+    each line costs height, so this walks sizes down until the whole board fits."""
+    for s in range(min(avail_h // max(n_tiers, 1), 260), 15, -2):
+        cols = max(1, (avail_w - label_w - gap) // (s + gap))
+        total = 0
+        for n in counts:
+            lines = max(1, -(-n // cols))          # ceil
+            total += lines * (s + gap) + gap
+        if total <= avail_h:
+            return s, cols
+    s = 16
+    return s, max(1, (avail_w - label_w - gap) // (s + gap))
+
+
+def render_tier_board(placed: list[tuple[str, str, str | None]], tiers: list[str],
                        size: tuple[int, int], out: Path,
                        accent: str = "#d4af37", highlight: str | None = None) -> str:
-    """The cumulative S/A/B/C board (RGBA) — one row per tier, a small chip per mod
-    placed so far (in reveal order). `placed` is [(mod_name, tier), ...]. The most
-    recently placed mod (`highlight`, matched by name) gets an accent outline."""
+    """The cumulative S..F board (RGBA), drawn FULL SCREEN with a thumbnail per mod.
+
+    `placed` is [(mod_name, tier, image_path), ...] in reveal order; the most recent
+    entry (`highlight`, matched by name) gets an accent outline. Thumbnails are sized
+    to fit every placed mod on screen at once — a hundred-mod board just packs smaller
+    rather than dropping the overflow, which is what the old text-chip strip did.
+    """
     W, H = size
-    board_w = int(W * 0.62)
-    row_h = int(H * 0.075)
-    board_h = row_h * len(tiers)
-    board_x = int(W * 0.03)
-    board_y = H - board_h - int(H * 0.05)
-
-    img = Image.new("RGBA", size, (0, 0, 0, 0))
+    img = Image.new("RGBA", size, (8, 10, 15, 244))
     d = ImageDraw.Draw(img)
-    label_f = _font(round(row_h * 0.5))
-    chip_f = _font(round(row_h * 0.32))
 
-    by_tier: dict[str, list[str]] = {t: [] for t in tiers}
-    for name, tier in placed:
-        by_tier.setdefault(tier, []).append(name)
+    pad = int(H * 0.035)
+    title_f = _font(round(H * 0.055))
+    title = "THE TIER LIST"
+    tb = d.textbbox((0, 0), title, font=title_f)
+    d.text(((W - (tb[2] - tb[0])) // 2 - tb[0], pad - tb[1]), title,
+           fill=_hex(accent), font=title_f, stroke_width=3, stroke_fill=(0, 0, 0))
 
-    for i, tier in enumerate(tiers):
-        y0 = board_y + i * row_h
+    top = pad + (tb[3] - tb[1]) + int(H * 0.025)
+    avail_w, avail_h = W - pad * 2, H - top - pad
+    gap = max(3, int(H * 0.006))
+    label_w = int(W * 0.055)
+
+    by_tier: dict[str, list[tuple[str, str | None]]] = {t: [] for t in tiers}
+    for name, tier, image in placed:
+        by_tier.setdefault(tier, []).append((name, image))
+
+    counts = [len(by_tier.get(t, [])) for t in tiers]
+    s, cols = _fit_thumb_size(counts, avail_w, avail_h, label_w, gap, len(tiers))
+    label_f = _font(max(14, round(s * 0.62)))
+
+    # Rows are usually width-bound (a full tier fits on one line long before it fills
+    # the height), so centre the block instead of letting it hang from the title.
+    row_heights = [max(1, -(-len(by_tier.get(t, [])) // cols)) * (s + gap) + gap
+                   for t in tiers]
+    y = top + max(0, (avail_h - sum(row_heights)) // 2)
+    for tier, row_h in zip(tiers, row_heights):
+        items = by_tier.get(tier, [])
         color = TIER_COLORS.get(tier, _DEFAULT_TIER_COLOR)
-        label_w = row_h
-        d.rectangle([board_x, y0, board_x + label_w, y0 + row_h - 3], fill=color + (235,))
+        d.rectangle([pad, y, pad + label_w, y + row_h - gap], fill=color + (240,))
         lb = d.textbbox((0, 0), tier, font=label_f)
-        d.text((board_x + (label_w - (lb[2] - lb[0])) / 2 - lb[0],
-                y0 + (row_h - (lb[3] - lb[1])) / 2 - lb[1]), tier,
+        d.text((pad + (label_w - (lb[2] - lb[0])) / 2 - lb[0],
+                y + (row_h - gap - (lb[3] - lb[1])) / 2 - lb[1]), tier,
                fill=(10, 12, 16, 255), font=label_f)
-        d.rectangle([board_x + label_w, y0, board_x + board_w, y0 + row_h - 3],
-                    fill=(18, 20, 26, 220))
+        d.rectangle([pad + label_w + gap, y, W - pad, y + row_h - gap],
+                    fill=(18, 20, 26, 230))
 
-        cx = board_x + label_w + 12
-        for name in by_tier.get(tier, []):
-            short = (name[:16] + "…") if len(name) > 17 else name
-            cb = d.textbbox((0, 0), short, font=chip_f)
-            cw = (cb[2] - cb[0]) + 22
-            outline = _hex(accent) + (255,) if name == highlight else (90, 90, 98, 255)
-            d.rounded_rectangle([cx, y0 + 8, cx + cw, y0 + row_h - 11], radius=8,
-                                fill=(35, 37, 46, 235), outline=outline, width=2)
-            d.text((cx + 11 - cb[0], y0 + (row_h - 8 - (cb[3] - cb[1])) / 2 - cb[1]),
-                   short, fill="white", font=chip_f)
-            cx += cw + 8
-            if cx > board_x + board_w - 20:
-                break
+        for k, (name, image) in enumerate(items):
+            cx = pad + label_w + gap * 2 + (k % cols) * (s + gap)
+            cy = y + gap + (k // cols) * (s + gap)
+            img.paste(_thumb(image, s), (cx, cy))
+            if name == highlight:
+                d.rectangle([cx - 2, cy - 2, cx + s + 1, cy + s + 1],
+                            outline=_hex(accent) + (255,), width=max(2, s // 22))
+        y += row_h
 
     out.parent.mkdir(parents=True, exist_ok=True)
     img.save(out)

@@ -420,13 +420,13 @@ def _end_card(hero: str | None, card_png: str, dur: float, size, fps: int, out: 
 
 
 def _verdict_clip(mod_name: str, scorecard: dict, best_for: str,
-                  placed_so_far: list[tuple[str, str]], tiers: list[str],
+                  placed_so_far: list[tuple[str, str, str | None]], tiers: list[str],
                   hero: str | None, dur: float, size, fps: int, accent: str,
                   seg_dir: Path, idx: int) -> Path:
-    """ranked_tier_list only: a short append clip after a mod's segment — the
-    scorecard + best-for card over a slow-zoomed, dimmed hero shot (same background
-    treatment as _end_card), with the cumulative tier board pinned bottom-left so the
-    board visibly fills in as the video progresses."""
+    """ranked_tier_list only: a short append clip after a mod's segment, in two beats
+    over a slow-zoomed, dimmed hero shot — first the scorecard + best-for card, then
+    the cumulative tier board FULL SCREEN, so the board is readable with a hundred
+    mods on it instead of being squeezed into a corner strip."""
     W, H = size
     card = seg_dir / f"verdict_card_{idx:02d}.png"
     render_scorecard(mod_name, scorecard, size, card, accent=accent)
@@ -454,10 +454,15 @@ def _verdict_clip(mod_name: str, scorecard: dict, best_for: str,
         ci = 1
     args += ["-loop", "1", "-i", str(card), "-loop", "1", "-i", str(bf_png),
              "-loop", "1", "-i", str(board_png)]
+    # Beat 1 = scorecard + best-for, beat 2 = the full-screen board. They swap rather
+    # than stack, so the board gets the whole frame without covering the scorecard.
+    split = dur * 0.55
     chain = (base +
-             f"[{ci}:v]format=rgba[cd];[bg][cd]overlay=0:0[bg2];"
-             f"[{ci+1}:v]format=rgba[bf];[bg2][bf]overlay=0:0[bg3];"
-             f"[{ci+2}:v]format=rgba[tb];[bg3][tb]overlay=0:0,"
+             f"[{ci}:v]format=rgba[cd];[bg][cd]overlay=0:0:enable='lt(t,{split:.3f})'[bg2];"
+             f"[{ci+1}:v]format=rgba[bf];"
+             f"[bg2][bf]overlay=0:0:enable='lt(t,{split:.3f})'[bg3];"
+             f"[{ci+2}:v]format=rgba[tb];"
+             f"[bg3][tb]overlay=0:0:enable='gte(t,{split:.3f})',"
              f"fade=t=in:st=0:d=0.35,format=yuv420p[v]")
     out = seg_dir / f"seg_verdict_{idx:02d}.mp4"
     args += ["-filter_complex", chain, "-map", "[v]", "-t", f"{dur:.3f}",
@@ -579,7 +584,7 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     tier_cfg = channel_config().get("tier_list", {})
     tiers = tier_cfg.get("tiers", ["S", "A", "B", "C"])
     verdict_seconds = float(tier_cfg.get("verdict_seconds", 5))
-    placed_so_far: list[tuple[str, str]] = []
+    placed_so_far: list[tuple[str, str, str | None]] = []
     extra_gaps: dict[str, float] = {}          # segment_id -> seconds spliced in after it
 
     # Cinematic intro trailer footage (cached).
@@ -683,8 +688,8 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
         # ranked_tier_list: splice a short verdict card (scorecard + best-for + the
         # cumulative tier board) right after this mod's segment.
         if is_tier_list and mod and getattr(seg, "tier", None):
-            placed_so_far.append((mod.name, seg.tier))
             hero = images[0] if images else None
+            placed_so_far.append((mod.name, seg.tier, hero))
             vclip = _verdict_clip(mod.name, seg.scorecard, seg.best_for, placed_so_far,
                                   tiers, hero, verdict_seconds, size, fps, accent,
                                   seg_dir, i)
