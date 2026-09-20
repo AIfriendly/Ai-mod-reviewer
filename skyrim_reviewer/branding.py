@@ -168,16 +168,21 @@ def pinned_comment(project) -> str:
     return "\n".join(lines)
 
 
-def mod_list_page(project) -> str:
-    """A standalone markdown page listing every featured mod, linked and credited.
+def mod_list_page(project, fmt: str = "markdown") -> str:
+    """A standalone page listing every featured mod, linked and credited.
 
     YouTube's 5000-character description can't hold a hundred links, so the full
     list lives as its own page and the description points at it. Grouped by tier
     for ranked_tier_list videos, otherwise in countdown order.
+
+    fmt="markdown" renders tables (GitHub, or any markdown host); fmt="text" is a
+    flat layout for hosts that don't render markdown — Google Docs converts plain
+    text verbatim, so a table there arrives as raw pipes.
     """
+    plain = fmt == "text"
     script = project.script
     mods = {m.mod_id: m for m in project.mods if getattr(m, "page_url", "")}
-    lines = [f"# {script.title}", ""]
+    lines = [script.title if plain else f"# {script.title}", ""]
     if getattr(script, "description", ""):
         lines += [script.description.split("Every mod is linked")[0].strip(), ""]
     lines += ["Every mod below is free on Nexus Mods. Full credit to the authors — "
@@ -191,15 +196,19 @@ def mod_list_page(project) -> str:
         if not mod:
             return ""
         author = getattr(mod, "uploaded_by", "") or getattr(mod, "author", "") or "Unknown"
+        if plain:
+            # Bare URL on its own line: Docs auto-links it, markdown syntax doesn't.
+            return f"{rank}. {mod.name} — by {author}\n   {mod.page_url}\n"
         return f"| {rank} | [{mod.name}]({mod.page_url}) | {author} |"
 
-    header = ["| # | Mod | Author |", "|---:|---|---|"]
+    header = [] if plain else ["| # | Mod | Author |", "|---:|---|---|"]
     tiers = [t for t in dict.fromkeys(
         s.tier for s in mod_segs if getattr(s, "tier", None))]
     if tiers:
         # Best tier first, matching how the board reads on screen.
         for tier in tiers[::-1]:
-            lines += [f"## {tier} Tier", ""] + header
+            lines += ([f"{tier} TIER", ""] if plain else [f"## {tier} Tier", ""])
+            lines += header
             for idx, seg in enumerate(mod_segs):
                 if getattr(seg, "tier", None) == tier:
                     lines.append(row(seg, total - idx))
