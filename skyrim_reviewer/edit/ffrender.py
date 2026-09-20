@@ -847,8 +847,10 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     (out_dir / f"{project.slug}.description.txt").write_text(desc, encoding="utf-8")
     # SEO sidecars: keyword-researched tags + a ready-to-paste pinned comment.
     try:
-        from ..branding import seo_tags, pinned_comment
+        from ..branding import mod_list_page, seo_tags, pinned_comment
         cid = getattr(project, "category_id", "") or ""
+        (out_dir / f"{project.slug}.modlist.md").write_text(
+            mod_list_page(project), encoding="utf-8")
         (out_dir / f"{project.slug}.tags.txt").write_text(
             ", ".join(seo_tags(cid, project)), encoding="utf-8")
         (out_dir / f"{project.slug}.pinned_comment.txt").write_text(

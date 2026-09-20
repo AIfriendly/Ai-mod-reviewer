@@ -148,6 +148,11 @@ branding:
   secondary_color: "#1b2a3a"
   font_family: "Cinzel"
   watermark: "@ModVault"
+  # Public base URL of the per-video mod-list pages (output/<slug>.modlist.md,
+  # published separately). A hundred mod links don't fit YouTube's 5000-char
+  # description, so it links here instead. Leave empty to fall back to pointing
+  # at the pinned comment.
+  mod_list_base_url: ""
 
 # Title templates (research-backed). {n}, {category}, {year} are filled in.
 # Channel-style titles (modeled on Heavy Burns / Syn Gaming / SoftGaming): a power

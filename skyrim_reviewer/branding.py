@@ -168,6 +168,61 @@ def pinned_comment(project) -> str:
     return "\n".join(lines)
 
 
+def mod_list_page(project) -> str:
+    """A standalone markdown page listing every featured mod, linked and credited.
+
+    YouTube's 5000-character description can't hold a hundred links, so the full
+    list lives as its own page and the description points at it. Grouped by tier
+    for ranked_tier_list videos, otherwise in countdown order.
+    """
+    script = project.script
+    mods = {m.mod_id: m for m in project.mods if getattr(m, "page_url", "")}
+    lines = [f"# {script.title}", ""]
+    if getattr(script, "description", ""):
+        lines += [script.description.split("Every mod is linked")[0].strip(), ""]
+    lines += ["Every mod below is free on Nexus Mods. Full credit to the authors — "
+              "please endorse their work.", ""]
+
+    mod_segs = [s for s in script.segments if getattr(s, "kind", "") == "mod"]
+    total = len(mod_segs)
+
+    def row(seg, rank) -> str:
+        mod = mods.get(seg.mod_id)
+        if not mod:
+            return ""
+        author = getattr(mod, "uploaded_by", "") or getattr(mod, "author", "") or "Unknown"
+        return f"| {rank} | [{mod.name}]({mod.page_url}) | {author} |"
+
+    header = ["| # | Mod | Author |", "|---:|---|---|"]
+    tiers = [t for t in dict.fromkeys(
+        s.tier for s in mod_segs if getattr(s, "tier", None))]
+    if tiers:
+        # Best tier first, matching how the board reads on screen.
+        for tier in tiers[::-1]:
+            lines += [f"## {tier} Tier", ""] + header
+            for idx, seg in enumerate(mod_segs):
+                if getattr(seg, "tier", None) == tier:
+                    lines.append(row(seg, total - idx))
+            lines.append("")
+    else:
+        lines += header
+        for idx, seg in enumerate(mod_segs):
+            lines.append(row(seg, total - idx))
+        lines.append("")
+
+    return "\n".join(ln for ln in lines if ln is not None).strip() + "\n"
+
+
+def mod_list_url(project) -> str:
+    """Public URL of this video's mod-list page, or "" when none is configured."""
+    try:
+        from .config import channel_config
+        base = (channel_config().get("branding", {}) or {}).get("mod_list_base_url", "")
+    except Exception:
+        base = ""
+    return f"{base.rstrip('/')}/{project.slug}.md" if base else ""
+
+
 def make_description(project, music_credit: str | None = None,
                      watermark: str = "", next_topic: str = "",
                      limit: int = 5000) -> str:
@@ -223,7 +278,9 @@ def _compose_description(project, music_credit: str | None, watermark: str,
             lines.append(f"• {m.name} by {author} — {m.page_url}")
         lines.append("")
     elif mods:
-        lines += ["🔧 Every mod credited and linked in the pinned comment.", ""]
+        url = mod_list_url(project)
+        lines += ([f"🔧 Every mod, linked and credited: {url}", ""] if url else
+                  ["🔧 Every mod credited and linked in the pinned comment.", ""])
 
     cta = "▶ Subscribe for new Skyrim mod videos twice a week."
     if next_topic:
