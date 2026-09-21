@@ -42,6 +42,57 @@ _LEADS = ["Number {o}:", "At number {o}:", "Coming in at number {o}:",
           "Next up, number {o}:", "Number {o} on the list:", "Then at number {o}:",
           "Sliding in at number {o}:", "Kicking off number {o}:"]
 
+# Topic bridges. The reference channel rarely announces an entry cold — it links the
+# previous mod's subject to the next one ("Talking of Skyrim wildlife, especially
+# foxes, next we have...", "From ghosts to grasslands, now let's add..."). Over a
+# hundred entries that connective tissue is what keeps a list from reading as a list.
+# A bridge is only emitted when a topic is actually detected in BOTH mods, so it can
+# never assert a link that isn't there.
+_TOPICS = {
+    "combat": r"\b(combat|fight|attack|block|parry|stagger|weapon|damage|duel)\w*",
+    "followers": r"\b(follower|companion|npc|voice|dialogue|marriage|spouse)\w*",
+    "the interface": r"\b(ui|hud|menu|inventory|interface|icon|font)\w*",
+    "animation": r"\b(animation|animated|idle|pose|movement|locomotion)\w*",
+    "dungeons": r"\b(dungeon|ruin|crypt|barrow|draugr|cave|tomb)\w*",
+    "the weather": r"\b(weather|storm|rain|snow|fog|climate|season)\w*",
+    "towns and cities": r"\b(town|city|village|hold|whiterun|riften|solitude|markarth)\w*",
+    "magic": r"\b(spell|magic|magicka|enchant|conjur|destruction|illusion)\w*",
+    "crafting": r"\b(craft|smith|forge|temper|alchemy|potion|cook)\w*",
+    "survival": r"\b(survival|hunger|thirst|needs|camping|cold|warmth)\w*",
+    "stealth": r"\b(stealth|sneak|thief|thieves|assassin|detect)\w*",
+    "creatures": r"\b(creature|beast|dragon|wolf|bear|animal|wildlife|monster)\w*",
+    "quests": r"\b(quest|adventure|story|questline|radiant)\w*",
+    "the world itself": r"\b(landscape|grass|tree|flora|terrain|worldspace|map)\w*",
+}
+_TOPICS = {k: re.compile(v, re.I) for k, v in _TOPICS.items()}
+
+_BRIDGE_SAME = ["Speaking of {t}, ", "Staying with {t}, ", "Sticking with {t}, ",
+                "Talking of {t}, "]
+_BRIDGE_DIFF = ["From {p} to {t}, ", "That's {p} handled — now for {t}. ",
+                "We go from {p} to {t} for this one. "]
+
+
+def _topic_of(mod: Mod) -> str:
+    """The first topic whose pattern matches this mod's name or summary, else ""."""
+    hay = f"{getattr(mod, 'name', '')} {getattr(mod, 'summary', '')}"
+    for topic, pat in _TOPICS.items():
+        if pat.search(hay):
+            return topic
+    return ""
+
+
+def _bridge(prev: Mod | None, cur: Mod, rng: random.Random) -> str:
+    """A connective clause linking the previous entry to this one, or "" when no
+    topic is detectable in both — never invent a relationship that isn't there."""
+    if prev is None:
+        return ""
+    p, t = _topic_of(prev), _topic_of(cur)
+    if not p or not t:
+        return ""
+    if p == t:
+        return rng.choice(_BRIDGE_SAME).format(t=t)
+    return rng.choice(_BRIDGE_DIFF).format(p=p, t=t)
+
 # Category-specific flavour: hook line, what the video is "about", and a pool of
 # value sentences rotated through the entries to add variety and pad to length.
 _FLAVOUR = {
@@ -266,6 +317,17 @@ _HOOKS_FIRST = [
     "Skyrim is fourteen years old and somehow the {noun} keep getting better. "
     "{teaser}. That's part of {n} of the best you can install in {year}, ranked "
     "from good all the way to essential, and the best one is last. Let's begin.",
+    # Rhetorical question straight to the viewer, answered by the host — one of the
+    # reference openings does exactly this before naming the first mod.
+    "Are you looking for something new to put in your load order? So am I. So here "
+    "are {n} of the best {noun} released in {year}, ranked from good to essential — "
+    "{teaser}. All free, all credited below. Let's check out the first one.",
+    # Anchored to the moment rather than the game: several of the reference openings
+    # start on "a new year is upon us" / "yet another month is drawing to a close".
+    "Another year of Skyrim modding is behind us, and honestly it was a good one. "
+    "{teaser}. So grab a warm drink and settle in, because we're going through {n} "
+    "of the best {noun} of {year}, ranked from good to essential, favourite last. "
+    "Let's dive in.",
 ]
 _HOOKS_PART = [
     "Welcome back — and this time it's part {part}. We've got {n} more of the very best "
@@ -288,6 +350,14 @@ _INTROS = [
     "comments. Everything's free and linked below. Now, let's begin.",
 ]
 _OUTROS = [
+    # The reference outros open on a synthesis beat — what the list adds up to once
+    # it's all installed — before any thanks. Then a question to the comments, one
+    # like/subscribe ask, and a short sign-off. (Their actual outros are mostly
+    # Patreon roll-calls and a recurring host tag; none of that is ours to take.)
+    "Put all of these together and it stops being a list of mods — it's a different "
+    "Skyrim. Thanks so much for watching. Before you go, I want to know: which of these "
+    "is going into your load order first? Tell me in the comments. Everything is linked "
+    "below with full credit to the authors, so go endorse them. See you in the next one!",
     "And that's the list. Thanks so much for watching — I hope you found a few new {noun} "
     "for your load order. Every mod is linked below with full credit to the authors who "
     "made them, so go show them some love. Leave a like if you enjoyed this, and "
@@ -475,7 +545,7 @@ def _clean_author(name: str) -> str:
 
 
 def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
-                   category: str, rng: random.Random) -> str:
+                   category: str, rng: random.Random, prev: Mod | None = None) -> str:
     """Compose one entry: rank lead-in + name/author + real summary + an editorial
     'who it's for' take + a data-driven proof line. The mix and phrasing are drawn from
     a per-video RNG so segments vary within a video and across videos (anti-template)."""
@@ -518,6 +588,14 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
 
     lead = _LEADS[(idx + rng.randint(0, len(_LEADS) - 1)) % len(_LEADS)].format(
         o=_ORD.get(rank, str(rank)))
+    # Bridge roughly every third entry: the reference channel uses these to break up a
+    # run of cold announcements, not on every single one, which would be its own tic.
+    bridge = _bridge(prev, mod, rng) if idx % 3 == 1 else ""
+    if bridge:
+        # Only a bridge that hands off mid-sentence ("Speaking of combat, ") lowercases
+        # the lead; one that closes its own sentence must leave it capitalised.
+        joins_mid = bridge.rstrip().endswith(",")
+        lead = bridge + (lead[0].lower() + lead[1:] if joins_mid else lead)
     rng.shuffle(extras)              # vary ordering so the structure isn't identical
     body = f"{lead} {name} by {author}. " + (desc + " " if desc else "") + " ".join(extras)
     return _WS.sub(" ", _pad(body, _MIN_WORDS_PER_MOD)).strip()
@@ -567,7 +645,8 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
         rank = n - idx                       # countdown: first shown is number n
         segments.append({
             "kind": "mod", "ref": idx + 1,
-            "narration": _mod_narration(mod, rank, idx, fl, n, category, rng),
+            "narration": _mod_narration(mod, rank, idx, fl, n, category, rng,
+                                        prev=mods[idx - 1] if idx else None),
         })
         gal = galleries.get(mod.mod_id) or {}
         if isinstance(gal, list):                 # back-compat: bare image list
