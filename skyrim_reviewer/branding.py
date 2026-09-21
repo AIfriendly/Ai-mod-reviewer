@@ -262,11 +262,12 @@ def _compose_description(project, music_credit: str | None, watermark: str,
     # Keep only the lead paragraph of any existing description — structured credits /
     # timestamps are appended below, so drop them here to avoid duplication.
     desc = getattr(script, "description", "") or ""
-    low = desc.lower()
-    cut = min([i for i in (low.find("mods featured"), low.find("full credit"),
-                           low.find("timestamps"), low.find("🔧"), low.find("⏱"))
-               if i != -1] or [len(desc)])
-    desc = desc[:cut].strip()
+    # Anchor the section markers to a line start: "full credit" and "timestamps" also
+    # occur in ordinary prose ("...linked below with full credit to its author"), and
+    # matching those mid-sentence truncates the lead paragraph.
+    m = re.search(r"^\s*(mods featured|full credit|timestamps|🔧|⏱)",
+                  desc, re.I | re.M)
+    desc = desc[:m.start() if m else len(desc)].strip()
     if desc:
         lines += [desc, ""]
 
