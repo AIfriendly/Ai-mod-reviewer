@@ -45,6 +45,19 @@ _LEADS = ["Number {o}:", "At number {o}:", "Coming in at number {o}:",
 # Category-specific flavour: hook line, what the video is "about", and a pool of
 # value sentences rotated through the entries to add variety and pad to length.
 _FLAVOUR = {
+    "alchemy": {
+        "title": "Best Skyrim Alchemy & Enchanting Mods",
+        "noun": "alchemy and enchanting mods",
+        "subject": "brewing and enchanting",
+        "values": [
+            "Vanilla alchemy is mostly menu-scrolling, and this is the kind of mod that turns it into something you actually engage with.",
+            "It respects the vanilla economy instead of handing you overpowered potions on a plate.",
+            "If you've ever ignored the alchemy table for an entire playthrough, this is the mod that changes that.",
+            "It's lightweight and lore-friendly, which matters a lot in a school this easy to unbalance.",
+            "Enchanting is one of the easiest skills to break, and this keeps it interesting without trivialising the game.",
+            "It stacks cleanly with the other mods here, so you can build a full crafting overhaul out of this list.",
+        ],
+    },
     "magic": {
         "title": "Best Skyrim Magic & Spell Mods",
         "noun": "magic mods",
