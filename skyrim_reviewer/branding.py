@@ -243,11 +243,29 @@ def make_description(project, music_credit: str | None = None,
     doesn't fit sheds detail in priority order instead: first the per-chapter mod
     links (the pinned comment carries the full credited list), then the separate
     credits block. Complete timestamps always survive — they're what the chapter UI
-    needs, and an incomplete list breaks navigation for every mod below the cut."""
-    for link_chapters, credit_block in ((True, True), (True, False),
-                                        (False, True), (False, False)):
+    needs, and an incomplete list breaks navigation for every mod below the cut. Past
+    ~90 mods even bare chapter lines overflow, so the last rungs clip long mod names
+    in the chapter labels rather than shedding chapters.
+
+    The music block is a CC BY attribution and the hashtags sit after it, so the
+    final fallback trims the chapter list — never the tail, which a blind
+    `out[:limit]` would eat first."""
+    ladder: list[tuple[bool, bool, int | None]] = [
+        (True, True, None), (True, False, None),
+        (False, True, None), (False, False, None),
+        (False, False, 64), (False, False, 48), (False, False, 36),
+    ]
+    for link_chapters, credit_block, max_label in ladder:
         out = _compose_description(project, music_credit, watermark, next_topic,
-                                   link_chapters, credit_block)
+                                   link_chapters, credit_block, max_label)
+        if len(out) <= limit:
+            return out
+    # Still too long: shed chapters from the end, keeping the credited tail intact.
+    n = len(getattr(project.script, "chapters", None) or [])
+    while n > 0:
+        n -= 5
+        out = _compose_description(project, music_credit, watermark, next_topic,
+                                   False, False, 36, max_chapters=max(n, 0))
         if len(out) <= limit:
             return out
     return out[:limit].rsplit("\n", 1)[0]
@@ -255,7 +273,8 @@ def make_description(project, music_credit: str | None = None,
 
 def _compose_description(project, music_credit: str | None, watermark: str,
                          next_topic: str, link_chapters: bool,
-                         credit_block: bool) -> str:
+                         credit_block: bool, max_label: int | None = None,
+                         max_chapters: int | None = None) -> str:
     from .edit.captions import CHAPTER_LINK_SEP
     script = project.script
     lines: list[str] = [script.title, ""]
@@ -275,6 +294,11 @@ def _compose_description(project, music_credit: str | None, watermark: str,
     if chapters:
         if not link_chapters:
             chapters = [c.split(CHAPTER_LINK_SEP)[0] for c in chapters]
+        if max_label:
+            chapters = [c if len(c) <= max_label else c[:max_label - 1].rstrip() + "…"
+                        for c in chapters]
+        if max_chapters is not None:
+            chapters = chapters[:max_chapters]
         lines.append("⏱ Timestamps")
         lines += chapters
         lines.append("")
