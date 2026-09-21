@@ -154,6 +154,18 @@ branding:
   # at the pinned comment.
   mod_list_base_url: ""
 
+  # Per-video mod-list pages, for hosts whose URLs carry an opaque id and so can't
+  # be derived from the slug (Notion, Google Docs). Checked before
+  # mod_list_base_url. A Notion page only resolves for viewers once it has been
+  # published to web — the API cannot do that, so each page needs one manual
+  # Share -> Publish to web.
+  mod_list_urls:
+    2026-09-19-adventures: ""
+    2026-09-19-quests: ""
+    2026-09-19-magic: ""
+    2026-09-20-weapons: ""
+    2026-09-21-alchemy: ""
+
 # Title templates (research-backed). {n}, {category}, {year} are filled in.
 # Channel-style titles (modeled on Heavy Burns / Syn Gaming / SoftGaming): a power
 # word, a number, a year, and curiosity. Keep under ~70 chars so they don't truncate.

@@ -223,12 +223,22 @@ def mod_list_page(project, fmt: str = "markdown") -> str:
 
 
 def mod_list_url(project) -> str:
-    """Public URL of this video's mod-list page, or "" when none is configured."""
+    """Public URL of this video's mod-list page, or "" when none is configured.
+
+    Two ways to configure it, checked in order: `branding.mod_list_urls`, an explicit
+    slug -> URL map, for hosts whose page URLs carry an opaque id and can't be derived
+    (Notion, Google Docs); and `branding.mod_list_base_url`, for hosts that serve
+    <base>/<slug>.md directly (a GitHub repo, static hosting).
+    """
     try:
         from .config import channel_config
-        base = (channel_config().get("branding", {}) or {}).get("mod_list_base_url", "")
+        branding = channel_config().get("branding", {}) or {}
     except Exception:
-        base = ""
+        return ""
+    explicit = (branding.get("mod_list_urls") or {}).get(project.slug, "")
+    if explicit:
+        return explicit
+    base = branding.get("mod_list_base_url", "")
     return f"{base.rstrip('/')}/{project.slug}.md" if base else ""
 
 
