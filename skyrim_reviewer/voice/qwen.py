@@ -27,6 +27,9 @@ from pathlib import Path
 from .base import TTSProvider
 from .kaggle_gpu import _concat_wavs, _split_for_tts
 
+_TOKENS_PER_SEC = 12.5      # 24 kHz codec, 1920-sample frames
+_MIN_WPS = 1.8              # slowest plausible delivery; Qwen averages ~3.6
+
 
 class QwenTTSProvider(TTSProvider):
     def __init__(self, cfg: dict):
@@ -74,9 +77,9 @@ class QwenTTSProvider(TTSProvider):
                 kwargs["ref_text"] = self.ref_text          # full ICL: text + audio
             else:
                 kwargs["x_vector_only_mode"] = True          # audio only, no transcript
-            wavs, sr = model.generate_voice_clone(**kwargs)
+            wav, sr = self._generate_bounded(model, kwargs, chunk)
             p = tmp_dir / f"{i:02d}.wav"
-            sf.write(str(p), wavs[0], sr)
+            sf.write(str(p), wav, sr)
             parts.append(p)
 
         wav_path = out_path.with_suffix(".wav")
@@ -88,3 +91,20 @@ class QwenTTSProvider(TTSProvider):
         if out_path.suffix == ".mp3" and wav_path.exists():
             from .base import wav_to_mp3
             wav_to_mp3(wav_path, out_path)
+
+    def _generate_bounded(self, model, kwargs: dict, text: str, attempts: int = 3):
+        """One chunk, with runaways rejected and resampled.
+
+        The model's default budget is max_new_tokens=8192 (~11 min of audio). A
+        sampled generation that misses its end-of-speech token babbles for the whole
+        budget, and one such chunk shipped inside a published video. Cap the budget
+        at a slow speaking rate and resample any chunk that runs into the cap.
+        """
+        ceiling = len(text.split()) / _MIN_WPS + 6.0
+        for _ in range(attempts):
+            wavs, sr = model.generate_voice_clone(
+                **kwargs, max_new_tokens=int(ceiling * _TOKENS_PER_SEC))
+            if len(wavs[0]) / sr < ceiling - 1.0:
+                return wavs[0], sr
+        raise RuntimeError(
+            f"Qwen TTS overran {ceiling:.0f}s on {attempts} attempts: {text[:60]!r}")
