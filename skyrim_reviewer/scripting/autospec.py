@@ -700,10 +700,35 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
     return _WS.sub(" ", _pad(body, _MIN_WORDS_PER_MOD)).strip()
 
 
+def _to_all_time(text: str, year: int) -> str:
+    """Rewrite a year-scoped opening into an all-time one.
+
+    The templates say things like "the best vampire mods in 2026" and "released in
+    2026". On a list that spans the whole of Skyrim modding those are false, and a
+    viewer notices immediately when the number one entry is eight years old.
+    """
+    y = str(year)
+    for a, b in ((f"in {y}", "of all time"), (f"of {y}", "of all time"),
+                 (f"by {y}", "by now"), (f"released in {y}", "ever released"),
+                 (f"install in {y}", "install today"),
+                 (f"you can play in {y}", "you can play")):
+        text = text.replace(a, b)
+    # A leftover bare year ("Another year of Skyrim modding…") would still date it.
+    text = re.sub(rf"\b{y}\b", "all time", text)
+    return re.sub(r"\ball time all time\b", "all time", text)
+
+
 def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
                flavour: dict | None = None,
-               galleries: dict[int, list[str]] | None = None) -> dict:
-    """Assemble a full script spec (hook/intro/countdown/outro) from ranked mods."""
+               galleries: dict[int, list[str]] | None = None,
+               all_time: bool = False) -> dict:
+    """Assemble a full script spec (hook/intro/countdown/outro) from ranked mods.
+
+    `all_time` is for a list that isn't scoped to a year ("best vampire mods of all
+    time"). Every hook and outro template interpolates the current year, so without
+    it an all-time episode opens by calling itself a {year} list, which is simply
+    wrong.
+    """
     galleries = galleries or {}
     fl = flavour or _FLAVOUR.get(category, {})
     title_base = fl.get("title", f"Best Skyrim {category.title()} Mods")
@@ -734,6 +759,9 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
 
     intro = rng.choice(_INTROS).format(nord=nord)
     outro = rng.choice(_OUTROS).format(n=n, noun=noun, year=year)
+
+    if all_time:
+        hook, outro = (_to_all_time(hook, year), _to_all_time(outro, year))
 
     segments = [
         {"kind": "hook", "narration": hook},
