@@ -110,6 +110,19 @@ _FLAVOUR = {
             "It stacks cleanly with the other mods here, so you can build a full crafting overhaul out of this list.",
         ],
     },
+    "vampire": {
+        "title": "Best Skyrim Vampire Mods",
+        "noun": "vampire mods",
+        "subject": "playing a vampire",
+        "values": [
+            "Vanilla vampirism is mostly a stack of penalties you want cured as fast as possible, and this is the kind of mod that makes it a build instead.",
+            "It treats being a vampire as a playstyle with its own rules, rather than a disease with a quest attached.",
+            "The feeding loop is the part vanilla never got right, and this is where that finally starts to click.",
+            "It fits alongside the bigger vampire overhauls instead of fighting them, which matters in a category this prone to conflicts.",
+            "If you've only ever experienced vampirism as the thing you cure in Morthal, this is the mod that changes your mind.",
+            "It leans into the predator fantasy without making you unkillable, which is a harder balance than it sounds.",
+        ],
+    },
     "magic": {
         "title": "Best Skyrim Magic & Spell Mods",
         "noun": "magic mods",
@@ -226,6 +239,11 @@ _GENERIC_VALUES: list[str] = []
 # "Who it's for" lines add a concrete, opinionated recommendation angle per entry —
 # the kind of editorial substance YouTube's inauthentic-content policy looks for.
 _WHO_FOR = {
+    "vampire": [
+        "If you want a vampire playthrough that's a build rather than a debuff, this is for you.",
+        "Anyone who plays the Dawnguard side and still wants the vampires to feel dangerous will get a lot out of this.",
+        "If your idea of a vampire run is stalking a hold at night rather than sprinting between shadows, this one's aimed at you.",
+    ],
     "magic": [
         "If you main a battlemage or you've always wanted a real spellsword fantasy, this is for you.",
         "Honestly, if you've only ever played a stealth archer, this is the mod that'll finally convert you to magic.",
@@ -327,6 +345,14 @@ _HOOKS_FIRST = [
     "{teaser}. So grab a warm drink and settle in, because we're going through {n} "
     "of the best {noun} of {year}, ranked from good to essential, favourite last. "
     "Let's dive in.",
+    # Single-subject shape. Their themed videos don't promise "find a mod", they
+    # promise a finished build — "I will be comparing them to each other, to help
+    # you build the perfect Whiterun that suits your personal needs" — which is a
+    # far stronger payoff when every entry is about one thing.
+    "There are more {noun} out there than anyone can reasonably sort through, so "
+    "today I'm going through {n} of them, ranked from good to essential. "
+    "{teaser}. By the end you'll know exactly which ones belong in your build and "
+    "which ones you can skip. Everything is free and credited below. Let's begin.",
 ]
 _HOOKS_PART = [
     "Welcome back — and this time it's part {part}. We've got {n} more of the very best "
@@ -520,7 +546,12 @@ _OFFTOPIC_SENT = re.compile(
     r"\b(dedicated to|in memory of|rest in peace|my (?:sister|brother|mother|father|"
     r"wife|husband|son|daughter|dog|cat|friend)|patreon|ko-?fi|paypal|donat|"
     r"discord|subscribe|please endorse|endorse if|leave a like|changelog|"
-    r"bug ?fix|hotfix|version \d|update \d|requires? )\b", re.I)
+    r"bug ?fix|hotfix|version \d|update \d)\b", re.I)
+# "requires ..." was in the list above, which threw away exactly the detail the
+# narration rules ask for — a named requirement ("requires SKSE and Address
+# Library") is a concrete specific, and the reference channel states them. It also
+# lets an author's own compatibility warning through, which is the one honest way
+# to give an entry a caveat without inventing a flaw.
 
 
 def _sentences(text: str, n: int = 2) -> str:
