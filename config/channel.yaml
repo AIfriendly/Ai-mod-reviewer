@@ -160,11 +160,12 @@ branding:
   # published to web — the API cannot do that, so each page needs one manual
   # Share -> Publish to web.
   mod_list_urls:
-    2026-09-19-adventures: ""
-    2026-09-19-quests: ""
-    2026-09-19-magic: ""
-    2026-09-20-weapons: ""
-    2026-09-21-alchemy: ""
+    2026-09-19-adventures: "https://neat-steel-baf.notion.site/MODVAULT-Top-48-Skyrim-New-Lands-Quest-Mods-of-2026-3e2087071d58818b887ac7129cdf1e2a"
+    2026-09-19-quests: "https://neat-steel-baf.notion.site/MODVAULT-Top-56-Skyrim-Quest-Mods-of-2026-3e2087071d5881de8854ce810bd6361e"
+    2026-09-19-magic: "https://neat-steel-baf.notion.site/MODVAULT-Top-100-Skyrim-Magic-Mods-of-2026-3e2087071d58813cb7e7d43f9e80cc7d"
+    2026-09-20-weapons: "https://neat-steel-baf.notion.site/MODVAULT-Top-100-Skyrim-Weapon-Armor-Mods-of-2026-3e2087071d58819f9d7cd2fac999f578"
+    2026-09-21-alchemy: "https://neat-steel-baf.notion.site/MODVAULT-Top-99-Skyrim-Alchemy-Enchanting-Crafting-Mods-of-2026-3e2087071d5881ab841dea7dd7879551"
+    2026-09-21-gameplay: ""
 
 # Title templates (research-backed). {n}, {category}, {year} are filled in.
 # Channel-style titles (modeled on Heavy Burns / Syn Gaming / SoftGaming): a power
