@@ -347,6 +347,16 @@ _INTROS = [
     "Before we dive in — I'm ranking these from number {nord} down to my personal number "
     "one, and you'll absolutely disagree with some of the order, so tell me yours in the "
     "comments. Everything's free and linked below. Now, let's begin.",
+    # A tier list's own premise is subjective, and the reference channel's tier video
+    # says so out loud and invites the argument rather than waiting to be told:
+    # "it's my list, so if you disagree with the placement, please argue with me in
+    # the comments." It also states the rubric before the countdown starts.
+    "Quick word on how this works. After each mod I'll put it on the tier list: S tier "
+    "is for the ones that change how you play the game, down through the middle for "
+    "the solid, worth-it picks, and the lower tiers for the narrower mods that are "
+    "perfect if they're your thing. It's subjective and it's my list, so if you hate "
+    "where something lands, argue with me in the comments — genuinely, I want to hear "
+    "it. We're going from number {nord} to number one. Let's begin.",
 ]
 _OUTROS = [
     # The reference outros open on a synthesis beat — what the list adds up to once
@@ -542,6 +552,48 @@ def _spoken_name(name: str) -> str:
     # Drop a dangling connector left behind by edition-tag removal ("Temple of Agmer for").
     n = re.sub(r"\s+(for|the|of|a|an|and|to|with)$", "", n, flags=re.I).strip(" -–")
     return n or (name or "").strip()
+
+
+# Spoken tier verdicts. The reference channel's own tier-list video states a
+# placement out loud after every showcase, with a reason and usually a caveat —
+# "Bottom of the Well goes to Hearthfire Comfort tier: it has a great location and
+# convenience, plausible lore, and great compact detailing, but navmeshing is not
+# great." Our tier-list videos put the tier on a card and never said why, which left
+# the format's central claim unargued. These justify the placement from what we
+# actually know (where the mod sits in the ranking), never from invented specifics.
+_VERDICT_TOP = [
+    "{name} goes straight into {tier} tier — this is the level where a mod stops "
+    "being a nice addition and starts being part of how you play.",
+    "That puts {name} in {tier} tier for me. Very little on this list is doing "
+    "something this substantial.",
+]
+_VERDICT_MID = [
+    "{name} lands in {tier} tier: genuinely good, and it earns its place, but it "
+    "isn't reshaping your game the way the top of this list does.",
+    "I'm putting {name} in {tier} tier — solid, well-liked, and worth the slot, "
+    "just short of essential.",
+]
+_VERDICT_LOW = [
+    "{name} sits in {tier} tier. It does one thing, it does it well, and whether "
+    "you want it comes down to whether you want that one thing.",
+    "That's {tier} tier for {name} — a narrow pick rather than a load-order "
+    "staple, but the right choice for the right playthrough.",
+]
+
+
+def tier_verdict(name: str, tier: str, rank: int, total: int,
+                 rng: random.Random | None = None) -> str:
+    """One spoken sentence placing a mod in its tier, for `ranked_tier_list` specs.
+
+    `rank` is the countdown position (1 = best), so the pool is chosen by where the
+    entry actually sits. The claim is about the ranking, which we know, rather than
+    about the mod's internals, which we would have to invent.
+    """
+    rng = rng or random.Random(f"{name}|{tier}|{rank}")
+    frac = 1.0 - ((rank - 1) / max(total - 1, 1))    # 1.0 = best entry
+    pool = _VERDICT_TOP if frac >= 0.72 else (_VERDICT_MID if frac >= 0.38
+                                              else _VERDICT_LOW)
+    return rng.choice(pool).format(name=_spoken_name(name), tier=tier)
 
 
 def _clean_author(name: str) -> str:

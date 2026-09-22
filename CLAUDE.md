@@ -164,6 +164,29 @@ shape when editing:
   to once it's all installed ("all these small changes combined together start
   to make sense — the world feels more believable"). Then a question to the
   comments, then the sign-off.
+- **State the organising principle and the payoff up front.** Their long-form
+  videos name the axis and enumerate the buckets ("across seven different
+  categories: lore-friendly, epic, fantasy, dark, seductive, cute… and finally,
+  absurd"), and promise what the viewer walks away with ("by the end, you'll
+  know exactly which mods fit your game") — a retention hook beyond best-last.
+- **Cold-open on a demonstration where one exists.** "This is vanilla Skyrim.
+  And this is the same character with mods. And these are completely different
+  overhauls!" Three beats, no greeting.
+
+**In a `ranked_tier_list`, say the placement out loud.** This was the biggest
+gap the study found: the tier board and verdict card showed a tier while the
+narration never justified it, leaving the format's central claim unargued.
+Their own tier-list video gives a spoken verdict after every showcase, with a
+reason and usually a caveat — "Bottom of the Well goes to Hearthfire Comfort
+tier: it has a great location and convenience, plausible lore, and great
+compact detailing, but navmeshing is not great." `tier_verdict()` does this;
+it justifies from where the mod sits in the ranking, which we know, never from
+invented specifics about the mod. Two supporting habits from the same video:
+state the tier rubric before the countdown starts, and claim the subjectivity
+rather than waiting to be told — "it's my list, so if you disagree with the
+placement, please argue with me in the comments." They also use "high <tier>"
+for sub-placement, and answer the obvious objection where one exists ("now,
+you might be thinking, why is this in the absurd category?").
 
 **Never pad an entry with generic filler.** This is the single worst failure
 mode and it was in the code for five videos: `_pad()` appended lines like "It's
@@ -202,6 +225,13 @@ shared, and the best-for-last promise and cold-open shape did not appear until
 the sample reached eleven. The bridges, the block signposting and the outro
 synthesis beat only became visible at twenty-three. Treat a handful of videos
 as a hint, not a style.
+
+Sample *composition* matters as much as size. The first twenty-three were all
+monthly "mods of the moment" showcases, and every tier-list finding above —
+the spoken verdict, the rubric, the claimed subjectivity — came from the ten
+long-form ranked videos added afterwards. When studying for a given format,
+pull that format specifically; a big sample of the wrong shape taught us
+nothing about the one we actually publish.
 
 The author check is not optional and it keeps catching things: of 12 candidates
 in one batch 3 were other channels, and in a later batch "I Ranked Skyrim's
