@@ -33,6 +33,10 @@ class Mod(BaseModel):
     mod_id: int
     name: str
     summary: str = ""
+    # The mod page's full description (BBCode). The summary is one blurb, which is
+    # not enough real material to fill a segment — narration mines this instead of
+    # padding with generic filler.
+    description: str = ""
     author: str = ""
     uploaded_by: str = ""
     category_id: Optional[int] = None

@@ -215,14 +215,12 @@ _FLAVOUR = {
     },
 }
 
-_GENERIC_VALUES = [
-    "It's the kind of mod that quietly makes everything around it better.",
-    "It's free, it's polished, and it slots neatly into almost any load order.",
-    "Combined with the other picks on this list, it adds up to a dramatically better Skyrim.",
-    "If you somehow haven't tried it yet, consider this your sign to fix that.",
-    "It's stable, well-supported, and beloved for good reason.",
-    "This is one of those installs you'll keep in every single playthrough.",
-]
+# Deliberately empty. This used to hold generic value lines ("It's stable,
+# well-supported, and beloved for good reason") that _pad() appended until an entry
+# hit a word count. That padded runtime with content-free copy, and on a mod with a
+# couple of hundred endorsements the claims were simply untrue — both of which the
+# narration rules in CLAUDE.md forbid. Length now comes from the mod's own page.
+_GENERIC_VALUES: list[str] = []
 
 # "Who it's for" lines add a concrete, opinionated recommendation angle per entry —
 # the kind of editorial substance YouTube's inauthentic-content policy looks for.
@@ -552,31 +550,39 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
     author = _clean_author(mod.uploaded_by or mod.author)
     name = _spoken_name(mod.name)
     desc = _sentences(mod.summary, 4)
-    values = flavour.get("values", _GENERIC_VALUES)
+    values = flavour.get("values", [])
     who = _WHO_FOR.get(category, _WHO_FOR_GENERIC)
-    # Editorial beats: one category value + one "who it's for", phrased from the pools
-    # at offsets seeded per video so different uploads don't reuse the same lines.
-    # Two distinct category "value" beats + a "who it's for" + a data-proof line, all
-    # phrased from per-video-seeded offsets so uploads don't reuse the same lines.
-    value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
-    value2 = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
+    # One category value beat and one "who it's for" — opinion, which the reference
+    # channel does give. What it never does is pad with content-free lines, so there
+    # is exactly one of each and the rest of the entry is the mod's own detail.
+    value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)] if values else ""
     who_line = who[(idx + rng.randint(0, len(who) - 1)) % len(who)]
     proof = _proof_sentence(mod, rng)
 
     # Editorial beats, de-duplicated so no sentence repeats inside one entry.
     extras = []
-    for s in [value, who_line, value2] + ([proof] if proof else []):
+    for s in [value, who_line] + ([proof] if proof else []):
         if s and s not in extras:
             extras.append(s)
 
     def _pad(text: str, target: int) -> str:
-        """Top up to ~target words with generic lines not already used (keeps each
-        entry long enough to land the video in the 10-15 min band at ~176 wpm)."""
-        for cand in rng.sample(_GENERIC_VALUES, len(_GENERIC_VALUES)):
+        """Top up to ~target words with more of the mod's OWN description.
+
+        The reference channel fills a segment with specifics — counts, options,
+        requirements, how you actually get the thing in game — so this mines further
+        into the mod page rather than appending generic filler. An entry whose page
+        has nothing more to say simply comes out shorter; that is the correct
+        outcome, and padding it was both invented content and, for a mod with a
+        couple of hundred endorsements, factually wrong.
+        """
+        have = set(text.split("."))
+        for sent in re.findall(r".+?[.!?](?=\s|$)", _clean(mod.description)):
             if len(text.split()) >= target:
                 break
-            if cand not in text:
-                text += " " + cand
+            s = sent.strip()
+            if (len(s.split()) >= 6 and s not in have
+                    and not _OFFTOPIC_SENT.search(s) and s not in text):
+                text += " " + s
         return text
 
     if rank == 1:

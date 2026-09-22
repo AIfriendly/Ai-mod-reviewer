@@ -149,6 +149,34 @@ shape when editing:
 - **Close short and warm.** Hope they found something for their load order,
   credit the authors, one like/subscribe ask, sign off. Don't stack CTAs.
 - **Second person, direct address.** "You" and "we", not "the player".
+- **Bridge between entries; don't announce them all cold.** The host links the
+  previous mod's subject to the next — "Talking of Skyrim wildlife, especially
+  foxes, next we have…", "From ghosts to grasslands, now let's add…", "Speaking
+  of dingy dungeons and Nordic ruins…". Over a hundred entries that connective
+  tissue is the difference between a video and a list read aloud. `_bridge()`
+  does this, but only when a topic is detected in *both* mods (never assert a
+  link that isn't there) and only every third entry (constant bridging is its
+  own tic). On a 100-mod list it fires ~16 times.
+- **Signpost blocks.** They chunk long lists and say so: "let's jump straight
+  into the first mod category, that is immersion and gameplay", "the final mod
+  in this category", "to finish off today's episode…".
+- **Open the outro on a synthesis beat**, not on thanks: what the list adds up
+  to once it's all installed ("all these small changes combined together start
+  to make sense — the world feels more believable"). Then a question to the
+  comments, then the sign-off.
+
+**Never pad an entry with generic filler.** This is the single worst failure
+mode and it was in the code for five videos: `_pad()` appended lines like "It's
+stable, well-supported, and beloved for good reason" until an entry hit a word
+count. That inflates runtime with content-free copy, and on a mod with 155
+endorsements the claim is just false. Length comes from the mod's own page —
+`Mod.description` (the full BBCode page body, not just `summary`) mined for
+specifics: counts of animations or voice lines, named requirements, MCM
+options, how you actually obtain the thing in game. That is what the reference
+channel fills a segment with. An entry whose page has nothing more to say
+should come out shorter; a 40-minute video of real detail beats a 60-minute one
+padded to length. Editorial opinion is fine and the reference channel gives
+plenty — but one value beat and one "who it's for" per entry, not a stack.
 
 Two hard limits: take structure and rhythm only — never lines verbatim, and
 never another channel's host persona or name (the sampled channel's outros are
@@ -171,7 +199,15 @@ sidebar. Don't commit the transcripts.
 
 Sample size matters here: three transcripts showed only the patterns all three
 shared, and the best-for-last promise and cold-open shape did not appear until
-the sample reached eleven. Treat a handful of videos as a hint, not a style.
+the sample reached eleven. The bridges, the block signposting and the outro
+synthesis beat only became visible at twenty-three. Treat a handful of videos
+as a hint, not a style.
+
+The author check is not optional and it keeps catching things: of 12 candidates
+in one batch 3 were other channels, and in a later batch "I Ranked Skyrim's
+BIGGEST Quest Mods in 2026" — the closest match to our own format anywhere in
+the results — turned out to belong to a different channel entirely. Verify the
+author field on the scraped page before a transcript counts toward the sample.
 
 ## Video output constraints
 

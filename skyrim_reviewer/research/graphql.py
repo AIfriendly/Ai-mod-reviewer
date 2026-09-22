@@ -41,7 +41,8 @@ query Discover($domain: String!, $category: String!, $count: Int!, $offset: Int!
     sort: [{ endorsements: { direction: DESC } }]
     count: $count
     offset: $offset
-  ) { nodes { modId name summary endorsements downloads version uploader { name }
+  ) { nodes { modId name summary description endorsements downloads version
+              uploader { name }
               pictureUrl adultContent createdAt updatedAt } }
 }"""
 
@@ -62,6 +63,7 @@ def _to_mod(n: dict, domain: str) -> Mod:
         mod_id=mid,
         name=n.get("name", "") or "",
         summary=(n.get("summary") or "").strip(),
+        description=(n.get("description") or "").strip(),
         author=uploader,
         uploaded_by=uploader,
         endorsements=int(n.get("endorsements", 0) or 0),
