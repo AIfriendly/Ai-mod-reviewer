@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 import re
+from html import unescape
 from datetime import date
 from pathlib import Path
 
@@ -478,11 +479,20 @@ def _proof_sentence(mod: Mod, rng: random.Random) -> str:
 _BBCODE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 _URL = re.compile(r"https?://\S+")
 _WS = re.compile(r"\s+")
+# Mod page bodies are BBCode *and* HTML — "<br />" read aloud is not a sentence.
+_HTML = re.compile(r"<[^>]+>")
+# All-caps run-in headers authors use to structure a page ("DESCRIPTION:",
+# "FEATURES -"). Spoken, they're noise in the middle of a sentence.
+_HEADER = re.compile(r"\b[A-Z][A-Z &'/-]{3,}\s*[:\-–]\s*")
 
 
 def _clean(text: str) -> str:
-    """Strip BBCode/URLs/markup noise from a Nexus summary and tidy whitespace."""
+    """Strip BBCode/HTML/URLs/markup noise from Nexus copy and tidy whitespace."""
     t = _BBCODE.sub("", text or "")
+    t = _HTML.sub(" ", t)
+    t = unescape(t)                                 # &nbsp;, &amp;, &#8203; …
+    t = t.replace("​", " ").replace("﻿", " ")   # zero-width junk
+    t = _HEADER.sub("", t)
     t = _URL.sub("", t)
     t = t.replace("\r", " ").replace("\n", " ")
     t = re.sub(r"[!?]{2,}", "!", t)                 # "FLY!!!" -> "FLY!"
