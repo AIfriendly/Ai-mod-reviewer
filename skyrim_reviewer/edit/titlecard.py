@@ -97,7 +97,10 @@ def title_overlay_rgba(title: str, subtitle: str, size: tuple[int, int],
     sub_f = _font(max(22, W // 48))
     lines = textwrap.wrap(title.upper(), width=22) or [""]
     line_h = title_f.size + 14
-    y = int(H * 0.60)
+    # Bottom-anchor the block to end above the burned-in caption band (captions.py
+    # margin_v); top-anchored at 0.60H it ran straight through the outro's captions.
+    block_h = len(lines) * line_h + (34 + sub_f.size + 8 if subtitle else 20)
+    y = int(H * 0.68) - block_h
     for ln in lines:
         w = draw.textlength(ln, font=title_f)
         x = (W - w) // 2

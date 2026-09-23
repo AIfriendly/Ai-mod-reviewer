@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 
 from ..models import Mod, Project, Script, VideoFormat
-from .captions import segment_durations, write_srt, youtube_chapters
+from .captions import write_srt, youtube_chapters
 from .lower_third import render_lower_third
 from .tier_list import render_best_for, render_scorecard, render_tier_board
 
@@ -431,8 +431,11 @@ def _verdict_clip(mod_name: str, scorecard: dict, best_for: str,
     card = seg_dir / f"verdict_card_{idx:02d}.png"
     render_scorecard(mod_name, scorecard, size, card, accent=accent)
     bf_png = seg_dir / f"verdict_bestfor_{idx:02d}.png"
-    render_best_for(best_for or "Anyone curious about this mod.", size, bf_png,
-                    accent=accent)
+    if best_for:
+        render_best_for(best_for, size, bf_png, accent=accent)
+    else:            # no mod-specific audience: show nothing, not a generic line
+        from PIL import Image
+        Image.new("RGBA", size, (0, 0, 0, 0)).save(bf_png)
     board_png = seg_dir / f"verdict_board_{idx:02d}.png"
     render_tier_board(placed_so_far, tiers, size, board_png, accent=accent,
                       highlight=mod_name)
@@ -830,10 +833,14 @@ def render_video_ffmpeg(project: Project, accent: str = "#d4af37",
     args += ["-c:a", "aac", "-shortest", str(out_path)]
     _run(args)
 
-    # Sidecar artefacts (same as moviepy path).
-    durs = segment_durations(script)
-    write_srt(script, durs, out_dir / f"{project.slug}.srt", extra_gaps=extra_gaps)
-    script.chapters = youtube_chapters(script, durs, mods=project.mods,
+    # Sidecar artefacts, timed off the timeline actually rendered: segments sized to
+    # their narration with no tail pause, after the teaser. segment_durations() adds
+    # the moviepy path's 0.45s pause, which on a 103-segment video pushed the last
+    # chapter 46s past the end of the file.
+    timeline = script.model_copy(update={"segments": spoken})
+    write_srt(timeline, durations, out_dir / f"{project.slug}.srt",
+              extra_gaps=extra_gaps, start_offset=teaser_dur)
+    script.chapters = youtube_chapters(timeline, durations, mods=project.mods,
                                        start_offset=teaser_dur, extra_gaps=extra_gaps,
                                        link_mods=True)
     from ..branding import make_description

@@ -40,12 +40,12 @@ def render_lower_third(name: str, author: str, size: tuple[int, int],
     # Big countdown rank badge ("#12") — a clear progression cue that pulls viewers
     # toward the #1 reveal (retention: each entry reads as its own mini-chapter).
     if rank:
-        badge = bar_h
-        draw.rounded_rectangle([x0, y0, x0 + badge, y0 + bar_h], radius=16,
-                               fill=accent_rgb + (240,))
         label = f"#{rank}"
         tb = draw.textbbox((0, 0), label, font=rankf)
         tw, th = tb[2] - tb[0], tb[3] - tb[1]
+        badge = max(bar_h, tw + 40)          # a square clipped "#100" to "#10"
+        draw.rounded_rectangle([x0, y0, x0 + badge, y0 + bar_h], radius=16,
+                               fill=accent_rgb + (240,))
         draw.text((x0 + (badge - tw) / 2 - tb[0], y0 + (bar_h - th) / 2 - tb[1]),
                   label, fill=(8, 12, 18, 255), font=rankf)
         x0 += badge + 14

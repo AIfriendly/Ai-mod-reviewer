@@ -28,9 +28,9 @@ def segment_durations(script: Script, pause: float = 0.45) -> list[float]:
 
 
 def write_srt(script: Script, durations: list[float], out_path: Path,
-              extra_gaps: dict | None = None) -> None:
+              extra_gaps: dict | None = None, start_offset: float = 0.0) -> None:
     extra_gaps = extra_gaps or {}
-    lines, t = [], 0.0
+    lines, t = [], float(start_offset)
     for i, (seg, dur) in enumerate(zip(script.segments, durations), 1):
         start, end = t, t + dur
         lines += [str(i), f"{_ts(start)} --> {_ts(end)}", seg.narration.strip(), ""]
@@ -85,7 +85,9 @@ def build_ass(segments, durations, size, out_path: Path,
     captions still line up with their real position in the concatenated video."""
     W, H = size
     fontsize = max(36, round(H * 0.05))
-    margin_v = round(H * 0.20)               # sit above the lower-third strip
+    # Clear the lower-third AND its "FREE ON NEXUS" pill, whose top edge is exactly
+    # H*0.20 at 1080p — at that margin descenders and the outline ran into it.
+    margin_v = round(H * 0.222)
     primary = "&H00FFFFFF"                    # white text
     accent_ass = _hex_to_ass(accent)
     header = f"""[Script Info]
