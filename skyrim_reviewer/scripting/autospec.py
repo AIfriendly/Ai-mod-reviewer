@@ -94,6 +94,10 @@ def _bridge(prev: Mod | None, cur: Mod, rng: random.Random) -> str:
         return rng.choice(_BRIDGE_SAME).format(t=t)
     return rng.choice(_BRIDGE_DIFF).format(p=p, t=t)
 
+# Beats about *your* vampire are false on a mod about NPC vampires, Serana or a
+# follower, even when its pitch mentions perks or an overhaul.
+_NOT_THE_PLAYER = r"\bNPCs?\b|\bfollowers?\b|\bSerana\b"
+
 # Category-specific flavour: hook line, what the video is "about", and a pool of
 # value sentences rotated through the entries to add variety and pad to length.
 _FLAVOUR = {
@@ -114,13 +118,25 @@ _FLAVOUR = {
         "title": "Best Skyrim Vampire Mods",
         "noun": "vampire mods",
         "subject": "playing a vampire",
+        # Each beat asserts a mechanic, and a vampire list mixes overhauls with music,
+        # armour, eyes and followers — so each is gated on its subject appearing in the
+        # mod's own page (see _pick_beat). "Feeding loop" on a music mod was false.
         "values": [
-            "Vanilla vampirism is mostly a stack of penalties you want cured as fast as possible, and this is the kind of mod that makes it a build instead.",
-            "It treats being a vampire as a playstyle with its own rules, rather than a disease with a quest attached.",
-            "The feeding loop is the part vanilla never got right, and this is where that finally starts to click.",
-            "It fits alongside the bigger vampire overhauls instead of fighting them, which matters in a category this prone to conflicts.",
-            "If you've only ever experienced vampirism as the thing you cure in Morthal, this is the mod that changes your mind.",
-            "It leans into the predator fantasy without making you unkillable, which is a harder balance than it sounds.",
+            ("Vanilla vampirism is mostly a stack of penalties you want cured as fast as possible, and this is the kind of mod that makes it a build instead.",
+             r"\bperks?\b|\bskill tree\b|\bprogression\b", _NOT_THE_PLAYER),
+            ("It treats being a vampire as a playstyle with its own rules, rather than a disease with a quest attached.",
+             r"\bvampirism\b.{0,80}\b(overhaul|rework|mechanic)|\b(overhaul|rework)s?\s+(of\s+)?vampir",
+             _NOT_THE_PLAYER),
+            ("The feeding loop is the part vanilla never got right, and this is where that finally starts to click.",
+             r"\bfeed(ing|s)?\b|\bblood ?(pool|meter|thirst)\b|\bhunger\b"),
+            ("It fits alongside the bigger vampire overhauls instead of fighting them, which matters in a category this prone to conflicts.",
+             r"\b(compatib\w*|patch\w*)\b.{0,80}\b(sacrosanct|better vampires|vampiric thirst|growl)\b"),
+            ("If you've only ever experienced vampirism as the thing you cure in Morthal, this is the mod that changes your mind.",
+             r"\bvampirism\b.{0,80}\b(stage|progress|power|abilit)|\bvampire lord\b.{0,60}\b(power|abilit|perk)",
+             _NOT_THE_PLAYER),
+            ("It leans into the predator fantasy without making you unkillable, which is a harder balance than it sounds.",
+             r"\bbalanc\w*\b|\bweakness(es)?\b.{0,40}\bstrengths?\b|\bstrengths?\b.{0,40}\bweakness",
+             _NOT_THE_PLAYER),
         ],
     },
     "magic": {
@@ -239,10 +255,13 @@ _GENERIC_VALUES: list[str] = []
 # "Who it's for" lines add a concrete, opinionated recommendation angle per entry —
 # the kind of editorial substance YouTube's inauthentic-content policy looks for.
 _WHO_FOR = {
-    "vampire": [
-        "If you want a vampire playthrough that's a build rather than a debuff, this is for you.",
-        "Anyone who plays the Dawnguard side and still wants the vampires to feel dangerous will get a lot out of this.",
-        "If your idea of a vampire run is stalking a hold at night rather than sprinting between shadows, this one's aimed at you.",
+    "vampire": [   # gated like _FLAVOUR["vampire"]; see _pick_beat
+        ("If you want a vampire playthrough that's a build rather than a debuff, this is for you.",
+         r"\bperks?\b|\bskill tree\b|\bprogression\b|\bstrengths\b", _NOT_THE_PLAYER),
+        ("Anyone who plays the Dawnguard side and still wants the vampires to feel dangerous will get a lot out of this.",
+         r"\b(vampire npcs?|enemy vampires?|hostile vampires?)\b|\bvampires?\b.{0,40}\b(harder|tougher|deadlier|dangerous)\b"),
+        ("If your idea of a vampire run is stalking a hold at night rather than sprinting between shadows, this one's aimed at you.",
+         r"\bstealth\b|\bsneak\w*\b|\bat night\b|\bnight ?time\b"),
     ],
     "magic": [
         "If you main a battlemage or you've always wanted a real spellsword fantasy, this is for you.",
@@ -546,12 +565,58 @@ _OFFTOPIC_SENT = re.compile(
     r"\b(dedicated to|in memory of|rest in peace|my (?:sister|brother|mother|father|"
     r"wife|husband|son|daughter|dog|cat|friend)|patreon|ko-?fi|paypal|donat|"
     r"discord|subscribe|please endorse|endorse if|leave a like|changelog|"
-    r"bug ?fix|hotfix|version \d|update \d)\b", re.I)
+    r"bug ?fix|hotfix|version \d|update \d|native english speaker|"
+    r"english is not my|(?:this|new|latest|next) (?:update|build)|outdated|"
+    r"previous (?:version|build)|click here|april fool|double[- ]click|"
+    r"follow the steps|unzip|extract (?:the|it)|nmm|vortex|mod organi[sz]er|"
+    r"mod manager|nexus releases?|coming soon|work in progress|wip|new in v?\d|"
+    r"re-?upload|permissions?|modder.?s resource|disclaimer|elder scrolls v|"
+    r"legendary edition|available here|install(?:ing|ed)? manually|data files|"
+    r"main file|miscellaneous file|optional files?|download only|"
+    r"check the load order)\b", re.I)
+# The page is written by the author, in the first person, and our narrator reading
+# it aloud becomes the author: "Hello fellow modders, I'm Rougeshot … I'm in college
+# part time" and "please consider giving an endorsement" both reached a render. Only
+# third-person description of the mod survives; greetings and thanks go too.
+_AUTHOR_VOICE = re.compile(
+    r"\b(?:i|i'm|i've|i'll|i'd|me|my|mine|myself|we|we're|we've|our|us)\b|"
+    r"\b(?:thanks?|thank you|hello|hey|hi everyone|let me know)\b", re.I)
 # "requires ..." was in the list above, which threw away exactly the detail the
 # narration rules ask for — a named requirement ("requires SKSE and Address
 # Library") is a concrete specific, and the reference channel states them. It also
 # lets an author's own compatibility warning through, which is the one honest way
 # to give an entry a caveat without inventing a flaw.
+
+# A page body is laid out in lines — headings, "Name : … Author : … Version :"
+# blocks, separator bars, "Skyrim LE (2011) | Skyrim SE (2016)" links. Flattened
+# first, each glues onto the next real sentence and gets read aloud with it. Split
+# on the page's own line breaks so a line that never reaches terminal punctuation is
+# dropped as the label it is. A bare newline is a soft wrap inside a sentence, not a
+# break — splitting on it produced fragments like "was just used as a fast travel
+# exit point."
+_LINE_BREAK = re.compile(
+    r"<br\s*/?>|</?(?:p|li|div)\b[^>]*>|\[/?(?:\*|list|line|hr)\]|[=\-_*~#]{4,}",
+    re.I)
+# Not narration: pipes and arrows from link rows, "Name : value" blocks, file paths,
+# FAQ entries, and the author's own questions ("Not all requirements are required
+# right?").
+_NOT_PROSE = re.compile(
+    r"\||->|=>|\s:\s|\\|\.(?:nif|esp|esm|esl|dds|bsa|dll|ini|pex|psc|hkx)\b|"
+    r"\b[QA]:\s|\?$", re.I)
+
+
+def _page_sentences(body: str) -> list[str]:
+    """Complete, on-topic, third-person prose sentences from a mod's page body."""
+    out = []
+    for line in _LINE_BREAK.split(body or ""):
+        for s in re.findall(r".+?[.!?](?=\s|$)", _clean(line)):
+            s = re.sub(r"^(?:[^\w\"“(]+|\d+[.)]\s+)+", "", s.strip())  # bullets, "1)", "]"
+            if (len(s.split()) >= 6 and not s[:1].islower()   # lower-case = fragment
+                    and s.count("(") == s.count(")")          # cut at "(e.g."
+                    and not _OFFTOPIC_SENT.search(s)
+                    and not _NOT_PROSE.search(s) and not _AUTHOR_VOICE.search(s)):
+                out.append(s)
+    return out
 
 
 def _sentences(text: str, n: int = 2) -> str:
@@ -564,14 +629,22 @@ def _sentences(text: str, n: int = 2) -> str:
     """
     t = _clean(text)
     # Sentences that end on ./!/? (the regex requires the terminator be present).
-    complete = [s.strip() for s in re.findall(r".+?[.!?](?=\s|$)", t)
-                if not _OFFTOPIC_SENT.search(s)]
+    found = [s.strip() for s in re.findall(r".+?[.!?](?=\s|$)", t)]
+    complete = [s for s in found if not _OFFTOPIC_SENT.search(s)
+                and not _AUTHOR_VOICE.search(s) and not _NOT_PROSE.search(s)]
     out = " ".join(complete[:n]).strip()
-    if not out:                                     # no full sentence -> take the lead
-        out = t[:160].rsplit(" ", 1)[0].strip()
-        if out and out[-1] not in ".!?":
+    # Nothing survived: fall back to the unterminated remainder (a summary truncated
+    # mid-sentence, or a last line with no full stop) — never to the filtered
+    # sentences, or the first-person text they held comes straight back.
+    if not out:
+        rest = re.sub(r".+?[.!?](?=\s|$)", "", t).strip()
+        out = rest if len(rest) <= 160 else rest[:160].rsplit(" ", 1)[0]
+        if (len(out.split()) < 4 or _AUTHOR_VOICE.search(out)
+                or _OFFTOPIC_SENT.search(out) or _NOT_PROSE.search(out)):
+            out = ""
+        elif out[-1] not in ".!?":
             out += "."
-    return out
+    return out[:1].upper() + out[1:]                # "visual replacer w elf ears…"
 
 
 def _spoken_name(name: str) -> str:
@@ -627,6 +700,24 @@ def tier_verdict(name: str, tier: str, rank: int, total: int,
     return rng.choice(pool).format(name=_spoken_name(name), tier=tier)
 
 
+def _pick_beat(pool: list, page: str, idx: int, rng: random.Random) -> str:
+    """One editorial beat from `pool` that the mod's own page supports.
+
+    An entry is a plain string (always true) or a (text, pattern[, unless]) tuple
+    that only applies when `pattern` matches the page and `unless` doesn't — the
+    same rule as _bridge(): never assert what the page doesn't show. No fitting
+    beat means no beat. The RNG is drawn exactly as before gating existed, so
+    ungated pools pick identically.
+    """
+    if not pool:
+        return ""
+    r = rng.randint(0, len(pool) - 1)
+    fits = [b if isinstance(b, str) else b[0] for b in pool
+            if isinstance(b, str) or (re.search(b[1], page, re.I | re.S) and not (
+                len(b) > 2 and re.search(b[2], page, re.I)))]
+    return fits[(idx + r) % len(fits)] if fits else ""
+
+
 def _clean_author(name: str) -> str:
     """Tidy author display names (drop 'Deleted…User' tombstones and noise)."""
     name = (name or "").strip()
@@ -641,15 +732,18 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
     'who it's for' take + a data-driven proof line. The mix and phrasing are drawn from
     a per-video RNG so segments vary within a video and across videos (anti-template)."""
     author = _clean_author(mod.uploaded_by or mod.author)
-    name = _spoken_name(mod.name)
+    # Some titles already carry "by <author>"; the template adds it again.
+    name = re.sub(rf"\s+by\s+{re.escape(author)}\b.*$", "", _spoken_name(mod.name),
+                  flags=re.I) or _spoken_name(mod.name)
     desc = _sentences(mod.summary, 4)
     values = flavour.get("values", [])
     who = _WHO_FOR.get(category, _WHO_FOR_GENERIC)
     # One category value beat and one "who it's for" — opinion, which the reference
     # channel does give. What it never does is pad with content-free lines, so there
     # is exactly one of each and the rest of the entry is the mod's own detail.
-    value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)] if values else ""
-    who_line = who[(idx + rng.randint(0, len(who) - 1)) % len(who)]
+    page = f"{mod.name} {mod.summary}"      # the pitch; a full page mentions everything
+    value = _pick_beat(values, page, idx, rng)
+    who_line = _pick_beat(who, page, idx, rng)
     proof = _proof_sentence(mod, rng)
 
     # Editorial beats, de-duplicated so no sentence repeats inside one entry.
@@ -669,12 +763,10 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
         couple of hundred endorsements, factually wrong.
         """
         have = set(text.split("."))
-        for sent in re.findall(r".+?[.!?](?=\s|$)", _clean(mod.description)):
+        for s in _page_sentences(mod.description):
             if len(text.split()) >= target:
                 break
-            s = sent.strip()
-            if (len(s.split()) >= 6 and s not in have
-                    and not _OFFTOPIC_SENT.search(s) and s not in text):
+            if s not in have and s not in text:
                 text += " " + s
         return text
 
