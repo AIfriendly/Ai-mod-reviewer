@@ -1,7 +1,7 @@
 """Pluggable text-to-speech. Your cloned voice plugs in via config/voice.yaml.
 
     provider: elevenlabs | openai | piper | f5tts | chatterbox | kaggle |
-              chatterbox_kaggle | prerecorded
+              chatterbox_kaggle | qwen | prerecorded
 """
 from __future__ import annotations
 
@@ -36,6 +36,9 @@ def get_provider(cfg: dict | None = None) -> TTSProvider:
         from .chatterbox_kaggle import KaggleChatterboxProvider
         return KaggleChatterboxProvider({**cfg.get("chatterbox", {}),
                                          **cfg.get("chatterbox_kaggle", {})})
+    if provider == "qwen":
+        from .qwen import QwenTTSProvider
+        return QwenTTSProvider(cfg.get("qwen", {}))
     if provider == "prerecorded":
         from .prerecorded import PrerecordedProvider
         return PrerecordedProvider(cfg.get("prerecorded", {}))

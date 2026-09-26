@@ -60,12 +60,56 @@ def pick_track(music_dir: str = "music") -> str | None:
     return str(random.choice(tracks)) if tracks else None
 
 
+# A single ffmpeg command chaining more than ~this many sequential acrossfade
+# filters reliably deadlocks ffmpeg's filter-graph scheduler (all input decoder
+# threads block on futex_wait, zero CPU progress, no output growth) — confirmed at
+# 20 chained crossfades for a ~35 min video; every prior video stayed under 11 min
+# (≤~7 segments) and never hit this. Batch the chain instead of growing it unbounded.
+_MAX_CHAIN = 6
+
+
+def _crossfade_chain(inputs: list[tuple[str, float, float]], out_path, xfade: float,
+                     fade_in: bool) -> bool:
+    """One ffmpeg call chaining len(inputs) segments with acrossfade. `inputs` is
+    [(track_path, seek_offset, duration), ...]. Returns True on success."""
+    import subprocess
+    from ..utils.ffmpeg import ffmpeg_path
+    n = len(inputs)
+    args = [ffmpeg_path(), "-y", "-v", "error"]
+    for t, off, seg_seconds in inputs:
+        args += ["-ss", f"{off:.1f}", "-t", f"{seg_seconds:.1f}", "-i", t]
+    fc = ("[0:a]afade=t=in:d=1.5[a0];" if fade_in else "[0:a]anull[a0];")
+    for i in range(1, n):
+        fc += f"[{i}:a]anull[a{i}];"
+    if n == 1:
+        fc += "[a0]anull[out]"
+    else:
+        prev = "[a0]"
+        for i in range(1, n):
+            outl = "[out]" if i == n - 1 else f"[c{i}]"
+            fc += f"{prev}[a{i}]acrossfade=d={xfade}:c1=tri:c2=tri{outl};"
+            prev = outl
+    args += ["-filter_complex", fc, "-map", "[out]", str(out_path)]
+    try:
+        subprocess.run(args, check=True, capture_output=True, text=True, timeout=300)
+        return True
+    except Exception:
+        return False
+
+
 def build_music_bed(total_dur: float, out_path, music_dir: str = "music",
                     seg_seconds: float = 105.0, xfade: float = 3.0):
     """Stitch MULTIPLE tracks into one bed that ROTATES across the video (crossfading
     every ~seg_seconds) instead of looping a single track. Returns (bed_path, [stems])
-    for crediting, or (None, []) if there are no tracks. ffmpeg acrossfade chain."""
+    for crediting, or (None, []) if there are no tracks.
+
+    Built in batches of at most `_MAX_CHAIN` crossfades per ffmpeg call (long videos
+    need many more segments than that fit safely in one filter graph — see
+    `_MAX_CHAIN`), then the batch files are themselves crossfaded together the same
+    way. Batch count is always small (a batch of batches), so this never regresses
+    into the same deep-chain problem regardless of total video length."""
     import subprocess
+    import tempfile
     from pathlib import Path
     from ..utils.ffmpeg import ffmpeg_path
     d = Path(music_dir)
@@ -78,34 +122,66 @@ def build_music_bed(total_dur: float, out_path, music_dir: str = "music",
         return tracks[0], [Path(tracks[0]).stem]
     step = max(30.0, seg_seconds - xfade)
     n = max(2, int(total_dur // step) + 1)
-    args = [ffmpeg_path(), "-y", "-v", "error"]
+
+    def _duration(path: str) -> float:
+        import re
+        r = subprocess.run([ffmpeg_path(), "-i", path], capture_output=True, text=True)
+        m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", r.stderr or "")
+        return (int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+               if m else seg_seconds)
+
+    track_durations = {t: _duration(t) for t in tracks}
     used = []
+    segments = []                # (track, offset, seg_seconds)
     for i in range(n):
         t = tracks[i % len(tracks)]
         used.append(Path(t).stem)
-        off = (i // len(tracks)) * seg_seconds  # vary which part of the track each pass
-        args += ["-ss", f"{off:.1f}", "-t", f"{seg_seconds:.1f}", "-i", t]
-    fc = "[0:a]afade=t=in:d=1.5[a0];"
-    for i in range(1, n):
-        fc += f"[{i}:a]anull[a{i}];"
-    prev = "[a0]"
-    for i in range(1, n):
-        outl = "[mix]" if i == n - 1 else f"[c{i}]"
-        fc += f"{prev}[a{i}]acrossfade=d={xfade}:c1=tri:c2=tri{outl};"
-        prev = outl
-    fc += f"{prev}afade=t=out:st={max(0.0, total_dur - 3):.1f}:d=3[out]" \
-        if False else f"[mix]atrim=0:{total_dur + 1:.1f}[out]"
-    args += ["-filter_complex", fc, "-map", "[out]", str(out_path)]
-    try:
-        subprocess.run(args, check=True, capture_output=True, text=True)
-    except Exception:
-        return tracks[0], [Path(tracks[0]).stem]   # fall back to a single track
-    # dedupe stems, order preserved
+        # Vary which part of the track each pass, but WRAP within that track's own
+        # real length — an unwrapped offset eventually seeks past a shorter track's
+        # end (e.g. a 105s step against a 186s track after just 2 rotations), which
+        # starves the crossfade filter of samples it's waiting on and hangs ffmpeg
+        # indefinitely rather than erroring.
+        safe_span = max(track_durations[t] - seg_seconds, 1.0)
+        off = ((i // len(tracks)) * seg_seconds) % safe_span
+        segments.append((t, off, seg_seconds))
+
     seen, stems = set(), []
     for s in used:
         if s not in seen:
             seen.add(s); stems.append(s)
-    return str(out_path), stems
+
+    try:
+        with tempfile.TemporaryDirectory(dir=Path(out_path).parent) as tmp:
+            tmp = Path(tmp)
+            batches = [segments[i:i + _MAX_CHAIN]
+                      for i in range(0, len(segments), _MAX_CHAIN)]
+            batch_files = []
+            for bi, batch in enumerate(batches):
+                bf = tmp / f"batch_{bi}.m4a"
+                if not _crossfade_chain(batch, bf, xfade, fade_in=(bi == 0)):
+                    raise RuntimeError("batch crossfade failed")
+                batch_files.append(str(bf))
+            if len(batch_files) == 1:
+                final_src = batch_files[0]
+            else:
+                # Crossfade the (few) batch outputs together — same mechanism, but
+                # the batch count is always small so this chain never grows unbounded.
+                merged = tmp / "merged.m4a"
+                # Each batch file's own duration varies (last one is shorter) — feed
+                # whole files rather than fixed seg_seconds slices.
+                # -t longer than the file just clamps to EOF, so a fixed large value
+                # works for every batch regardless of its actual (varying) length.
+                merge_inputs = [(bf, 0.0, 1e9) for bf in batch_files]
+                if not _crossfade_chain(merge_inputs, merged, xfade, fade_in=False):
+                    raise RuntimeError("batch merge crossfade failed")
+                final_src = str(merged)
+            subprocess.run(
+                [ffmpeg_path(), "-y", "-v", "error", "-i", final_src,
+                 "-t", f"{total_dur + 1:.1f}", "-c", "copy", str(out_path)],
+                check=True, capture_output=True, text=True, timeout=120)
+        return str(out_path), stems
+    except Exception:
+        return tracks[0], [Path(tracks[0]).stem]   # fall back to a single track
 
 
 def music_bed(total_duration: float, music_dir: str = "music",

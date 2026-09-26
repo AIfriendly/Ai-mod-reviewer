@@ -1,0 +1,54 @@
+# Short (~2 min) test spec to validate the Qwen voice clone in the real pipeline
+# before committing to a full-length render.
+#   skyrim-reviewer make gameplay --fmt ranked_tier_list \
+#       --script examples/qwen_2min_test.yaml --voice qwen --profile test
+
+title: "Qwen Voice Test — 2 Minute Clip"
+hook_line: "Voice Test"
+format: ranked_tier_list
+next_topic: "the full video"
+tags: [test]
+description: "Short voice-clone test render."
+
+mods:
+  - name: "Wildcat Combat"
+    author: "PlaceholderAuthorB"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000102"
+    summary: "A combat rebalance with timing-based blocking and heavier stagger."
+    media_ok: false
+
+segments:
+  - kind: hook
+    title: "Cold open"
+    target_seconds: 10
+    narration: >
+      This is a short test clip, not the real video — just checking how the
+      cloned voice sounds once it's actually narrating over footage.
+
+  - kind: intro
+    title: "The rules"
+    target_seconds: 15
+    narration: >
+      One mod, one quick verdict, then we're done. If this sounds right,
+      the full version goes into production next.
+
+  - kind: mod
+    ref: 1
+    title: "Wildcat Combat"
+    target_seconds: 65
+    tier: "A"
+    scorecard: {Impact: 4.5, Uniqueness: 4, Polish: 4.5, Compatibility: 4.5}
+    best_for: "Anyone who wants tighter combat without rebuilding their whole load order."
+    narration: >
+      Wildcat Combat rebalances blocking and stagger so fights actually ask
+      something of you. Timing your block matters, taking on more than one
+      enemy at once stops being a button-mash, and it slots in cleanly next to
+      almost anything else you're running — no fighting your other mods for
+      compatibility. This one goes into A tier.
+
+  - kind: outro
+    title: "Outro"
+    target_seconds: 20
+    narration: >
+      That's the test clip. If the voice held up through a full segment like
+      that, we're good to go on the real thing.

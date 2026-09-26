@@ -28,6 +28,10 @@ channels:
   - name: Pixel and Pearls
     style: 'Side-by-side comparisons of similar mods to crown the best one.'
     best_format: comparison
+  - name: TNS Plays
+    style: 'Personal S/A/B/C tier rankings of mods actually played, with an on-screen
+      scorecard per entry — methodology-first, opinionated, "so you don''t have to" framing.'
+    best_format: ranked_tier_list
 
 # Proven viral title patterns. Virality levers: a number, a superlative, urgency,
 # and a year. `pipeline_fmt` maps to a format `make` already supports.
@@ -62,6 +66,11 @@ formats:
     pipeline_fmt: category_list
     inspired_by: [Pixel and Pearls, Bards College Graduate]
     hook: "Two {category_noun} mods, one load order slot. Let's settle it."
+  - id: ranked_tier_list
+    template: "I Ranked Every Skyrim {category_noun} Mod So You Don't Have To"
+    pipeline_fmt: ranked_tier_list
+    inspired_by: [TNS Plays]
+    hook: "People keep asking which {category_noun} mod is actually the best. So I played all of them and ranked them — no favorites."
 
 superlatives: [Best, Most Insane, Must-Have, Game-Changing, Essential, Underrated]
 themes: ['The Witcher', 'Dark Souls', 'Game of Thrones', 'a Survival Nightmare', 'Photorealism']

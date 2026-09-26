@@ -16,7 +16,7 @@ import json
 
 import anthropic
 
-from ..config import require_env
+from ..config import channel_config, require_env
 from ..models import Mod, Script, Segment, VideoFormat, VideoProfile
 
 MODEL = "claude-opus-4-8"
@@ -76,35 +76,56 @@ Timestamps are computed later from real audio durations — labels only, no time
 Return ONLY the structured object requested. mod_id on a "mod" segment MUST match
 the mod_id you were given for that mod."""
 
-# JSON schema for structured output (mirrors models.Script / models.Segment).
-_OUTPUT_SCHEMA = {
-    "type": "object",
-    "additionalProperties": False,
-    "properties": {
+def _build_output_schema(criteria: list[str] | None = None) -> dict:
+    """JSON schema for structured output (mirrors models.Script / models.Segment).
+
+    `criteria` (from config channel.yaml -> tier_list.scorecard_criteria) adds the
+    ranked_tier_list-only verdict fields (tier/scorecard/best_for) to every segment,
+    with `scorecard` locked to exactly those criterion names. Other formats simply
+    leave tier=null, scorecard={}, best_for="" — the schema still declares the fields
+    (additionalProperties: False requires it) but nothing forces them to be used."""
+    seg_props = {
+        "segment_id": {"type": "string"},
+        "kind": {"type": "string", "enum": ["hook", "intro", "mod", "outro"]},
         "title": {"type": "string"},
-        "hook_line": {"type": "string", "description": "Short title-card hook, <= 8 words"},
-        "description": {"type": "string"},
-        "tags": {"type": "array", "items": {"type": "string"}},
-        "segments": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "properties": {
-                    "segment_id": {"type": "string"},
-                    "kind": {"type": "string", "enum": ["hook", "intro", "mod", "outro"]},
-                    "title": {"type": "string"},
-                    "narration": {"type": "string"},
-                    "target_seconds": {"type": "number"},
-                    "mod_id": {"type": ["integer", "null"]},
+        "narration": {"type": "string"},
+        "target_seconds": {"type": "number"},
+        "mod_id": {"type": ["integer", "null"]},
+        "tier": {"type": ["string", "null"],
+                 "description": "ranked_tier_list only: this mod's tier verdict"},
+        "scorecard": {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {c: {"type": "number"} for c in (criteria or [])},
+            "required": list(criteria or []),
+            "description": "ranked_tier_list only: 0-5 (allow .5) per criterion; "
+                            "{} for non-mod segments or other formats",
+        },
+        "best_for": {"type": "string",
+                     "description": "ranked_tier_list only: one-line 'who this is for'"},
+    }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "title": {"type": "string"},
+            "hook_line": {"type": "string", "description": "Short title-card hook, <= 8 words"},
+            "description": {"type": "string"},
+            "tags": {"type": "array", "items": {"type": "string"}},
+            "segments": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "properties": seg_props,
+                    "required": ["segment_id", "kind", "title", "narration",
+                                 "target_seconds", "mod_id", "tier", "scorecard",
+                                 "best_for"],
                 },
-                "required": ["segment_id", "kind", "title", "narration",
-                             "target_seconds", "mod_id"],
             },
         },
-    },
-    "required": ["title", "hook_line", "description", "tags", "segments"],
-}
+        "required": ["title", "hook_line", "description", "tags", "segments"],
+    }
 
 
 # Format-specific structure notes appended to the (volatile) user prompt.
@@ -122,6 +143,24 @@ _FORMAT_GUIDANCE = {
         "This is a weekly roundup of fresh mods — keep energy high and segments "
         "tight; assume returning subscribers who want what's NEW this week."
     ),
+    VideoFormat.ranked_tier_list: (
+        "This is a RANKED TIER LIST, not a listicle. METHODOLOGY FIRST: the INTRO "
+        "must state, before any mod is discussed, that every mod here was actually "
+        "played, that placement is personal opinion (not a judgement of the author's "
+        "skill), and that each one will land on a tier list by the end — set this "
+        "expectation before segment 1, not after. Each MOD segment follows this exact "
+        "beat order: (a) name + one-line premise, (b) what it's actually like to play "
+        "it, first person, concrete not hypey, (c) ONE specific memorable moment or "
+        "anecdote, (d) an explicit comparison to the mod covered in the PREVIOUS "
+        "segment ('this feels completely different from...' / 'like <previous mod>, "
+        "but...') — this is what makes segments feel connected instead of a flat "
+        "list, (e) a brief who-it's-for caveat, (f) the tier verdict as its own "
+        "single declarative sentence ('So I'm putting <mod> in <tier> tier.'). Give "
+        "ties/nuance where earned ('right at the top of A, just under S') rather than "
+        "a flat slot. The OUTRO shows the completed board, admits it isn't every mod "
+        "in the category, and explicitly asks the audience which mod has to be in a "
+        "follow-up — this seeds the sequel."
+    ),
 }
 
 
@@ -135,6 +174,17 @@ def _build_user_prompt(category_title: str, fmt: VideoFormat, profile: VideoProf
     ]
     if fmt in _FORMAT_GUIDANCE:
         lines.append(_FORMAT_GUIDANCE[fmt])
+    if fmt == VideoFormat.ranked_tier_list:
+        tl = channel_config().get("tier_list", {})
+        tiers = tl.get("tiers", ["S", "A", "B", "C"])
+        criteria = tl.get("scorecard_criteria", [])
+        lines.append(
+            f"Tiers, hottest first: {', '.join(tiers)}. Every mod segment's `tier` "
+            f"must be one of these. Score every mod on exactly these criteria (0-5, "
+            f".5 allowed) in `scorecard`: {', '.join(criteria)}. Fill `best_for` with "
+            f"one honest line naming the kind of player this mod suits best. On "
+            f"hook/intro/outro segments, leave tier null, scorecard {{}}, best_for \"\"."
+        )
     if theme:
         lines.append(f"Transformation theme: {theme}.")
     lines += [
@@ -185,6 +235,7 @@ def write_script(
     """Generate a full narration Script for the given mods."""
     client = client or anthropic.Anthropic(api_key=require_env("ANTHROPIC_API_KEY"))
     user_prompt = _build_user_prompt(category_title, fmt, profile, mods, next_topic, theme)
+    criteria = channel_config().get("tier_list", {}).get("scorecard_criteria", [])
 
     # Static system prompt is cached; volatile mod list is in the user turn.
     response = client.messages.create(
@@ -197,7 +248,8 @@ def write_script(
             "cache_control": {"type": "ephemeral"},
         }],
         messages=[{"role": "user", "content": user_prompt}],
-        output_config={"format": {"type": "json_schema", "schema": _OUTPUT_SCHEMA}},
+        output_config={"format": {"type": "json_schema",
+                                   "schema": _build_output_schema(criteria)}},
     )
 
     text = next(b.text for b in response.content if b.type == "text")

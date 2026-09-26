@@ -164,9 +164,11 @@ skyrim-reviewer fetch-music
 ### Voice
 
 Edit `config/voice.yaml` → `provider:` and fill the matching section. Options:
-**`f5tts`** (the channel default — *your cloned voice*, free/local), `elevenlabs`
-(set `voice_id` or `ELEVENLABS_VOICE_ID`), `openai`, `prerecorded`
-(drop `work/narration/<segment_id>.wav` files), or **`piper`** (fast local voice).
+**`f5tts`** (*your cloned voice*, free/local), **`chatterbox`** (also a free/local
+clone, no transcript needed), **`qwen`** (Qwen3-TTS, free/local ICL zero-shot
+clone), `elevenlabs` (set `voice_id` or `ELEVENLABS_VOICE_ID`), `openai`,
+`prerecorded` (drop `work/narration/<segment_id>.wav` files), or **`piper`**
+(fast local voice, no cloning).
 
 ```bash
 # F5-TTS cloned voice (default). Prepare a clean ≤15s reference of your voice:
@@ -212,6 +214,21 @@ pip install piper-tts
 python -m piper.download_voices en_US-ryan-high --download-dir voices
 # config/voice.yaml -> provider: piper  (model_path: voices/en_US-ryan-high.onnx)
 ```
+
+**Qwen3-TTS** (`provider: qwen`) is another free/local zero-shot clone, open-weight
+(Alibaba), no cloud account:
+
+```bash
+pip install -U qwen-tts torch soundfile
+skyrim-reviewer voice-prep my_voice.wav        # -> voices/clone/ref_primary.wav
+# config/voice.yaml -> provider: qwen
+```
+
+Without a transcript (`ref_text` empty and no `<reference>.txt` sidecar) it clones
+from the reference audio alone (x-vector-only mode — no text needed, lower
+fidelity than F5/Chatterbox with a transcript). Model weights (~5-10GB) download
+once from HuggingFace on first use. Like F5, this is a 1.7B-param model — CPU
+inference is slow with no GPU; set `device: cuda:0` in `voice.yaml` if you have one.
 
 > MoviePy 1.x + Pillow ≥10: the `ANTIALIAS` constant was removed in Pillow 10;
 > `skyrim_reviewer/edit/pil_compat.py` restores it automatically, so renders work

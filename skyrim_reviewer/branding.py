@@ -168,36 +168,163 @@ def pinned_comment(project) -> str:
     return "\n".join(lines)
 
 
+def mod_list_page(project, fmt: str = "markdown") -> str:
+    """A standalone page listing every featured mod, linked and credited.
+
+    YouTube's 5000-character description can't hold a hundred links, so the full
+    list lives as its own page and the description points at it. Grouped by tier
+    for ranked_tier_list videos, otherwise in countdown order.
+
+    fmt="markdown" renders tables (GitHub, or any markdown host); fmt="text" is a
+    flat layout for hosts that don't render markdown — Google Docs converts plain
+    text verbatim, so a table there arrives as raw pipes.
+    """
+    plain = fmt == "text"
+    script = project.script
+    mods = {m.mod_id: m for m in project.mods if getattr(m, "page_url", "")}
+    lines = [script.title if plain else f"# {script.title}", ""]
+    if getattr(script, "description", ""):
+        lines += [script.description.split("Every mod is linked")[0].strip(), ""]
+    lines += ["Every mod below is free on Nexus Mods. Full credit to the authors — "
+              "please endorse their work.", ""]
+
+    mod_segs = [s for s in script.segments if getattr(s, "kind", "") == "mod"]
+    total = len(mod_segs)
+
+    def row(seg, rank) -> str:
+        mod = mods.get(seg.mod_id)
+        if not mod:
+            return ""
+        author = getattr(mod, "uploaded_by", "") or getattr(mod, "author", "") or "Unknown"
+        if plain:
+            # Bare URL on its own line: Docs auto-links it, markdown syntax doesn't.
+            return f"{rank}. {mod.name} — by {author}\n   {mod.page_url}\n"
+        return f"| {rank} | [{mod.name}]({mod.page_url}) | {author} |"
+
+    header = [] if plain else ["| # | Mod | Author |", "|---:|---|---|"]
+    tiers = [t for t in dict.fromkeys(
+        s.tier for s in mod_segs if getattr(s, "tier", None))]
+    if tiers:
+        # Best tier first, matching how the board reads on screen.
+        for tier in tiers[::-1]:
+            lines += ([f"{tier} TIER", ""] if plain else [f"## {tier} Tier", ""])
+            lines += header
+            for idx, seg in enumerate(mod_segs):
+                if getattr(seg, "tier", None) == tier:
+                    lines.append(row(seg, total - idx))
+            lines.append("")
+    else:
+        lines += header
+        for idx, seg in enumerate(mod_segs):
+            lines.append(row(seg, total - idx))
+        lines.append("")
+
+    return "\n".join(ln for ln in lines if ln is not None).strip() + "\n"
+
+
+def mod_list_url(project) -> str:
+    """Public URL of this video's mod-list page, or "" when none is configured.
+
+    Two ways to configure it, checked in order: `branding.mod_list_urls`, an explicit
+    slug -> URL map, for hosts whose page URLs carry an opaque id and can't be derived
+    (Notion, Google Docs); and `branding.mod_list_base_url`, for hosts that serve
+    <base>/<slug>.md directly (a GitHub repo, static hosting).
+    """
+    try:
+        from .config import channel_config
+        branding = channel_config().get("branding", {}) or {}
+    except Exception:
+        return ""
+    explicit = (branding.get("mod_list_urls") or {}).get(project.slug, "")
+    if explicit:
+        return explicit
+    base = branding.get("mod_list_base_url", "")
+    return f"{base.rstrip('/')}/{project.slug}.md" if base else ""
+
+
 def make_description(project, music_credit: str | None = None,
-                     watermark: str = "", next_topic: str = "") -> str:
+                     watermark: str = "", next_topic: str = "",
+                     limit: int = 5000) -> str:
     """Build a channel-style YouTube description: hook, timestamps, mod links with
-    credit, CTA, music attribution, and hashtags."""
+    credit, CTA, music attribution, and hashtags.
+
+    YouTube hard-caps descriptions at `limit` characters and silently drops the rest,
+    which used to cut the author credits off long videos entirely. So a list that
+    doesn't fit sheds detail in priority order instead: first the per-chapter mod
+    links (the pinned comment carries the full credited list), then the separate
+    credits block. Complete timestamps always survive — they're what the chapter UI
+    needs, and an incomplete list breaks navigation for every mod below the cut. Past
+    ~90 mods even bare chapter lines overflow, so the last rungs clip long mod names
+    in the chapter labels rather than shedding chapters.
+
+    The music block is a CC BY attribution and the hashtags sit after it, so the
+    final fallback trims the chapter list — never the tail, which a blind
+    `out[:limit]` would eat first."""
+    ladder: list[tuple[bool, bool, int | None]] = [
+        (True, True, None), (True, False, None),
+        (False, True, None), (False, False, None),
+        (False, False, 64), (False, False, 48), (False, False, 36),
+    ]
+    for link_chapters, credit_block, max_label in ladder:
+        out = _compose_description(project, music_credit, watermark, next_topic,
+                                   link_chapters, credit_block, max_label)
+        if len(out) <= limit:
+            return out
+    # Still too long: shed chapters from the end, keeping the credited tail intact.
+    n = len(getattr(project.script, "chapters", None) or [])
+    while n > 0:
+        n -= 5
+        out = _compose_description(project, music_credit, watermark, next_topic,
+                                   False, False, 36, max_chapters=max(n, 0))
+        if len(out) <= limit:
+            return out
+    return out[:limit].rsplit("\n", 1)[0]
+
+
+def _compose_description(project, music_credit: str | None, watermark: str,
+                         next_topic: str, link_chapters: bool,
+                         credit_block: bool, max_label: int | None = None,
+                         max_chapters: int | None = None) -> str:
+    from .edit.captions import CHAPTER_LINK_SEP
     script = project.script
     lines: list[str] = [script.title, ""]
     # Keep only the lead paragraph of any existing description — structured credits /
     # timestamps are appended below, so drop them here to avoid duplication.
     desc = getattr(script, "description", "") or ""
-    low = desc.lower()
-    cut = min([i for i in (low.find("mods featured"), low.find("full credit"),
-                           low.find("timestamps"), low.find("🔧"), low.find("⏱"))
-               if i != -1] or [len(desc)])
-    desc = desc[:cut].strip()
+    # Anchor the section markers to a line start: "full credit" and "timestamps" also
+    # occur in ordinary prose ("...linked below with full credit to its author"), and
+    # matching those mid-sentence truncates the lead paragraph.
+    m = re.search(r"^\s*(mods featured|full credit|timestamps|🔧|⏱)",
+                  desc, re.I | re.M)
+    desc = desc[:m.start() if m else len(desc)].strip()
     if desc:
         lines += [desc, ""]
 
-    if getattr(script, "chapters", None):
+    chapters = list(getattr(script, "chapters", None) or [])
+    if chapters:
+        if not link_chapters:
+            chapters = [c.split(CHAPTER_LINK_SEP)[0] for c in chapters]
+        if max_label:
+            chapters = [c if len(c) <= max_label else c[:max_label - 1].rstrip() + "…"
+                        for c in chapters]
+        if max_chapters is not None:
+            chapters = chapters[:max_chapters]
         lines.append("⏱ Timestamps")
-        lines += script.chapters
+        lines += chapters
         lines.append("")
 
     # Mods featured — always credit authors + link the mod page (NexusMods terms).
     mods = [m for m in project.mods if getattr(m, "page_url", "")]
-    if mods:
+    if mods and credit_block:
         lines.append("🔧 Mods featured (support the authors — endorse & download):")
         for m in mods:
             author = getattr(m, "uploaded_by", "") or getattr(m, "author", "") or "Unknown"
             lines.append(f"• {m.name} by {author} — {m.page_url}")
         lines.append("")
+    elif mods:
+        url = mod_list_url(project)
+        lines += ([f"🔧 Every mod, linked and credited: {url}", ""] if url else
+                  ["🔧 Every mod credited and linked in the pinned comment.", ""])
 
     cta = "▶ Subscribe for new Skyrim mod videos twice a week."
     if next_topic:

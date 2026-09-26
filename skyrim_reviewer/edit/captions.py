@@ -5,6 +5,7 @@ list computed from the REAL audio durations, so timestamps are accurate.
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from ..models import Script
@@ -26,12 +27,14 @@ def segment_durations(script: Script, pause: float = 0.45) -> list[float]:
     return out
 
 
-def write_srt(script: Script, durations: list[float], out_path: Path) -> None:
-    lines, t = [], 0.0
+def write_srt(script: Script, durations: list[float], out_path: Path,
+              extra_gaps: dict | None = None, start_offset: float = 0.0) -> None:
+    extra_gaps = extra_gaps or {}
+    lines, t = [], float(start_offset)
     for i, (seg, dur) in enumerate(zip(script.segments, durations), 1):
         start, end = t, t + dur
         lines += [str(i), f"{_ts(start)} --> {_ts(end)}", seg.narration.strip(), ""]
-        t = end
+        t = end + extra_gaps.get(seg.segment_id, 0.0)
     out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -69,16 +72,22 @@ def _hex_to_ass(color: str) -> str:
 
 
 def build_ass(segments, durations, size, out_path: Path,
-              accent: str = "#d4af37", start_offset: float = 0.0) -> Path:
+              accent: str = "#d4af37", start_offset: float = 0.0,
+              extra_gaps: dict | None = None) -> Path:
     """Write an .ass subtitle with short, animated caption lines for each spoken
     segment, timed within the segment by word count. Big, bold, centered, with a
     heavy outline so it reads on any footage — burned in at render time.
 
     `start_offset` shifts all timings later (seconds) — used when a cold-open teaser
-    is prepended to the video so captions still line up with the narration."""
+    is prepended to the video so captions still line up with the narration.
+    `extra_gaps` (segment_id -> seconds) accounts for non-narrated clips spliced in
+    right after a segment (e.g. ranked_tier_list's verdict card), so later segments'
+    captions still line up with their real position in the concatenated video."""
     W, H = size
     fontsize = max(36, round(H * 0.05))
-    margin_v = round(H * 0.20)               # sit above the lower-third strip
+    # Clear the lower-third AND its "FREE ON NEXUS" pill, whose top edge is exactly
+    # H*0.20 at 1080p — at that margin descenders and the outline ran into it.
+    margin_v = round(H * 0.222)
     primary = "&H00FFFFFF"                    # white text
     accent_ass = _hex_to_ass(accent)
     header = f"""[Script Info]
@@ -96,11 +105,13 @@ Style: CapHi,DejaVu Sans,{fontsize},{accent_ass},&H00101010,&H64000000,1,1,4,1,2
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 """
+    extra_gaps = extra_gaps or {}
     events, t = [], float(start_offset)
     for seg, dur in zip(segments, durations):
+        gap = extra_gaps.get(seg.segment_id, 0.0)
         words = (seg.narration or "").split()
         if not words or dur <= 0:
-            t += dur
+            t += dur + gap
             continue
         lines = _chunks(words)
         total_w = sum(len(ln.split()) for ln in lines) or 1
@@ -115,7 +126,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 f"Dialogue: 0,{_ass_ts(start)},{_ass_ts(end)},{style},,0,0,0,,"
                 f"{{\\fad(90,90)}}{txt}")
             start = end
-        t += dur
+        t += dur + gap
     out_path.write_text(header + "\n".join(events) + "\n", encoding="utf-8")
     return out_path
 
@@ -130,13 +141,25 @@ def _clean_chapter_name(name: str) -> str:
     return n.strip(" -–") or (name or "").strip()
 
 
+# Separator between a chapter's label and its mod link. Distinctive enough that the
+# description builder can split it back off without touching mod names.
+CHAPTER_LINK_SEP = " — "
+
+
 def youtube_chapters(script: Script, durations: list[float],
-                     mods=None, start_offset: float = 0.0) -> list[str]:
+                     mods=None, start_offset: float = 0.0,
+                     extra_gaps: dict | None = None,
+                     link_mods: bool = False) -> list[str]:
     """'0:00 Intro' style chapter list for the description. Mod segments are labelled
     with the mod's name (and countdown rank) — falling back to the mod list when the
     segment carries no title — so the chapters are actually usable on YouTube instead
     of blank timestamps. `start_offset` accounts for a prepended cold-open teaser; the
-    first chapter is clamped to 0:00 (YouTube requires it) so it covers the teaser."""
+    first chapter is clamped to 0:00 (YouTube requires it) so it covers the teaser.
+    `extra_gaps` (segment_id -> seconds): see build_ass. `link_mods` appends each
+    mod's Nexus page to its chapter line, so a viewer reading the timestamps has the
+    download link right there (CHAPTER_LINK_SEP lets the description strip them again
+    if the 5000-char cap needs the room)."""
+    extra_gaps = extra_gaps or {}
     by_id = {m.mod_id: m for m in (mods or [])}
     n_mods = sum(1 for s in script.segments if getattr(s, "kind", "") == "mod")
     labels = {"hook": "Intro", "intro": "Intro", "outro": "Outro"}
@@ -155,6 +178,12 @@ def youtube_chapters(script: Script, durations: list[float],
             label = f"#{rank} {name}" if n_mods >= 3 else name
         elif not label:
             label = labels.get(kind, kind.title() or "Chapter")
+        if link_mods and kind == "mod":
+            url = getattr(by_id.get(seg.mod_id), "page_url", "")
+            if url:
+                # Bare host: YouTube still auto-links it, and the 12 chars saved per
+                # line decide whether a long list's links fit the description cap.
+                label += CHAPTER_LINK_SEP + re.sub(r"^https?://(www\.)?", "", url)
         out.append(f"{m_}:{s_:02d} {label}")
-        t += dur
+        t += dur + extra_gaps.get(seg.segment_id, 0.0)
     return out

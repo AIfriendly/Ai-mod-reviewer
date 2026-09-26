@@ -89,9 +89,14 @@ def enhance_file(path: Path, ffmpeg: str | None = None, preset: str | None = Non
         from ..utils.ffmpeg import ffmpeg_path
         ffmpeg = ffmpeg_path()
     tmp = path.with_name(path.stem + "_enh" + path.suffix)
+    # This re-encodes what the provider already wrote, so it's a SECOND lossy pass
+    # over the narration. Without an explicit bitrate lame's mono default takes it
+    # to 64k and throws away whatever quality the provider's own encode preserved.
+    codec = (["-c:a", "libmp3lame", "-b:a", "192k"]
+             if path.suffix.lower() == ".mp3" else [])
     try:
         subprocess.run([ffmpeg, "-y", "-v", "error", "-i", str(path),
-                        "-af", chain, str(tmp)], check=True)
+                        "-af", chain, *codec, str(tmp)], check=True)
         tmp.replace(path)
     except Exception:
         tmp.unlink(missing_ok=True)

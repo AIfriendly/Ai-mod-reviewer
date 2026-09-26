@@ -74,3 +74,9 @@ analytics/channel_stats.json
 
 # Throwaway test specs (underscore-prefixed)
 examples/_*.yaml
+
+# ffmpeg two-pass encode artifacts (left in cwd by any manual -pass 1/-pass 2 run)
+ffmpeg2pass-*.log
+ffmpeg2pass-*.log.mbtree
+ffmpeg2pass-*.log.mbtree.temp
+ffmpeg2pass-*.log.temp

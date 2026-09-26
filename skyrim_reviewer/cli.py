@@ -130,6 +130,8 @@ def ideas(
         typer.echo(f"   style:   {idea['format']}  (like {', '.join(idea['inspired_by']) or 'general'})")
         if idea["mods"]:
             typer.echo(f"   mods:    {', '.join(idea['mods'][:5])}")
+        if idea["live_reference_titles"]:
+            typer.echo(f"   trending now: {'; '.join(idea['live_reference_titles'])}")
         typer.echo(f"   make it: {idea['command']}")
 
 
@@ -198,7 +200,7 @@ def research(category: str, game: str = typer.Option(None, help="Nexus game doma
 def draft(
     category: str,
     profile: str = typer.Option(None, help="test | full"),
-    fmt: str = typer.Option("category_list", help="category_list | transformation | weekly_roundup"),
+    fmt: str = typer.Option("category_list", help="category_list | transformation | weekly_roundup | ranked_tier_list"),
     out: str = typer.Option(None, help="Output spec path (default scripts/<cat>-<profile>.yaml)"),
 ):
     """Live-research a category and write a script SKELETON (mods filled, narration
@@ -306,7 +308,7 @@ def script(
 def make(
     category: str = typer.Argument(..., help="Category id (see `categories`) or theme slug"),
     profile: str = typer.Option(None, help="test (5 min) | full (20 min)"),
-    fmt: str = typer.Option("category_list", help="category_list | transformation | weekly_roundup"),
+    fmt: str = typer.Option("category_list", help="category_list | transformation | weekly_roundup | ranked_tier_list"),
     theme: str = typer.Option("", help="For transformation videos, e.g. 'The Witcher'"),
     next_topic: str = typer.Option("", help="Tease this as next week's topic"),
     skip_render: bool = typer.Option(False, help="Stop before the final video render"),

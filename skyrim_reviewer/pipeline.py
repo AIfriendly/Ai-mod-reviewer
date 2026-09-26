@@ -50,7 +50,6 @@ def run(category_id: str, *, profile_name: str | None = None,
     key required.
     """
     from .assets import acquire_media
-    from .edit.assemble import assemble_video
     from .edit.remotion_render import render_title_card
     from .scripting import apply_spec, load_spec
     from .thumbnail import make_thumbnail
@@ -174,6 +173,7 @@ def run(category_id: str, *, profile_name: str | None = None,
         from .edit.ffrender import render_video_ffmpeg
         render_video_ffmpeg(project, accent=accent)
     else:
+        from .edit.assemble import assemble_video
         assemble_video(project, accent=accent)
     _save(project)
     # Rule 1: log this video's mods so they're never repeated in future runs.

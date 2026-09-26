@@ -6,7 +6,8 @@ category buckets to propose ready-to-produce video ideas: a clickable title, the
 the pipeline format to use, the inspiring channels, and the exact `make` command.
 
 Offline by default. Pass live=True to attach real currently-trending mods (one API
-call per idea) so each idea names actual mods.
+call per idea) and, when FIRECRAWL_API_KEY is set, a sample of what the idea's
+inspiring reference channel(s) are currently publishing (research/reference_scrape.py).
 """
 from __future__ import annotations
 
@@ -87,6 +88,7 @@ def generate_ideas(n: int = 8, live: bool = False, seed: int | None = None) -> l
             "category": cat["id"] if cat else "trending",
             "command": cmd,
             "mods": [],
+            "live_reference_titles": [],
         }
         if live and cat:
             try:
@@ -95,5 +97,9 @@ def generate_ideas(n: int = 8, live: bool = False, seed: int | None = None) -> l
                 idea["mods"] = [m.name for m in mods[:fields["n"]]]
             except Exception:
                 pass
+        if live and fmt.get("inspired_by"):
+            from .research.reference_scrape import live_channel_titles
+            channel = rng.choice(fmt["inspired_by"])
+            idea["live_reference_titles"] = live_channel_titles(channel, limit=3)
         ideas.append(idea)
     return ideas

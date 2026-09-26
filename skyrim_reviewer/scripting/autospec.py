@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 import re
+from html import unescape
 from datetime import date
 from pathlib import Path
 
@@ -42,9 +43,102 @@ _LEADS = ["Number {o}:", "At number {o}:", "Coming in at number {o}:",
           "Next up, number {o}:", "Number {o} on the list:", "Then at number {o}:",
           "Sliding in at number {o}:", "Kicking off number {o}:"]
 
+# Topic bridges. The reference channel rarely announces an entry cold — it links the
+# previous mod's subject to the next one ("Talking of Skyrim wildlife, especially
+# foxes, next we have...", "From ghosts to grasslands, now let's add..."). Over a
+# hundred entries that connective tissue is what keeps a list from reading as a list.
+# A bridge is only emitted when a topic is actually detected in BOTH mods, so it can
+# never assert a link that isn't there.
+_TOPICS = {
+    "combat": r"\b(combat|fight|attack|block|parry|stagger|weapon|damage|duel)\w*",
+    "followers": r"\b(follower|companion|npc|voice|dialogue|marriage|spouse)\w*",
+    "the interface": r"\b(ui|hud|menu|inventory|interface|icon|font)\w*",
+    "animation": r"\b(animation|animated|idle|pose|movement|locomotion)\w*",
+    "dungeons": r"\b(dungeon|ruin|crypt|barrow|draugr|cave|tomb)\w*",
+    "the weather": r"\b(weather|storm|rain|snow|fog|climate|season)\w*",
+    "towns and cities": r"\b(town|city|village|hold|whiterun|riften|solitude|markarth)\w*",
+    "magic": r"\b(spell|magic|magicka|enchant|conjur|destruction|illusion)\w*",
+    "crafting": r"\b(craft|smith|forge|temper|alchemy|potion|cook)\w*",
+    "survival": r"\b(survival|hunger|thirst|needs|camping|cold|warmth)\w*",
+    "stealth": r"\b(stealth|sneak|thief|thieves|assassin|detect)\w*",
+    "creatures": r"\b(creature|beast|dragon|wolf|bear|animal|wildlife|monster)\w*",
+    "quests": r"\b(quest|adventure|story|questline|radiant)\w*",
+    "the world itself": r"\b(landscape|grass|tree|flora|terrain|worldspace|map)\w*",
+}
+_TOPICS = {k: re.compile(v, re.I) for k, v in _TOPICS.items()}
+
+_BRIDGE_SAME = ["Speaking of {t}, ", "Staying with {t}, ", "Sticking with {t}, ",
+                "Talking of {t}, "]
+_BRIDGE_DIFF = ["From {p} to {t}, ", "That's {p} handled — now for {t}. ",
+                "We go from {p} to {t} for this one. "]
+
+
+def _topic_of(mod: Mod) -> str:
+    """The first topic whose pattern matches this mod's name or summary, else ""."""
+    hay = f"{getattr(mod, 'name', '')} {getattr(mod, 'summary', '')}"
+    for topic, pat in _TOPICS.items():
+        if pat.search(hay):
+            return topic
+    return ""
+
+
+def _bridge(prev: Mod | None, cur: Mod, rng: random.Random) -> str:
+    """A connective clause linking the previous entry to this one, or "" when no
+    topic is detectable in both — never invent a relationship that isn't there."""
+    if prev is None:
+        return ""
+    p, t = _topic_of(prev), _topic_of(cur)
+    if not p or not t:
+        return ""
+    if p == t:
+        return rng.choice(_BRIDGE_SAME).format(t=t)
+    return rng.choice(_BRIDGE_DIFF).format(p=p, t=t)
+
+# Beats about *your* vampire are false on a mod about NPC vampires, Serana or a
+# follower, even when its pitch mentions perks or an overhaul.
+_NOT_THE_PLAYER = r"\bNPCs?\b|\bfollowers?\b|\bSerana\b"
+
 # Category-specific flavour: hook line, what the video is "about", and a pool of
 # value sentences rotated through the entries to add variety and pad to length.
 _FLAVOUR = {
+    "alchemy": {
+        "title": "Best Skyrim Alchemy & Enchanting Mods",
+        "noun": "alchemy and enchanting mods",
+        "subject": "brewing and enchanting",
+        "values": [
+            "Vanilla alchemy is mostly menu-scrolling, and this is the kind of mod that turns it into something you actually engage with.",
+            "It respects the vanilla economy instead of handing you overpowered potions on a plate.",
+            "If you've ever ignored the alchemy table for an entire playthrough, this is the mod that changes that.",
+            "It's lightweight and lore-friendly, which matters a lot in a school this easy to unbalance.",
+            "Enchanting is one of the easiest skills to break, and this keeps it interesting without trivialising the game.",
+            "It stacks cleanly with the other mods here, so you can build a full crafting overhaul out of this list.",
+        ],
+    },
+    "vampire": {
+        "title": "Best Skyrim Vampire Mods",
+        "noun": "vampire mods",
+        "subject": "playing a vampire",
+        # Each beat asserts a mechanic, and a vampire list mixes overhauls with music,
+        # armour, eyes and followers — so each is gated on its subject appearing in the
+        # mod's own page (see _pick_beat). "Feeding loop" on a music mod was false.
+        "values": [
+            ("Vanilla vampirism is mostly a stack of penalties you want cured as fast as possible, and this is the kind of mod that makes it a build instead.",
+             r"\bperks?\b|\bskill tree\b|\bprogression\b", _NOT_THE_PLAYER),
+            ("It treats being a vampire as a playstyle with its own rules, rather than a disease with a quest attached.",
+             r"\bvampirism\b.{0,80}\b(overhaul|rework|mechanic)|\b(overhaul|rework)s?\s+(of\s+)?vampir",
+             _NOT_THE_PLAYER),
+            ("The feeding loop is the part vanilla never got right, and this is where that finally starts to click.",
+             r"\bfeed(ing|s)?\b|\bblood ?(pool|meter|thirst)\b|\bhunger\b"),
+            ("It fits alongside the bigger vampire overhauls instead of fighting them, which matters in a category this prone to conflicts.",
+             r"\b(compatib\w*|patch\w*)\b.{0,80}\b(sacrosanct|better vampires|vampiric thirst|growl)\b"),
+            ("If you've only ever experienced vampirism as the thing you cure in Morthal, this is the mod that changes your mind.",
+             r"\bvampirism\b.{0,80}\b(stage|progress|power|abilit)|\bvampire lord\b.{0,60}\b(power|abilit|perk)",
+             _NOT_THE_PLAYER),
+            ("It leans into the predator fantasy without making you unkillable, which is a harder balance than it sounds.",
+             r"\bbalanc\w*\b|\bweakness(es)?\b.{0,40}\bstrengths?\b|\bstrengths?\b.{0,40}\bweakness",
+             _NOT_THE_PLAYER),
+        ],
+    },
     "magic": {
         "title": "Best Skyrim Magic & Spell Mods",
         "noun": "magic mods",
@@ -151,18 +245,24 @@ _FLAVOUR = {
     },
 }
 
-_GENERIC_VALUES = [
-    "It's the kind of mod that quietly makes everything around it better.",
-    "It's free, it's polished, and it slots neatly into almost any load order.",
-    "Combined with the other picks on this list, it adds up to a dramatically better Skyrim.",
-    "If you somehow haven't tried it yet, consider this your sign to fix that.",
-    "It's stable, well-supported, and beloved for good reason.",
-    "This is one of those installs you'll keep in every single playthrough.",
-]
+# Deliberately empty. This used to hold generic value lines ("It's stable,
+# well-supported, and beloved for good reason") that _pad() appended until an entry
+# hit a word count. That padded runtime with content-free copy, and on a mod with a
+# couple of hundred endorsements the claims were simply untrue — both of which the
+# narration rules in CLAUDE.md forbid. Length now comes from the mod's own page.
+_GENERIC_VALUES: list[str] = []
 
 # "Who it's for" lines add a concrete, opinionated recommendation angle per entry —
 # the kind of editorial substance YouTube's inauthentic-content policy looks for.
 _WHO_FOR = {
+    "vampire": [   # gated like _FLAVOUR["vampire"]; see _pick_beat
+        ("If you want a vampire playthrough that's a build rather than a debuff, this is for you.",
+         r"\bperks?\b|\bskill tree\b|\bprogression\b|\bstrengths\b", _NOT_THE_PLAYER),
+        ("Anyone who plays the Dawnguard side and still wants the vampires to feel dangerous will get a lot out of this.",
+         r"\b(vampire npcs?|enemy vampires?|hostile vampires?)\b|\bvampires?\b.{0,40}\b(harder|tougher|deadlier|dangerous)\b"),
+        ("If your idea of a vampire run is stalking a hold at night rather than sprinting between shadows, this one's aimed at you.",
+         r"\bstealth\b|\bsneak\w*\b|\bat night\b|\bnight ?time\b"),
+    ],
     "magic": [
         "If you main a battlemage or you've always wanted a real spellsword fantasy, this is for you.",
         "Honestly, if you've only ever played a stealth archer, this is the mod that'll finally convert you to magic.",
@@ -211,52 +311,119 @@ _WHO_FOR_GENERIC = [
 
 # Hook / intro / outro variants — picked per video so different uploads don't open
 # with the exact same script (a key anti-"mass-produced template" signal).
+def _teaser(mods: list[Mod], rng: random.Random) -> str:
+    """Name a few of this video's actual standout mods for the opening.
+
+    The strongest pattern in the reference channels' openings is telling the viewer
+    what is specifically in THIS episode before the countdown starts, rather than a
+    generic "here are N mods". Mods arrive ranked weakest-first, so the tail is the
+    good end of the list; naming real entries keeps the promise accurate.
+    """
+    picks = [_spoken_name(m.name) for m in mods[-3:] if m.name][::-1]
+    if not picks:
+        return "we've got a stacked list this time"
+    if len(picks) == 1:
+        return f"we're taking a look at {picks[0]}"
+    if len(picks) == 2:
+        return f"we're taking a look at {picks[0]} and {picks[1]}"
+    return (f"we're taking a look at {picks[0]}, {picks[1]}, {picks[2]}, "
+            f"and plenty more")
+
+
 _HOOKS_FIRST = [
-    "Skyrim is over a decade old, but thanks to its modding community it has never "
-    "looked or played better — especially when it comes to {noun}. Today I'm counting "
-    "down {n} of the absolute best {noun} you can install right now, all of them free, "
-    "all of them linked below. Stick around to the end, because the number one pick is "
-    "the one I genuinely couldn't play without. Let's jump in.",
-    "I've spent way too many hours digging through Nexus so you don't have to, and I've "
-    "narrowed it down to the {n} best {noun} worth your time in {year}. Every single one "
-    "is free, every author is credited below, and trust me — the top of this list is "
-    "special. Let's get straight into it.",
-    "If your Skyrim is starting to feel a little stale, the {n} {noun} on this list are "
-    "the fix. These are the mods I'd reinstall first on any fresh setup — all free, all "
-    "linked down below, ranked from good to absolutely essential. Let's count them down.",
+    "Welcome back to the channel! Today we've got {n} of the best {noun} in {year}, "
+    "ranked from good all the way up to essential — {teaser}. Every one of them is "
+    "free, and every author is credited down in the description. Let's begin.",
+    "Hello friends, and welcome back! This time {teaser}, all part of a ranked run "
+    "through {n} of the best {noun} you can install in {year}. Everything here is free "
+    "and linked below, so go endorse the authors while you watch. Let's get into it.",
+    "Welcome back! If your Skyrim is feeling a little stale, this list is the fix: "
+    "{n} of the best {noun} in {year}, ranked from good to absolutely essential. "
+    "{teaser}. All free, all credited below. Let's begin the first showcase.",
+    # Says the quiet part out loud: the countdown already saves the best for last,
+    # and the reference channels explicitly promise it rather than leaving it implied.
+    "Welcome back! Today we're ranking {n} of the best {noun} in {year}, and "
+    "{teaser}. I'm saving my favourite for last, so stick around to the end. "
+    "Everything is free and credited below. Let's begin.",
+    # Cold open: lead with the observation, identify the video after. Two of the
+    # reference videos open this way instead of greeting first.
+    "You'd think Skyrim would have run out of good {noun} by {year}. It hasn't — "
+    "not even close. {teaser}, and that's only the start of a list {n} deep, "
+    "ranked from good to essential. All free, all linked below. Let's get into it.",
+    "Skyrim is fourteen years old and somehow the {noun} keep getting better. "
+    "{teaser}. That's part of {n} of the best you can install in {year}, ranked "
+    "from good all the way to essential, and the best one is last. Let's begin.",
+    # Rhetorical question straight to the viewer, answered by the host — one of the
+    # reference openings does exactly this before naming the first mod.
+    "Are you looking for something new to put in your load order? So am I. So here "
+    "are {n} of the best {noun} released in {year}, ranked from good to essential — "
+    "{teaser}. All free, all credited below. Let's check out the first one.",
+    # Anchored to the moment rather than the game: several of the reference openings
+    # start on "a new year is upon us" / "yet another month is drawing to a close".
+    "Another year of Skyrim modding is behind us, and honestly it was a good one. "
+    "{teaser}. So grab a warm drink and settle in, because we're going through {n} "
+    "of the best {noun} of {year}, ranked from good to essential, favourite last. "
+    "Let's dive in.",
+    # Single-subject shape. Their themed videos don't promise "find a mod", they
+    # promise a finished build — "I will be comparing them to each other, to help
+    # you build the perfect Whiterun that suits your personal needs" — which is a
+    # far stronger payoff when every entry is about one thing.
+    "There are more {noun} out there than anyone can reasonably sort through, so "
+    "today I'm going through {n} of them, ranked from good to essential. "
+    "{teaser}. By the end you'll know exactly which ones belong in your build and "
+    "which ones you can skip. Everything is free and credited below. Let's begin.",
 ]
 _HOOKS_PART = [
-    "We're back — and this time it's part {part}. You loved the last round so much that "
-    "I went digging for {n} more of the very best {noun} Skyrim has to offer, and honestly, "
-    "some of these might be even better than before. Every one is free, every author is "
-    "linked below, and the number one pick is a must-have. Let's get into it.",
-    "You asked for more, so here's part {part}: {n} more of the best {noun} I could find, "
-    "with zero repeats from the earlier videos. All free, all credited below. Let's dive "
-    "straight back in.",
+    "Welcome back — and this time it's part {part}. We've got {n} more of the very best "
+    "{noun} Skyrim has to offer, with zero repeats from the earlier videos: {teaser}. "
+    "All free, all credited below. Let's begin.",
+    "Hello again, friends! Part {part} is here with {n} more of the best {noun} I could "
+    "find, and {teaser}. Everything is free and linked in the description. Let's get "
+    "straight back into it.",
 ]
 _INTROS = [
-    "Quick note before we start: everything here is completely free on Nexus Mods, and "
-    "every creator is credited in the description, so please go endorse their work — it's "
-    "the least we can do for this much free content. We're counting down from number "
-    "{nord} all the way to number one, so settle in. Here we go.",
-    "Before we dive in — every mod is free, every author is linked below, and a quick "
-    "endorsement on Nexus genuinely helps these creators keep going. Alright, counting "
-    "down from {nord} to one. Let's do it.",
-    "One thing up front: I'm ranking these from number {nord} down to my personal number "
-    "one, and reasonable people will absolutely disagree on the order — let me know yours "
-    "in the comments. Everything's free and linked below. Let's get started.",
+    "Quick note before we start: everything here is completely free on Nexus, and every "
+    "creator is credited in the description, so please go endorse their work — it's the "
+    "least we can do for this much free content. We're counting down from number {nord} "
+    "to number one. First off, let's take a look.",
+    "One thing up front: a quick endorsement on Nexus genuinely helps these authors keep "
+    "going, and they're all linked below. We're going from number {nord} down to number "
+    "one, so settle in. Here we go.",
+    "Before we dive in — I'm ranking these from number {nord} down to my personal number "
+    "one, and you'll absolutely disagree with some of the order, so tell me yours in the "
+    "comments. Everything's free and linked below. Now, let's begin.",
+    # A tier list's own premise is subjective, and the reference channel's tier video
+    # says so out loud and invites the argument rather than waiting to be told:
+    # "it's my list, so if you disagree with the placement, please argue with me in
+    # the comments." It also states the rubric before the countdown starts.
+    "Quick word on how this works. After each mod I'll put it on the tier list: S tier "
+    "is for the ones that change how you play the game, down through the middle for "
+    "the solid, worth-it picks, and the lower tiers for the narrower mods that are "
+    "perfect if they're your thing. It's subjective and it's my list, so if you hate "
+    "where something lands, argue with me in the comments — genuinely, I want to hear "
+    "it. We're going from number {nord} to number one. Let's begin.",
 ]
 _OUTROS = [
-    "And that's the list — {n} of the best {noun} in {year}. Every mod is linked below "
-    "with full credit to the brilliant authors who made them, so go show them some love. "
-    "If this helped you out, subscribe, because I put out two new Skyrim videos every "
-    "single week. Thanks so much for watching, and I'll see you in the next one.",
-    "So there you go — {n} {noun} that'll seriously transform your game, all free and all "
-    "linked below. Drop a comment with the one you'd have put at number one, hit subscribe "
-    "for two new Skyrim videos a week, and I'll catch you in the next one.",
-    "That wraps up {n} of my favourite {noun} right now. Go endorse the authors down in "
-    "the description — they've earned it — and if you want more lists like this, subscribe; "
-    "there's a new one every few days. Thanks for watching, see you next time.",
+    # The reference outros open on a synthesis beat — what the list adds up to once
+    # it's all installed — before any thanks. Then a question to the comments, one
+    # like/subscribe ask, and a short sign-off. (Their actual outros are mostly
+    # Patreon roll-calls and a recurring host tag; none of that is ours to take.)
+    "Put all of these together and it stops being a list of mods — it's a different "
+    "Skyrim. Thanks so much for watching. Before you go, I want to know: which of these "
+    "is going into your load order first? Tell me in the comments. Everything is linked "
+    "below with full credit to the authors, so go endorse them. See you in the next one!",
+    "And that's the list. Thanks so much for watching — I hope you found a few new {noun} "
+    "for your load order. Every mod is linked below with full credit to the authors who "
+    "made them, so go show them some love. Leave a like if you enjoyed this, and "
+    "subscribe for more. See you in the next one!",
+    "That's all {n} of them. I hope you came away with something new for your next "
+    "playthrough — I certainly did. Everything is linked and credited below, so go endorse "
+    "the authors; they've earned it. Let me know your own number one in the comments. "
+    "Thanks for watching, see you next time!",
+    "That wraps up {n} of the best {noun} in {year}. Tell me what you thought of these "
+    "in the comment section, and do like and subscribe if you want more lists like this. "
+    "All the authors are credited down below. Thank you so much for watching — see you "
+    "in the next one!",
 ]
 
 
@@ -367,11 +534,20 @@ def _proof_sentence(mod: Mod, rng: random.Random) -> str:
 _BBCODE = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
 _URL = re.compile(r"https?://\S+")
 _WS = re.compile(r"\s+")
+# Mod page bodies are BBCode *and* HTML — "<br />" read aloud is not a sentence.
+_HTML = re.compile(r"<[^>]+>")
+# All-caps run-in headers authors use to structure a page ("DESCRIPTION:",
+# "FEATURES -"). Spoken, they're noise in the middle of a sentence.
+_HEADER = re.compile(r"\b[A-Z][A-Z &'/-]{3,}\s*[:\-–]\s*")
 
 
 def _clean(text: str) -> str:
-    """Strip BBCode/URLs/markup noise from a Nexus summary and tidy whitespace."""
+    """Strip BBCode/HTML/URLs/markup noise from Nexus copy and tidy whitespace."""
     t = _BBCODE.sub("", text or "")
+    t = _HTML.sub(" ", t)
+    t = unescape(t)                                 # &nbsp;, &amp;, &#8203; …
+    t = t.replace("​", " ").replace("﻿", " ")   # zero-width junk
+    t = _HEADER.sub("", t)
     t = _URL.sub("", t)
     t = t.replace("\r", " ").replace("\n", " ")
     t = re.sub(r"[!?]{2,}", "!", t)                 # "FLY!!!" -> "FLY!"
@@ -389,7 +565,58 @@ _OFFTOPIC_SENT = re.compile(
     r"\b(dedicated to|in memory of|rest in peace|my (?:sister|brother|mother|father|"
     r"wife|husband|son|daughter|dog|cat|friend)|patreon|ko-?fi|paypal|donat|"
     r"discord|subscribe|please endorse|endorse if|leave a like|changelog|"
-    r"bug ?fix|hotfix|version \d|update \d|requires? )\b", re.I)
+    r"bug ?fix|hotfix|version \d|update \d|native english speaker|"
+    r"english is not my|(?:this|new|latest|next) (?:update|build)|outdated|"
+    r"previous (?:version|build)|click here|april fool|double[- ]click|"
+    r"follow the steps|unzip|extract (?:the|it)|nmm|vortex|mod organi[sz]er|"
+    r"mod manager|nexus releases?|coming soon|work in progress|wip|new in v?\d|"
+    r"re-?upload|permissions?|modder.?s resource|disclaimer|elder scrolls v|"
+    r"legendary edition|available here|install(?:ing|ed)? manually|data files|"
+    r"main file|miscellaneous file|optional files?|download only|"
+    r"check the load order)\b", re.I)
+# The page is written by the author, in the first person, and our narrator reading
+# it aloud becomes the author: "Hello fellow modders, I'm Rougeshot … I'm in college
+# part time" and "please consider giving an endorsement" both reached a render. Only
+# third-person description of the mod survives; greetings and thanks go too.
+_AUTHOR_VOICE = re.compile(
+    r"\b(?:i|i'm|i've|i'll|i'd|me|my|mine|myself|we|we're|we've|our|us)\b|"
+    r"\b(?:thanks?|thank you|hello|hey|hi everyone|let me know)\b", re.I)
+# "requires ..." was in the list above, which threw away exactly the detail the
+# narration rules ask for — a named requirement ("requires SKSE and Address
+# Library") is a concrete specific, and the reference channel states them. It also
+# lets an author's own compatibility warning through, which is the one honest way
+# to give an entry a caveat without inventing a flaw.
+
+# A page body is laid out in lines — headings, "Name : … Author : … Version :"
+# blocks, separator bars, "Skyrim LE (2011) | Skyrim SE (2016)" links. Flattened
+# first, each glues onto the next real sentence and gets read aloud with it. Split
+# on the page's own line breaks so a line that never reaches terminal punctuation is
+# dropped as the label it is. A bare newline is a soft wrap inside a sentence, not a
+# break — splitting on it produced fragments like "was just used as a fast travel
+# exit point."
+_LINE_BREAK = re.compile(
+    r"<br\s*/?>|</?(?:p|li|div)\b[^>]*>|\[/?(?:\*|list|line|hr)\]|[=\-_*~#]{4,}",
+    re.I)
+# Not narration: pipes and arrows from link rows, "Name : value" blocks, file paths,
+# FAQ entries, and the author's own questions ("Not all requirements are required
+# right?").
+_NOT_PROSE = re.compile(
+    r"\||->|=>|\s:\s|\\|\.(?:nif|esp|esm|esl|dds|bsa|dll|ini|pex|psc|hkx)\b|"
+    r"\b[QA]:\s|\?$", re.I)
+
+
+def _page_sentences(body: str) -> list[str]:
+    """Complete, on-topic, third-person prose sentences from a mod's page body."""
+    out = []
+    for line in _LINE_BREAK.split(body or ""):
+        for s in re.findall(r".+?[.!?](?=\s|$)", _clean(line)):
+            s = re.sub(r"^(?:[^\w\"“(]+|\d+[.)]\s+)+", "", s.strip())  # bullets, "1)", "]"
+            if (len(s.split()) >= 6 and not s[:1].islower()   # lower-case = fragment
+                    and s.count("(") == s.count(")")          # cut at "(e.g."
+                    and not _OFFTOPIC_SENT.search(s)
+                    and not _NOT_PROSE.search(s) and not _AUTHOR_VOICE.search(s)):
+                out.append(s)
+    return out
 
 
 def _sentences(text: str, n: int = 2) -> str:
@@ -402,14 +629,22 @@ def _sentences(text: str, n: int = 2) -> str:
     """
     t = _clean(text)
     # Sentences that end on ./!/? (the regex requires the terminator be present).
-    complete = [s.strip() for s in re.findall(r".+?[.!?](?=\s|$)", t)
-                if not _OFFTOPIC_SENT.search(s)]
+    found = [s.strip() for s in re.findall(r".+?[.!?](?=\s|$)", t)]
+    complete = [s for s in found if not _OFFTOPIC_SENT.search(s)
+                and not _AUTHOR_VOICE.search(s) and not _NOT_PROSE.search(s)]
     out = " ".join(complete[:n]).strip()
-    if not out:                                     # no full sentence -> take the lead
-        out = t[:160].rsplit(" ", 1)[0].strip()
-        if out and out[-1] not in ".!?":
+    # Nothing survived: fall back to the unterminated remainder (a summary truncated
+    # mid-sentence, or a last line with no full stop) — never to the filtered
+    # sentences, or the first-person text they held comes straight back.
+    if not out:
+        rest = re.sub(r".+?[.!?](?=\s|$)", "", t).strip()
+        out = rest if len(rest) <= 160 else rest[:160].rsplit(" ", 1)[0]
+        if (len(out.split()) < 4 or _AUTHOR_VOICE.search(out)
+                or _OFFTOPIC_SENT.search(out) or _NOT_PROSE.search(out)):
+            out = ""
+        elif out[-1] not in ".!?":
             out += "."
-    return out
+    return out[:1].upper() + out[1:]                # "visual replacer w elf ears…"
 
 
 def _spoken_name(name: str) -> str:
@@ -423,6 +658,66 @@ def _spoken_name(name: str) -> str:
     return n or (name or "").strip()
 
 
+# Spoken tier verdicts. The reference channel's own tier-list video states a
+# placement out loud after every showcase, with a reason and usually a caveat —
+# "Bottom of the Well goes to Hearthfire Comfort tier: it has a great location and
+# convenience, plausible lore, and great compact detailing, but navmeshing is not
+# great." Our tier-list videos put the tier on a card and never said why, which left
+# the format's central claim unargued. These justify the placement from what we
+# actually know (where the mod sits in the ranking), never from invented specifics.
+_VERDICT_TOP = [
+    "{name} goes straight into {tier} tier — this is the level where a mod stops "
+    "being a nice addition and starts being part of how you play.",
+    "That puts {name} in {tier} tier for me. Very little on this list is doing "
+    "something this substantial.",
+]
+_VERDICT_MID = [
+    "{name} lands in {tier} tier: genuinely good, and it earns its place, but it "
+    "isn't reshaping your game the way the top of this list does.",
+    "I'm putting {name} in {tier} tier — solid, well-liked, and worth the slot, "
+    "just short of essential.",
+]
+_VERDICT_LOW = [
+    "{name} sits in {tier} tier. It does one thing, it does it well, and whether "
+    "you want it comes down to whether you want that one thing.",
+    "That's {tier} tier for {name} — a narrow pick rather than a load-order "
+    "staple, but the right choice for the right playthrough.",
+]
+
+
+def tier_verdict(name: str, tier: str, rank: int, total: int,
+                 rng: random.Random | None = None) -> str:
+    """One spoken sentence placing a mod in its tier, for `ranked_tier_list` specs.
+
+    `rank` is the countdown position (1 = best), so the pool is chosen by where the
+    entry actually sits. The claim is about the ranking, which we know, rather than
+    about the mod's internals, which we would have to invent.
+    """
+    rng = rng or random.Random(f"{name}|{tier}|{rank}")
+    frac = 1.0 - ((rank - 1) / max(total - 1, 1))    # 1.0 = best entry
+    pool = _VERDICT_TOP if frac >= 0.72 else (_VERDICT_MID if frac >= 0.38
+                                              else _VERDICT_LOW)
+    return rng.choice(pool).format(name=_spoken_name(name), tier=tier)
+
+
+def _pick_beat(pool: list, page: str, idx: int, rng: random.Random) -> str:
+    """One editorial beat from `pool` that the mod's own page supports.
+
+    An entry is a plain string (always true) or a (text, pattern[, unless]) tuple
+    that only applies when `pattern` matches the page and `unless` doesn't — the
+    same rule as _bridge(): never assert what the page doesn't show. No fitting
+    beat means no beat. The RNG is drawn exactly as before gating existed, so
+    ungated pools pick identically.
+    """
+    if not pool:
+        return ""
+    r = rng.randint(0, len(pool) - 1)
+    fits = [b if isinstance(b, str) else b[0] for b in pool
+            if isinstance(b, str) or (re.search(b[1], page, re.I | re.S) and not (
+                len(b) > 2 and re.search(b[2], page, re.I)))]
+    return fits[(idx + r) % len(fits)] if fits else ""
+
+
 def _clean_author(name: str) -> str:
     """Tidy author display names (drop 'Deleted…User' tombstones and noise)."""
     name = (name or "").strip()
@@ -432,38 +727,47 @@ def _clean_author(name: str) -> str:
 
 
 def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
-                   category: str, rng: random.Random) -> str:
+                   category: str, rng: random.Random, prev: Mod | None = None) -> str:
     """Compose one entry: rank lead-in + name/author + real summary + an editorial
     'who it's for' take + a data-driven proof line. The mix and phrasing are drawn from
     a per-video RNG so segments vary within a video and across videos (anti-template)."""
     author = _clean_author(mod.uploaded_by or mod.author)
-    name = _spoken_name(mod.name)
+    # Some titles already carry "by <author>"; the template adds it again.
+    name = re.sub(rf"\s+by\s+{re.escape(author)}\b.*$", "", _spoken_name(mod.name),
+                  flags=re.I) or _spoken_name(mod.name)
     desc = _sentences(mod.summary, 4)
-    values = flavour.get("values", _GENERIC_VALUES)
+    values = flavour.get("values", [])
     who = _WHO_FOR.get(category, _WHO_FOR_GENERIC)
-    # Editorial beats: one category value + one "who it's for", phrased from the pools
-    # at offsets seeded per video so different uploads don't reuse the same lines.
-    # Two distinct category "value" beats + a "who it's for" + a data-proof line, all
-    # phrased from per-video-seeded offsets so uploads don't reuse the same lines.
-    value = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
-    value2 = values[(idx + rng.randint(0, len(values) - 1)) % len(values)]
-    who_line = who[(idx + rng.randint(0, len(who) - 1)) % len(who)]
+    # One category value beat and one "who it's for" — opinion, which the reference
+    # channel does give. What it never does is pad with content-free lines, so there
+    # is exactly one of each and the rest of the entry is the mod's own detail.
+    page = f"{mod.name} {mod.summary}"      # the pitch; a full page mentions everything
+    value = _pick_beat(values, page, idx, rng)
+    who_line = _pick_beat(who, page, idx, rng)
     proof = _proof_sentence(mod, rng)
 
     # Editorial beats, de-duplicated so no sentence repeats inside one entry.
     extras = []
-    for s in [value, who_line, value2] + ([proof] if proof else []):
+    for s in [value, who_line] + ([proof] if proof else []):
         if s and s not in extras:
             extras.append(s)
 
     def _pad(text: str, target: int) -> str:
-        """Top up to ~target words with generic lines not already used (keeps each
-        entry long enough to land the video in the 10-15 min band at ~176 wpm)."""
-        for cand in rng.sample(_GENERIC_VALUES, len(_GENERIC_VALUES)):
+        """Top up to ~target words with more of the mod's OWN description.
+
+        The reference channel fills a segment with specifics — counts, options,
+        requirements, how you actually get the thing in game — so this mines further
+        into the mod page rather than appending generic filler. An entry whose page
+        has nothing more to say simply comes out shorter; that is the correct
+        outcome, and padding it was both invented content and, for a mod with a
+        couple of hundred endorsements, factually wrong.
+        """
+        have = set(text.split("."))
+        for s in _page_sentences(mod.description):
             if len(text.split()) >= target:
                 break
-            if cand not in text:
-                text += " " + cand
+            if s not in have and s not in text:
+                text += " " + s
         return text
 
     if rank == 1:
@@ -475,15 +779,48 @@ def _mod_narration(mod: Mod, rank: int, idx: int, flavour: dict, total: int,
 
     lead = _LEADS[(idx + rng.randint(0, len(_LEADS) - 1)) % len(_LEADS)].format(
         o=_ORD.get(rank, str(rank)))
+    # Bridge roughly every third entry: the reference channel uses these to break up a
+    # run of cold announcements, not on every single one, which would be its own tic.
+    bridge = _bridge(prev, mod, rng) if idx % 3 == 1 else ""
+    if bridge:
+        # Only a bridge that hands off mid-sentence ("Speaking of combat, ") lowercases
+        # the lead; one that closes its own sentence must leave it capitalised.
+        joins_mid = bridge.rstrip().endswith(",")
+        lead = bridge + (lead[0].lower() + lead[1:] if joins_mid else lead)
     rng.shuffle(extras)              # vary ordering so the structure isn't identical
     body = f"{lead} {name} by {author}. " + (desc + " " if desc else "") + " ".join(extras)
     return _WS.sub(" ", _pad(body, _MIN_WORDS_PER_MOD)).strip()
 
 
+def _to_all_time(text: str, year: int) -> str:
+    """Rewrite a year-scoped opening into an all-time one.
+
+    The templates say things like "the best vampire mods in 2026" and "released in
+    2026". On a list that spans the whole of Skyrim modding those are false, and a
+    viewer notices immediately when the number one entry is eight years old.
+    """
+    y = str(year)
+    for a, b in ((f"in {y}", "of all time"), (f"of {y}", "of all time"),
+                 (f"by {y}", "by now"), (f"released in {y}", "ever released"),
+                 (f"install in {y}", "install today"),
+                 (f"you can play in {y}", "you can play")):
+        text = text.replace(a, b)
+    # A leftover bare year ("Another year of Skyrim modding…") would still date it.
+    text = re.sub(rf"\b{y}\b", "all time", text)
+    return re.sub(r"\ball time all time\b", "all time", text)
+
+
 def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
                flavour: dict | None = None,
-               galleries: dict[int, list[str]] | None = None) -> dict:
-    """Assemble a full script spec (hook/intro/countdown/outro) from ranked mods."""
+               galleries: dict[int, list[str]] | None = None,
+               all_time: bool = False) -> dict:
+    """Assemble a full script spec (hook/intro/countdown/outro) from ranked mods.
+
+    `all_time` is for a list that isn't scoped to a year ("best vampire mods of all
+    time"). Every hook and outro template interpolates the current year, so without
+    it an all-time episode opens by calling itself a {year} list, which is simply
+    wrong.
+    """
     galleries = galleries or {}
     fl = flavour or _FLAVOUR.get(category, {})
     title_base = fl.get("title", f"Best Skyrim {category.title()} Mods")
@@ -498,13 +835,25 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
     short = noun.replace(" mods", "").title()
     title_options = _unique_titles(category, short, n, year, part, rng)
     title = title_options[0]
+    def _caps(text: str) -> str:
+        """Capitalise after sentence breaks — the teaser is a lower-case clause and
+        templates may drop it either mid-sentence or at the start of one."""
+        return re.sub(r"([.!?]\s+)([a-z])",
+                      lambda m: m.group(1) + m.group(2).upper(), text)
+
+    teaser = _teaser(mods, rng)
     if part and part > 1:
-        hook = rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun, year=year)
+        hook = _caps(rng.choice(_HOOKS_PART).format(part=part, n=n, noun=noun,
+                                                    year=year, teaser=teaser))
     else:
-        hook = rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year)
+        hook = _caps(rng.choice(_HOOKS_FIRST).format(n=n, noun=noun, year=year,
+                                                     teaser=teaser))
 
     intro = rng.choice(_INTROS).format(nord=nord)
     outro = rng.choice(_OUTROS).format(n=n, noun=noun, year=year)
+
+    if all_time:
+        hook, outro = (_to_all_time(hook, year), _to_all_time(outro, year))
 
     segments = [
         {"kind": "hook", "narration": hook},
@@ -515,7 +864,8 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
         rank = n - idx                       # countdown: first shown is number n
         segments.append({
             "kind": "mod", "ref": idx + 1,
-            "narration": _mod_narration(mod, rank, idx, fl, n, category, rng),
+            "narration": _mod_narration(mod, rank, idx, fl, n, category, rng,
+                                        prev=mods[idx - 1] if idx else None),
         })
         gal = galleries.get(mod.mod_id) or {}
         if isinstance(gal, list):                 # back-compat: bare image list
@@ -572,7 +922,7 @@ def build_spec(category: str, mods: list[Mod], *, part: int | None = None,
 # for weak video segments. Matched case-insensitively against the mod name.
 _JUNK = re.compile(
     r"\b(translation|delayed start|alternate routes?|bugfix|hotfix|"
-    r"completion tracker|quest markers?|patch|cleaned|tweak|unofficial|"
+    r"completion tracker|quest markers?|patch|cleaned|tweaks?|unofficial|"
     r"add-?on)\b", re.I)
 
 

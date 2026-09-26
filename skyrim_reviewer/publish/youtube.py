@@ -165,8 +165,11 @@ def publish_slug_youtube(slug: str, privacy: str = "private",
     description = _read(out / f"{slug}.description.txt")
     tags_raw = _read(out / f"{slug}.tags.txt")
     tags = [t.strip() for t in tags_raw.replace("\n", ",").split(",") if t.strip()]
-    # thumbnail: prefer the first A/B variant, else the single thumbnail.png
-    thumb = next(iter(sorted(Path(f"work/{slug}/thumbs").glob("thumb_v*.png"))), None) \
+    # thumbnail: the tier-strip style is the channel's current look, then an A/B
+    # variant, then the legacy single thumbnail.
+    tierlist = Path(f"work/{slug}/thumbnail_tierlist.png")
+    thumb = (tierlist if tierlist.exists() else None) \
+        or next(iter(sorted(Path(f"work/{slug}/thumbs").glob("thumb_v*.png"))), None) \
         or (Path(f"work/{slug}/thumbnail.png") if Path(f"work/{slug}/thumbnail.png").exists()
             else None)
     res = upload_video(str(video), title, description, tags, privacy=privacy,

@@ -16,6 +16,7 @@ class VideoFormat(str, Enum):
     category_list = "category_list"
     transformation = "transformation"
     weekly_roundup = "weekly_roundup"
+    ranked_tier_list = "ranked_tier_list"
 
 
 class MediaAsset(BaseModel):
@@ -32,6 +33,10 @@ class Mod(BaseModel):
     mod_id: int
     name: str
     summary: str = ""
+    # The mod page's full description (BBCode). The summary is one blurb, which is
+    # not enough real material to fill a segment — narration mines this instead of
+    # padding with generic filler.
+    description: str = ""
     author: str = ""
     uploaded_by: str = ""
     category_id: Optional[int] = None
@@ -61,6 +66,10 @@ class Segment(BaseModel):
     narration: str = ""           # what the TTS voice says
     target_seconds: float = 0.0   # planned duration
     mod_id: Optional[int] = None  # link back to the Mod, if kind == "mod"
+    # ranked_tier_list format only (kind == "mod"): the on-screen verdict card.
+    tier: Optional[str] = None                         # e.g. "S" | "A" | "B" | "C"
+    scorecard: dict[str, float] = Field(default_factory=dict)  # criterion -> 0-5 stars
+    best_for: str = ""                                  # one-line "who this is for"
     # Filled by later stages:
     audio_path: Optional[str] = None
     audio_seconds: Optional[float] = None

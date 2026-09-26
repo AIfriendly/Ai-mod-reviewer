@@ -36,6 +36,24 @@ class TTSProvider(abc.ABC):
         return script
 
 
+def wav_to_mp3(wav_path: Path, out_path: Path, bitrate: str = "192k") -> None:
+    """Encode a provider's raw WAV to the requested mp3, then drop the WAV.
+
+    The bitrate is explicit because lame's mono default lands at 64k, which is
+    audibly muddy on speech — and narration is only an intermediate here, mixed
+    with music and re-encoded to AAC for the final video, so a lossy first pass
+    compounds. 192k is transparent enough for that second encode to survive.
+    """
+    import subprocess
+
+    from ..utils.ffmpeg import ffmpeg_path
+
+    subprocess.run([ffmpeg_path(), "-y", "-i", str(wav_path),
+                    "-c:a", "libmp3lame", "-b:a", bitrate, str(out_path)],
+                   capture_output=True, check=True)
+    wav_path.unlink(missing_ok=True)
+
+
 def _audio_duration(path: Path) -> float:
     """Probe duration via ffprobe/ffmpeg; fall back to a words-per-minute estimate."""
     import subprocess

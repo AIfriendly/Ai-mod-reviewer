@@ -1,0 +1,116 @@
+# Chat-authored ranked_tier_list video — runs with NO API keys.
+#   skyrim-reviewer make gameplay --fmt ranked_tier_list \
+#       --script examples/ranked_gameplay_mods.yaml
+#
+# Mods are illustrative placeholders (media_ok: false -> the pipeline shows a
+# neutral slate and credits each author). Swap in the real mods you use, set their
+# page_url, and flip media_ok to true ONLY for authors who permitted media reuse.
+# tier/scorecard/best_for on each mod segment drive the on-screen verdict card
+# (edit/tier_list.py) — scorecard keys must match config/channel.yaml tier_list.scorecard_criteria.
+
+title: "I Ranked Every Skyrim Gameplay Overhaul So You Don't Have To"
+hook_line: "Ranking Every Gameplay Overhaul"
+format: ranked_tier_list
+next_topic: "Ranking every Skyrim follower mod"
+tags: [skyrim, skyrim mods, gameplay overhaul, tier list, skyrim ranked]
+description: >
+  I installed and actually played through three of Skyrim's biggest gameplay
+  overhauls back to back and ranked them S to C tier — no favorites, just what
+  it was actually like to play each one.
+
+mods:
+  - name: "Frostfall Reforged"
+    author: "PlaceholderAuthorA"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000101"
+    summary: "A survival overhaul adding cold, hunger, and camping to every playthrough."
+    media_ok: false
+  - name: "Wildcat Combat"
+    author: "PlaceholderAuthorB"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000102"
+    summary: "A combat rebalance with timing-based blocking and heavier stagger."
+    media_ok: false
+  - name: "Perkus Maximus Lite"
+    author: "PlaceholderAuthorC"
+    page_url: "https://www.nexusmods.com/skyrimspecialedition/mods/000103"
+    summary: "A leaner perk-tree overhaul that touches every skill line."
+    media_ok: false
+
+segments:
+  - kind: hook
+    title: "Cold open"
+    target_seconds: 12
+    narration: >
+      Three of the biggest gameplay overhauls Skyrim has, all installed, all
+      actually played through — not for an hour, for a full playthrough each.
+      By the end, every one of them lands on a tier list.
+
+  - kind: intro
+    title: "The rules"
+    target_seconds: 30
+    narration: >
+      Quick ground rules before we start. I played all three of these myself,
+      so this is entirely my own experience — not a judgement on how much work
+      any author put in. Each one gets a quick scorecard on screen, then a tier
+      placement. You're going to disagree with some of these, and that's half
+      the fun of a tier list. Let's get into it.
+
+  - kind: mod
+    ref: 1
+    title: "Frostfall Reforged"
+    target_seconds: 70
+    tier: "B"
+    scorecard: {Impact: 4, Uniqueness: 4.5, Polish: 3.5, Compatibility: 3}
+    best_for: "Players who want Skyrim to fight back, not just look prettier."
+    narration: >
+      First up, Frostfall Reforged. The pitch is simple: the cold is now an
+      enemy. Camp wrong, dress wrong, and a routine trip to Winterhold can kill
+      you. What actually surprised me was how much it changed my ROUTE planning
+      — I started avoiding the high passes I used to jog through without a
+      second thought. The downside is it asks a lot of other mods to cooperate
+      cleanly, and I did hit a couple of rough patches getting my outfit mods to
+      register properly. Still, for anyone who wants Skyrim's world to feel
+      genuinely hostile, this delivers. I'm putting Frostfall Reforged in B tier.
+
+  - kind: mod
+    ref: 2
+    title: "Wildcat Combat"
+    target_seconds: 70
+    tier: "A"
+    scorecard: {Impact: 4.5, Uniqueness: 4, Polish: 4.5, Compatibility: 4.5}
+    best_for: "Anyone who wants tighter combat without rebuilding their whole load order."
+    narration: >
+      Compared to Frostfall, Wildcat is a much smaller ask — and that's exactly
+      why it works so well. Blocking now actually matters, stagger has real
+      weight, and fights against more than one enemy stopped being a button-mash
+      and started being a thing I had to think about. It slots in cleanly next
+      to almost anything else you're running, which after Frostfall's
+      compatibility headaches was a genuine relief. My only knock is that
+      higher-difficulty fights can occasionally spike harder than feels fair.
+      Wildcat Combat goes into A tier.
+
+  - kind: mod
+    ref: 3
+    title: "Perkus Maximus Lite"
+    target_seconds: 70
+    tier: "C"
+    scorecard: {Impact: 3.5, Uniqueness: 3, Polish: 3, Compatibility: 2.5}
+    best_for: "Players starting a brand-new character who want every skill tree to matter."
+    narration: >
+      And finally, Perkus Maximus Lite. Unlike the first two, this one touches
+      basically every skill line at once, so the honest way to judge it is on a
+      fresh character, not a save you already like. It does make minor skills
+      feel worth investing in for once. But it's also the mod I had the most
+      trouble with — a few perks just didn't trigger the way the description
+      promised, and it wants a from-scratch playthrough to really shine, which
+      is a big ask compared to the other two. Perkus Maximus Lite lands in
+      C tier — not bad, just the one I'd recommend the most specific kind of
+      player.
+
+  - kind: outro
+    title: "The board"
+    target_seconds: 25
+    narration: >
+      And that's the board — Wildcat up top, Frostfall right behind it, Perkus
+      Maximus Lite a more specific pick. This obviously isn't every gameplay
+      overhaul out there, so tell me which one has to be in a part two. See you
+      in the next one.

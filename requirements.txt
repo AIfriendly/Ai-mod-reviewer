@@ -20,6 +20,9 @@ yt-dlp>=2025.1.1     # public channel stats + transcripts, NO YouTube API key ne
 # --- Voice (text-to-speech) ---
 # ElevenLabs cloned-voice provider (optional, only needed for that provider)
 elevenlabs>=1.0 ; python_version >= "3.9"
+# F5-TTS / Chatterbox / Qwen3-TTS (local zero-shot voice clone providers) are
+# installed on demand — see README "Voice" section — kept out of the base
+# install so a plain `pip install -e .` stays light.
 
 # --- Video / image editing ---
 moviepy>=1.0.3,<2.0  # timeline assembly (1.x API: set_duration/resize/set_position)
